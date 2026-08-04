@@ -1,0 +1,12 @@
+{
+  "SeparateImageWindow": false,
+  "GeneralInfoBoxHeight": 108,
+  "InstructionBoxHeight": 147,
+  "EmbeddedImageBoxHeight": 247,
+  "Language": 0,
+  "EnableOcr": true,
+  "OcrX": 628,
+  "OcrY": 62,
+  "OcrW": 43,
+  "OcrH": 32
+}
