@@ -17,3 +17,5 @@ exports/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+*.png
