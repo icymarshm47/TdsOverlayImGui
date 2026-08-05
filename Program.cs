@@ -12,9 +12,9 @@ namespace TdsOverlayImGui
     public class TdsImGuiOverlay : Overlay
     {
         // ВАШИ ДАННЫЕ НА GITHUB
-        private const string GitHubOwner = "icymarshm47";         // Имя вашего аккаунта GitHub
-        private const string GitHubRepo = "TdsOverlayImGui";   // Название репозитория
-        private const string CurrentAppVersion = "0.3";      // Текущая версия приложения
+        private const string GitHubOwner = "icymarshm47";
+        private const string GitHubRepo = "TdsOverlayImGui";
+        private const string CurrentAppVersion = "1.0.0";
 
         private List<MapStrategy> _strategies = new();
         private AppSettings _settings = new();
@@ -23,7 +23,7 @@ namespace TdsOverlayImGui
         private int _currentStepIndex = 0;
         private int _currentImageIndex = 0;
 
-        // Флаг работы главного окна ImGui (если false — закрываем приложение)
+        // Флаг работы главного окна ImGui
         private bool _isOverlayOpen = true;
 
         // Auto Update State
@@ -108,7 +108,6 @@ namespace TdsOverlayImGui
             _strategies = StrategyService.LoadStrategies();
             _selectedMapIndex = -1;
 
-            // Запускаем фоновую проверку обновлений при старте
             CheckForUpdatesInBackground(silent: true);
         }
 
@@ -152,8 +151,7 @@ namespace TdsOverlayImGui
 
             ImGui.SetNextWindowSize(new Vector2(520, 600), ImGuiCond.FirstUseEver);
 
-            // Передача ref _isOverlayOpen включает нативный крестик (X) в правом верхнем углу ImGui
-            ImGui.Begin("TDS Strategy Overlay (ImGui)", ref _isOverlayOpen, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.MenuBar);
+            ImGui.Begin("TDS Strategy Overlay", ref _isOverlayOpen, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.MenuBar);
 
             if (ImGui.BeginMenuBar())
             {
@@ -237,6 +235,434 @@ namespace TdsOverlayImGui
             }
         }
 
+        private void SetupStyle()
+        {
+            if (_styleConfigured) return;
+
+            var style = ImGui.GetStyle();
+            style.WindowRounding = 8.0f;
+            style.FrameRounding = 6.0f;
+            style.PopupRounding = 6.0f;
+            style.ScrollbarRounding = 6.0f;
+            style.ItemSpacing = new Vector2(8, 6);
+
+            var colors = style.Colors;
+            colors[(int)ImGuiCol.WindowBg] = new Vector4(0.07f, 0.08f, 0.09f, 0.96f);
+            colors[(int)ImGuiCol.ChildBg] = new Vector4(0.10f, 0.11f, 0.13f, 1.00f);
+            colors[(int)ImGuiCol.Header] = new Vector4(0.18f, 0.19f, 0.22f, 1.0f);
+            colors[(int)ImGuiCol.HeaderHovered] = new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
+            colors[(int)ImGuiCol.HeaderActive] = new Vector4(0.45f, 0.49f, 1.00f, 1.0f);
+            colors[(int)ImGuiCol.Button] = new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
+            colors[(int)ImGuiCol.ButtonHovered] = new Vector4(0.28f, 0.32f, 0.77f, 1.0f);
+            colors[(int)ImGuiCol.ButtonActive] = new Vector4(0.22f, 0.25f, 0.60f, 1.0f);
+            colors[(int)ImGuiCol.FrameBg] = new Vector4(0.14f, 0.15f, 0.17f, 1.0f);
+            colors[(int)ImGuiCol.FrameBgHovered] = new Vector4(0.20f, 0.22f, 0.26f, 1.0f);
+
+            _styleConfigured = true;
+        }
+
+        private void RenderMainUI()
+        {
+            // Карточка выбора стратегии (Выпадающий список)
+            ImGui.BeginChild("MapSelectorCard", new Vector2(0, 75), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+
+            ImGui.TextDisabled(Loc.Tr("SelectStrategyHeader"));
+
+            var comboItemsList = new List<string> { Loc.Tr("SelectStrategyCombo") };
+            for (int i = 0; i < _strategies.Count; i++)
+            {
+                comboItemsList.Add(_strategies[i].DisplayName);
+            }
+
+            string[] comboItems = comboItemsList.ToArray();
+            int currentComboIdx = 0;
+            if (_selectedMapIndex >= 0 && _selectedMapIndex < _strategies.Count)
+            {
+                currentComboIdx = _selectedMapIndex + 1;
+            }
+
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            if (ImGui.Combo("##MapSelect", ref currentComboIdx, comboItems, comboItems.Length))
+            {
+                if (currentComboIdx > 0 && currentComboIdx <= _strategies.Count)
+                {
+                    _selectedMapIndex = currentComboIdx - 1;
+                }
+                else
+                {
+                    _selectedMapIndex = -1;
+                }
+                _currentStepIndex = 0;
+                _currentImageIndex = 0;
+                _isEditing = false;
+                ResetImageTransform();
+            }
+
+            if (ImGui.Button(Loc.Tr("AddStrategy")))
+            {
+                _showAddMapModal = true;
+            }
+
+            if (_selectedMapIndex >= 0 && _selectedMapIndex < _strategies.Count)
+            {
+                var map = _strategies[_selectedMapIndex];
+
+                ImGui.SameLine();
+                string editBtnText = _isEditing ? Loc.Tr("ViewMode") : Loc.Tr("EditStrategy");
+                if (ImGui.Button(editBtnText))
+                {
+                    _isEditing = !_isEditing;
+                    if (_isEditing)
+                    {
+                        _editMapName = map.MapName;
+                        _editDifficulty = map.Difficulty;
+                        _editStrategyName = map.StrategyName;
+                        _editGeneralInfo = map.GeneralInfo;
+                    }
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Button(Loc.Tr("DeleteStrategy")))
+                {
+                    _showDeleteConfirmModal = true;
+                }
+            }
+
+            ImGui.EndChild();
+            ImGui.Spacing();
+
+            if (_selectedMapIndex < 0 || _selectedMapIndex >= _strategies.Count)
+            {
+                ImGui.Spacing();
+                ImGui.TextColored(new Vector4(1.0f, 0.8f, 0.2f, 1.0f), Loc.Tr("NoStrategySelected"));
+                ImGui.TextWrapped(Loc.Tr("SelectStrategyPrompt"));
+                return;
+            }
+
+            var currentMap = _strategies[_selectedMapIndex];
+            int activeWave = _detectedWaveNumber ?? _currentWaveNumber;
+
+            // ПАНЕЛЬ СКАНЕРА OCR
+            ImGui.BeginChild("OcrHeaderCard", new Vector2(0, 42), true);
+            bool enableOcr = _settings.EnableOcr;
+            if (ImGui.Checkbox(Loc.Tr("AutoOcrHeader"), ref enableOcr))
+            {
+                _settings.EnableOcr = enableOcr;
+                StrategyService.SaveSettings(_settings);
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button(Loc.Tr("SelectOcrRegionBtn")))
+            {
+                _isSelectingOcrRegion = true;
+                _ocrSelectionState = 0;
+            }
+
+            ImGui.EndChild();
+            ImGui.Spacing();
+
+            if (!_isEditing)
+            {
+                // 1. КАРТОЧКА ПРОГРЕССА И ТЕКУЩЕЙ ВОЛНЫ (ТЕПЕРЬ НАВЕРХУ Выше General Info)
+                if (currentMap.Steps.Count > 0)
+                {
+                    if (_currentStepIndex >= currentMap.Steps.Count)
+                    {
+                        _currentStepIndex = 0;
+                    }
+
+                    var step = currentMap.Steps[_currentStepIndex];
+
+                    ImGui.BeginChild("StepProgressCard", new Vector2(0, 115), true);
+
+                    ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("CurrentWaveHeader"));
+                    ImGui.SameLine();
+
+                    ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), $"[ {activeWave} ]");
+
+                    if (_detectedWaveNumber.HasValue)
+                    {
+                        ImGui.SameLine();
+                        ImGui.TextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Loc.Tr("AutoOcrTag"));
+                    }
+
+                    ImGui.SameLine();
+                    ImGui.SetNextItemWidth(80);
+                    if (ImGui.InputInt("##ManualWaveInput", ref _currentWaveNumber, 1, 5))
+                    {
+                        _currentWaveNumber = Math.Clamp(_currentWaveNumber, 1, 100);
+                        _detectedWaveNumber = null;
+                        UpdateStepByWaveNumber(currentMap, _currentWaveNumber);
+                    }
+
+                    float progress = (float)(_currentStepIndex + 1) / currentMap.Steps.Count;
+                    ImGui.ProgressBar(progress, new Vector2(-1, 6), "");
+
+                    ImGui.TextDisabled($"{Loc.Tr("Step")} {_currentStepIndex + 1} {Loc.Tr("Of")} {currentMap.Steps.Count}");
+                    ImGui.SameLine();
+
+                    bool isOcrMatched = activeWave >= step.StartWave && activeWave <= step.EndWave;
+                    Vector4 waveColor = isOcrMatched ? new Vector4(0.3f, 1.0f, 0.4f, 1.0f) : new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
+                    ImGui.TextColored(waveColor, $"{Loc.Tr("Waves")} {step.StartWave} - {step.EndWave}");
+
+                    if (isOcrMatched)
+                    {
+                        ImGui.SameLine();
+                        ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), Loc.Tr("ActiveInGame"));
+                    }
+
+                    if (ImGui.Button("|<")) { _currentStepIndex = 0; ResetImageTransform(); }
+                    ImGui.SameLine();
+                    if (ImGui.Button(Loc.Tr("PrevStep")))
+                    {
+                        if (_currentStepIndex > 0) { _currentStepIndex--; ResetImageTransform(); }
+                    }
+                    ImGui.SameLine();
+                    if (ImGui.Button(Loc.Tr("NextStep")))
+                    {
+                        if (_currentStepIndex < currentMap.Steps.Count - 1) { _currentStepIndex++; ResetImageTransform(); }
+                    }
+                    ImGui.SameLine();
+                    if (ImGui.Button(">|")) { _currentStepIndex = currentMap.Steps.Count - 1; ResetImageTransform(); }
+
+                    ImGui.EndChild();
+                    ImGui.Spacing();
+                }
+
+                // 2. ОБЩАЯ ИНФОРМАЦИЯ И ЛОАДАУТ (ТЕПЕРЬ ПОД ТЕКУЩЕЙ ВОЛНОЙ)
+                if (!string.IsNullOrWhiteSpace(currentMap.GeneralInfo))
+                {
+                    ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("GeneralInfo"));
+                    float infoH = _settings.GeneralInfoBoxHeight;
+                    ImGui.BeginChild("GeneralInfoScroll", new Vector2(0, infoH), true);
+
+                    string[] lines = currentMap.GeneralInfo.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+                    for (int lineIdx = 0; lineIdx < lines.Length; lineIdx++)
+                    {
+                        string rawLine = lines[lineIdx];
+                        string taskKey = $"gen_{_selectedMapIndex}_{lineIdx}";
+                        RenderInstructionLine(rawLine, activeWave, taskKey);
+                    }
+
+                    ImGui.EndChild();
+
+                    _settings.GeneralInfoBoxHeight = DrawHeightResizeHandle(_settings.GeneralInfoBoxHeight, 40.0f, 400.0f, "GeneralInfoHandle");
+                    ImGui.Spacing();
+                }
+
+                // 3. ЛЕНТА ИНСТРУКЦИЙ
+                if (currentMap.Steps.Count > 0)
+                {
+                    var step = currentMap.Steps[_currentStepIndex];
+
+                    ImGui.Text(Loc.Tr("InstructionHeader"));
+                    ImGui.SameLine();
+
+                    if (ImGui.Button(Loc.Tr("CopyInstruction")))
+                    {
+                        ImGui.SetClipboardText(step.Instruction);
+                        _toastTimer = 2.0f;
+                    }
+
+                    ImGui.SameLine();
+
+                    if (ImGui.Button(Loc.Tr("ClearChecks")))
+                    {
+                        _completedTasks.Clear();
+                    }
+
+                    if (_toastTimer > 0)
+                    {
+                        _toastTimer -= ImGui.GetIO().DeltaTime;
+                        ImGui.SameLine();
+                        ImGui.TextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Loc.Tr("CopiedToast"));
+                    }
+
+                    float textH = _settings.InstructionBoxHeight;
+                    ImGui.BeginChild("StepScroll", new Vector2(0, textH), true);
+
+                    if (string.IsNullOrWhiteSpace(step.Instruction))
+                    {
+                        ImGui.TextWrapped("[...]");
+                    }
+                    else
+                    {
+                        string[] lines = step.Instruction.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+
+                        for (int lineIdx = 0; lineIdx < lines.Length; lineIdx++)
+                        {
+                            string rawLine = lines[lineIdx];
+                            string taskKey = $"{_selectedMapIndex}_{_currentStepIndex}_{lineIdx}";
+
+                            RenderInstructionLine(rawLine, activeWave, taskKey);
+                        }
+                    }
+
+                    if (_settings.SeparateImageWindow && currentMap.ImagePaths.Count > 0)
+                    {
+                        ImGui.Spacing();
+                        ImGui.TextDisabled($"{Loc.Tr("SeparateImageNotice")} ({currentMap.ImagePaths.Count})");
+                    }
+
+                    ImGui.EndChild();
+
+                    _settings.InstructionBoxHeight = DrawHeightResizeHandle(_settings.InstructionBoxHeight, 60.0f, 500.0f, "InstructionTextHandle");
+
+                    if (!_settings.SeparateImageWindow && currentMap.ImagePaths.Count > 0)
+                    {
+                        ImGui.Spacing();
+                        ImGui.Separator();
+
+                        RenderImageSelector(currentMap);
+
+                        string? currentImg = GetActiveImagePath(currentMap);
+                        if (!string.IsNullOrEmpty(currentImg) && File.Exists(currentImg))
+                        {
+                            RenderImageCanvas(currentImg, _settings.EmbeddedImageBoxHeight, $"EmbeddedCanvas_{_currentImageIndex}", enableResizeGrip: true);
+                        }
+                    }
+                }
+                else
+                {
+                    ImGui.Text(Loc.Tr("NoStepsNotice"));
+                    if (ImGui.Button(Loc.Tr("AddDefaultStepBtn")))
+                    {
+                        currentMap.Steps.Add(new StrategyStep { StartWave = 1, EndWave = 30, Instruction = "..." });
+                        StrategyService.SaveStrategy(currentMap);
+                    }
+                }
+            }
+            else
+            {
+                // РЕЖИМ РЕДАКТИРОВАНИЯ
+                ImGui.TextColored(new Vector4(1f, 0.8f, 0.2f, 1f), Loc.Tr("EditingTitle"));
+                ImGui.Spacing();
+
+                ImGui.Text($"{Loc.Tr("StrategyVariant")}:");
+                ImGui.InputText("##EditStrategyName", ref _editStrategyName, 100);
+
+                ImGui.Text($"{Loc.Tr("MapName")}:");
+                ImGui.InputText("##EditMapName", ref _editMapName, 100);
+
+                ImGui.Text($"{Loc.Tr("Difficulty")}:");
+                ImGui.InputText("##EditDifficulty", ref _editDifficulty, 50);
+
+                ImGui.Spacing();
+                ImGui.Text(Loc.Tr("GeneralInfoLabel"));
+                ImGui.InputTextMultiline("##EditGeneralInfo", ref _editGeneralInfo, 1000, new Vector2(-1, 60), ImGuiInputTextFlags.AllowTabInput);
+
+                ImGui.Separator();
+                ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ImagesHeader"));
+
+                for (int imgIdx = 0; imgIdx < currentMap.ImagePaths.Count; imgIdx++)
+                {
+                    ImGui.PushID($"mapImg_{imgIdx}");
+                    string imgPath = currentMap.ImagePaths[imgIdx];
+
+                    ImGui.Text(string.Format(Loc.Tr("PhotoNum"), imgIdx + 1));
+                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 110);
+                    if (ImGui.InputText($"##ImgPath_{imgIdx}", ref imgPath, 260))
+                    {
+                        currentMap.ImagePaths[imgIdx] = imgPath;
+                    }
+
+                    ImGui.SameLine();
+                    if (ImGui.Button(Loc.Tr("DeletePhotoBtn")))
+                    {
+                        currentMap.ImagePaths.RemoveAt(imgIdx);
+                        ImGui.PopID();
+                        break;
+                    }
+                    ImGui.PopID();
+                }
+
+                if (ImGui.Button(Loc.Tr("AddPhotoBtn")))
+                {
+                    currentMap.ImagePaths.Add("");
+                }
+
+                ImGui.Separator();
+                ImGui.Text(Loc.Tr("StepsHeader"));
+                ImGui.TextDisabled(Loc.Tr("MarkdownHint"));
+
+                for (int i = 0; i < currentMap.Steps.Count; i++)
+                {
+                    var s = currentMap.Steps[i];
+                    ImGui.PushID(i);
+
+                    ImGui.TextDisabled($"{Loc.Tr("Step")} #{i + 1}");
+
+                    int start = s.StartWave;
+                    int end = s.EndWave;
+                    string inst = s.Instruction;
+
+                    ImGui.SetNextItemWidth(70);
+                    if (ImGui.InputInt(Loc.Tr("FromWave"), ref start, 0)) s.StartWave = start;
+                    ImGui.SameLine();
+
+                    ImGui.SetNextItemWidth(70);
+                    if (ImGui.InputInt(Loc.Tr("ToWave"), ref end, 0)) s.EndWave = end;
+
+                    ImGui.Text(Loc.Tr("StepInstructionLabel"));
+                    if (ImGui.InputTextMultiline($"##StepInst_{i}", ref inst, 1000, new Vector2(-1, 60), ImGuiInputTextFlags.AllowTabInput))
+                    {
+                        s.Instruction = inst;
+                    }
+
+                    if (currentMap.Steps.Count > 1)
+                    {
+                        if (ImGui.Button(Loc.Tr("DeleteStepBtn")))
+                        {
+                            currentMap.Steps.RemoveAt(i);
+                            ImGui.PopID();
+                            break;
+                        }
+                    }
+
+                    ImGui.Separator();
+                    ImGui.PopID();
+                }
+
+                if (ImGui.Button(Loc.Tr("AddStepBtn")))
+                {
+                    int lastEnd = currentMap.Steps.Count > 0 ? currentMap.Steps[^1].EndWave : 1;
+                    currentMap.Steps.Add(new StrategyStep
+                    {
+                        StartWave = lastEnd + 1,
+                        EndWave = lastEnd + 10,
+                        Instruction = "..."
+                    });
+                }
+
+                ImGui.Spacing();
+
+                if (ImGui.Button(Loc.Tr("Save"), new Vector2(160, 0)))
+                {
+                    currentMap.MapName = _editMapName;
+                    currentMap.Difficulty = _editDifficulty;
+                    currentMap.StrategyName = _editStrategyName;
+                    currentMap.GeneralInfo = _editGeneralInfo;
+
+                    StrategyService.SaveStrategy(currentMap);
+                    _isEditing = false;
+                }
+
+                ImGui.SameLine();
+
+                if (ImGui.Button(Loc.Tr("Cancel")))
+                {
+                    _isEditing = false;
+                }
+
+                ImGui.Spacing();
+
+                if (ImGui.Button(Loc.Tr("DeleteEntireStrategyBtn")))
+                {
+                    _showDeleteConfirmModal = true;
+                }
+            }
+        }
+
         private void RenderUpdateModal()
         {
             ImGui.OpenPopup(Loc.Tr("UpdateModalTitle"));
@@ -269,28 +695,6 @@ namespace TdsOverlayImGui
 
                 ImGui.EndPopup();
             }
-        }
-
-        private void SetupStyle()
-        {
-            if (_styleConfigured) return;
-
-            var style = ImGui.GetStyle();
-            style.WindowRounding = 8.0f;
-            style.FrameRounding = 6.0f;
-            style.PopupRounding = 6.0f;
-            style.ScrollbarRounding = 6.0f;
-
-            var colors = style.Colors;
-            colors[(int)ImGuiCol.WindowBg] = new Vector4(0.07f, 0.08f, 0.09f, 0.96f);
-            colors[(int)ImGuiCol.Header] = new Vector4(0.18f, 0.19f, 0.22f, 1.0f);
-            colors[(int)ImGuiCol.HeaderHovered] = new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
-            colors[(int)ImGuiCol.Button] = new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
-            colors[(int)ImGuiCol.ButtonHovered] = new Vector4(0.28f, 0.32f, 0.77f, 1.0f);
-            colors[(int)ImGuiCol.ButtonActive] = new Vector4(0.22f, 0.25f, 0.60f, 1.0f);
-            colors[(int)ImGuiCol.FrameBg] = new Vector4(0.14f, 0.15f, 0.17f, 1.0f);
-
-            _styleConfigured = true;
         }
 
         private void ProcessBackgroundOcr()
@@ -460,401 +864,6 @@ namespace TdsOverlayImGui
             if (indentPixels > 0)
             {
                 ImGui.Unindent(indentPixels);
-            }
-        }
-
-        private void RenderMainUI()
-        {
-            // Высота увеличена до 98px, чтобы кнопки выравнивались без обрезания
-            ImGui.BeginChild("MapSelectorCard", new Vector2(0, 98), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
-
-            ImGui.TextDisabled(Loc.Tr("SelectStrategyHeader"));
-
-            var comboItemsList = new List<string> { Loc.Tr("SelectStrategyCombo") };
-            for (int i = 0; i < _strategies.Count; i++)
-            {
-                comboItemsList.Add(_strategies[i].DisplayName);
-            }
-
-            string[] comboItems = comboItemsList.ToArray();
-            int currentComboIdx = 0;
-            if (_selectedMapIndex >= 0 && _selectedMapIndex < _strategies.Count)
-            {
-                currentComboIdx = _selectedMapIndex + 1;
-            }
-
-            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-            if (ImGui.Combo("##MapSelect", ref currentComboIdx, comboItems, comboItems.Length))
-            {
-                if (currentComboIdx > 0 && currentComboIdx <= _strategies.Count)
-                {
-                    _selectedMapIndex = currentComboIdx - 1;
-                }
-                else
-                {
-                    _selectedMapIndex = -1;
-                }
-                _currentStepIndex = 0;
-                _currentImageIndex = 0;
-                _isEditing = false;
-                ResetImageTransform();
-            }
-
-            if (ImGui.Button(Loc.Tr("AddStrategy")))
-            {
-                _showAddMapModal = true;
-            }
-
-            if (_selectedMapIndex >= 0 && _selectedMapIndex < _strategies.Count)
-            {
-                var map = _strategies[_selectedMapIndex];
-
-                ImGui.SameLine();
-                string editBtnText = _isEditing ? Loc.Tr("ViewMode") : Loc.Tr("EditStrategy");
-                if (ImGui.Button(editBtnText))
-                {
-                    _isEditing = !_isEditing;
-                    if (_isEditing)
-                    {
-                        _editMapName = map.MapName;
-                        _editDifficulty = map.Difficulty;
-                        _editStrategyName = map.StrategyName;
-                        _editGeneralInfo = map.GeneralInfo;
-                    }
-                }
-
-                ImGui.SameLine();
-                if (ImGui.Button(Loc.Tr("DeleteStrategy")))
-                {
-                    _showDeleteConfirmModal = true;
-                }
-            }
-
-            ImGui.EndChild();
-            ImGui.Spacing();
-
-            if (_selectedMapIndex < 0 || _selectedMapIndex >= _strategies.Count)
-            {
-                ImGui.Spacing();
-                ImGui.TextColored(new Vector4(1.0f, 0.8f, 0.2f, 1.0f), Loc.Tr("NoStrategySelected"));
-                ImGui.TextWrapped(Loc.Tr("SelectStrategyPrompt"));
-                return;
-            }
-
-            var currentMap = _strategies[_selectedMapIndex];
-            int activeWave = _detectedWaveNumber ?? _currentWaveNumber;
-
-            // WINDOWS OCR PANEL
-            ImGui.BeginChild("OcrHeaderCard", new Vector2(0, 42), true);
-            bool enableOcr = _settings.EnableOcr;
-            if (ImGui.Checkbox(Loc.Tr("AutoOcrHeader"), ref enableOcr))
-            {
-                _settings.EnableOcr = enableOcr;
-                StrategyService.SaveSettings(_settings);
-            }
-
-            ImGui.SameLine();
-            if (ImGui.Button(Loc.Tr("SelectOcrRegionBtn")))
-            {
-                _isSelectingOcrRegion = true;
-                _ocrSelectionState = 0;
-            }
-
-            ImGui.EndChild();
-            ImGui.Spacing();
-
-            // GENERAL INFO
-            if (!string.IsNullOrWhiteSpace(currentMap.GeneralInfo))
-            {
-                ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("GeneralInfo"));
-                float infoH = _settings.GeneralInfoBoxHeight;
-                ImGui.BeginChild("GeneralInfoScroll", new Vector2(0, infoH), true);
-
-                string[] lines = currentMap.GeneralInfo.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-                for (int lineIdx = 0; lineIdx < lines.Length; lineIdx++)
-                {
-                    string rawLine = lines[lineIdx];
-                    string taskKey = $"gen_{_selectedMapIndex}_{lineIdx}";
-                    RenderInstructionLine(rawLine, activeWave, taskKey);
-                }
-
-                ImGui.EndChild();
-
-                _settings.GeneralInfoBoxHeight = DrawHeightResizeHandle(_settings.GeneralInfoBoxHeight, 40.0f, 400.0f, "GeneralInfoHandle");
-                ImGui.Spacing();
-            }
-
-            if (currentMap.Steps.Count > 0)
-            {
-                if (_currentStepIndex >= currentMap.Steps.Count)
-                {
-                    _currentStepIndex = 0;
-                }
-
-                var step = currentMap.Steps[_currentStepIndex];
-
-                ImGui.BeginChild("StepProgressCard", new Vector2(0, 105), true);
-
-                ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("CurrentWaveHeader"));
-                ImGui.SameLine();
-
-                ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), $"[ {activeWave} ]");
-
-                if (_detectedWaveNumber.HasValue)
-                {
-                    ImGui.SameLine();
-                    ImGui.TextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Loc.Tr("AutoOcrTag"));
-                }
-
-                ImGui.SameLine();
-                ImGui.SetNextItemWidth(90);
-                if (ImGui.InputInt("##ManualWaveInput", ref _currentWaveNumber, 1, 5))
-                {
-                    _currentWaveNumber = Math.Clamp(_currentWaveNumber, 1, 100);
-                    _detectedWaveNumber = null;
-                    UpdateStepByWaveNumber(currentMap, _currentWaveNumber);
-                }
-
-                float progress = (float)(_currentStepIndex + 1) / currentMap.Steps.Count;
-                ImGui.ProgressBar(progress, new Vector2(-1, 6), "");
-
-                ImGui.TextDisabled($"{Loc.Tr("Step")} {_currentStepIndex + 1} {Loc.Tr("Of")} {currentMap.Steps.Count}");
-                ImGui.SameLine();
-
-                bool isOcrMatched = activeWave >= step.StartWave && activeWave <= step.EndWave;
-                Vector4 waveColor = isOcrMatched ? new Vector4(0.3f, 1.0f, 0.4f, 1.0f) : new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
-                ImGui.TextColored(waveColor, $"{Loc.Tr("Waves")} {step.StartWave} - {step.EndWave}");
-
-                if (isOcrMatched)
-                {
-                    ImGui.SameLine();
-                    ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), Loc.Tr("ActiveInGame"));
-                }
-
-                if (ImGui.Button("|<")) { _currentStepIndex = 0; ResetImageTransform(); }
-                ImGui.SameLine();
-                if (ImGui.Button(Loc.Tr("PrevStep")))
-                {
-                    if (_currentStepIndex > 0) { _currentStepIndex--; ResetImageTransform(); }
-                }
-                ImGui.SameLine();
-                if (ImGui.Button(Loc.Tr("NextStep")))
-                {
-                    if (_currentStepIndex < currentMap.Steps.Count - 1) { _currentStepIndex++; ResetImageTransform(); }
-                }
-                ImGui.SameLine();
-                if (ImGui.Button(">|")) { _currentStepIndex = currentMap.Steps.Count - 1; ResetImageTransform(); }
-
-                ImGui.EndChild();
-                ImGui.Spacing();
-
-                if (!_isEditing)
-                {
-                    ImGui.Text(Loc.Tr("InstructionHeader"));
-                    ImGui.SameLine();
-
-                    if (ImGui.Button(Loc.Tr("CopyInstruction")))
-                    {
-                        ImGui.SetClipboardText(step.Instruction);
-                        _toastTimer = 2.0f;
-                    }
-
-                    ImGui.SameLine();
-
-                    if (ImGui.Button(Loc.Tr("ClearChecks")))
-                    {
-                        _completedTasks.Clear();
-                    }
-
-                    if (_toastTimer > 0)
-                    {
-                        _toastTimer -= ImGui.GetIO().DeltaTime;
-                        ImGui.SameLine();
-                        ImGui.TextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Loc.Tr("CopiedToast"));
-                    }
-
-                    float textH = _settings.InstructionBoxHeight;
-                    ImGui.BeginChild("StepScroll", new Vector2(0, textH), true);
-
-                    if (string.IsNullOrWhiteSpace(step.Instruction))
-                    {
-                        ImGui.TextWrapped("[...]");
-                    }
-                    else
-                    {
-                        string[] lines = step.Instruction.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-
-                        for (int lineIdx = 0; lineIdx < lines.Length; lineIdx++)
-                        {
-                            string rawLine = lines[lineIdx];
-                            string taskKey = $"{_selectedMapIndex}_{_currentStepIndex}_{lineIdx}";
-
-                            RenderInstructionLine(rawLine, activeWave, taskKey);
-                        }
-                    }
-
-                    if (_settings.SeparateImageWindow && currentMap.ImagePaths.Count > 0)
-                    {
-                        ImGui.Spacing();
-                        ImGui.TextDisabled($"{Loc.Tr("SeparateImageNotice")} ({currentMap.ImagePaths.Count})");
-                    }
-
-                    ImGui.EndChild();
-
-                    _settings.InstructionBoxHeight = DrawHeightResizeHandle(_settings.InstructionBoxHeight, 60.0f, 500.0f, "InstructionTextHandle");
-
-                    if (!_settings.SeparateImageWindow && currentMap.ImagePaths.Count > 0)
-                    {
-                        ImGui.Spacing();
-                        ImGui.Separator();
-
-                        RenderImageSelector(currentMap);
-
-                        string? currentImg = GetActiveImagePath(currentMap);
-                        if (!string.IsNullOrEmpty(currentImg) && File.Exists(currentImg))
-                        {
-                            RenderImageCanvas(currentImg, _settings.EmbeddedImageBoxHeight, $"EmbeddedCanvas_{_currentImageIndex}", enableResizeGrip: true);
-                        }
-                    }
-                }
-                else
-                {
-                    // EDITING MODE
-                    ImGui.TextColored(new Vector4(1f, 0.8f, 0.2f, 1f), Loc.Tr("EditingTitle"));
-                    ImGui.Spacing();
-
-                    ImGui.Text($"{Loc.Tr("StrategyVariant")}:");
-                    ImGui.InputText("##EditStrategyName", ref _editStrategyName, 100);
-
-                    ImGui.Text($"{Loc.Tr("MapName")}:");
-                    ImGui.InputText("##EditMapName", ref _editMapName, 100);
-
-                    ImGui.Text($"{Loc.Tr("Difficulty")}:");
-                    ImGui.InputText("##EditDifficulty", ref _editDifficulty, 50);
-
-                    ImGui.Spacing();
-                    ImGui.Text(Loc.Tr("GeneralInfoLabel"));
-                    ImGui.InputTextMultiline("##EditGeneralInfo", ref _editGeneralInfo, 1000, new Vector2(-1, 60), ImGuiInputTextFlags.AllowTabInput);
-
-                    ImGui.Separator();
-                    ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ImagesHeader"));
-
-                    for (int imgIdx = 0; imgIdx < currentMap.ImagePaths.Count; imgIdx++)
-                    {
-                        ImGui.PushID($"mapImg_{imgIdx}");
-                        string imgPath = currentMap.ImagePaths[imgIdx];
-
-                        ImGui.Text(string.Format(Loc.Tr("PhotoNum"), imgIdx + 1));
-                        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 110);
-                        if (ImGui.InputText($"##ImgPath_{imgIdx}", ref imgPath, 260))
-                        {
-                            currentMap.ImagePaths[imgIdx] = imgPath;
-                        }
-
-                        ImGui.SameLine();
-                        if (ImGui.Button(Loc.Tr("DeletePhotoBtn")))
-                        {
-                            currentMap.ImagePaths.RemoveAt(imgIdx);
-                            ImGui.PopID();
-                            break;
-                        }
-                        ImGui.PopID();
-                    }
-
-                    if (ImGui.Button(Loc.Tr("AddPhotoBtn")))
-                    {
-                        currentMap.ImagePaths.Add("");
-                    }
-
-                    ImGui.Separator();
-                    ImGui.Text(Loc.Tr("StepsHeader"));
-                    ImGui.TextDisabled(Loc.Tr("MarkdownHint"));
-
-                    for (int i = 0; i < currentMap.Steps.Count; i++)
-                    {
-                        var s = currentMap.Steps[i];
-                        ImGui.PushID(i);
-
-                        ImGui.TextDisabled($"{Loc.Tr("Step")} #{i + 1}");
-
-                        int start = s.StartWave;
-                        int end = s.EndWave;
-                        string inst = s.Instruction;
-
-                        ImGui.SetNextItemWidth(70);
-                        if (ImGui.InputInt(Loc.Tr("FromWave"), ref start, 0)) s.StartWave = start;
-                        ImGui.SameLine();
-
-                        ImGui.SetNextItemWidth(70);
-                        if (ImGui.InputInt(Loc.Tr("ToWave"), ref end, 0)) s.EndWave = end;
-
-                        ImGui.Text(Loc.Tr("StepInstructionLabel"));
-                        if (ImGui.InputTextMultiline($"##StepInst_{i}", ref inst, 1000, new Vector2(-1, 60), ImGuiInputTextFlags.AllowTabInput))
-                        {
-                            s.Instruction = inst;
-                        }
-
-                        if (currentMap.Steps.Count > 1)
-                        {
-                            if (ImGui.Button(Loc.Tr("DeleteStepBtn")))
-                            {
-                                currentMap.Steps.RemoveAt(i);
-                                ImGui.PopID();
-                                break;
-                            }
-                        }
-
-                        ImGui.Separator();
-                        ImGui.PopID();
-                    }
-
-                    if (ImGui.Button(Loc.Tr("AddStepBtn")))
-                    {
-                        int lastEnd = currentMap.Steps.Count > 0 ? currentMap.Steps[^1].EndWave : 1;
-                        currentMap.Steps.Add(new StrategyStep
-                        {
-                            StartWave = lastEnd + 1,
-                            EndWave = lastEnd + 10,
-                            Instruction = "..."
-                        });
-                    }
-
-                    ImGui.Spacing();
-
-                    if (ImGui.Button(Loc.Tr("Save"), new Vector2(160, 0)))
-                    {
-                        currentMap.MapName = _editMapName;
-                        currentMap.Difficulty = _editDifficulty;
-                        currentMap.StrategyName = _editStrategyName;
-                        currentMap.GeneralInfo = _editGeneralInfo;
-
-                        StrategyService.SaveStrategy(currentMap);
-                        _isEditing = false;
-                    }
-
-                    ImGui.SameLine();
-
-                    if (ImGui.Button(Loc.Tr("Cancel")))
-                    {
-                        _isEditing = false;
-                    }
-
-                    ImGui.Spacing();
-
-                    if (ImGui.Button(Loc.Tr("DeleteEntireStrategyBtn")))
-                    {
-                        _showDeleteConfirmModal = true;
-                    }
-                }
-            }
-            else
-            {
-                ImGui.Text(Loc.Tr("NoStepsNotice"));
-                if (ImGui.Button(Loc.Tr("AddDefaultStepBtn")))
-                {
-                    currentMap.Steps.Add(new StrategyStep { StartWave = 1, EndWave = 30, Instruction = "..." });
-                    StrategyService.SaveStrategy(currentMap);
-                }
             }
         }
 
@@ -1081,19 +1090,14 @@ namespace TdsOverlayImGui
             ImGui.OpenPopup(Loc.Tr("Create"));
             if (ImGui.BeginPopupModal(Loc.Tr("Create"), ref _showAddMapModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                // 1. Самый первый пункт: Название стратегии
                 ImGui.Text($"{Loc.Tr("StrategyVariant")}:");
                 ImGui.InputText("##NewMapStrat", ref _newMapStrat, 100);
 
-                // 2. Название карты
                 ImGui.Text($"{Loc.Tr("MapName")}:");
                 ImGui.InputText("##NewMapName", ref _newMapName, 100);
 
-                // 3. Сложность
                 ImGui.Text($"{Loc.Tr("Difficulty")}:");
                 ImGui.InputText("##NewMapDiff", ref _newMapDiff, 50);
-
-                // Поле "Общая информация" удалено отсюда (но сохранено при редактировании)
 
                 if (ImGui.Button(Loc.Tr("Create"), new Vector2(100, 0)))
                 {
@@ -1102,7 +1106,7 @@ namespace TdsOverlayImGui
                         MapName = string.IsNullOrWhiteSpace(_newMapName) ? "New Map" : _newMapName,
                         Difficulty = _newMapDiff,
                         StrategyName = string.IsNullOrWhiteSpace(_newMapStrat) ? "Solo" : _newMapStrat,
-                        GeneralInfo = "", // Изначально пустое
+                        GeneralInfo = "",
                         ImagePaths = new List<string>(),
                         Steps = new List<StrategyStep>
                         {
@@ -1300,7 +1304,7 @@ namespace TdsOverlayImGui
                 {
                     StrategyService.DeleteStrategy(currentMap);
                     _strategies = StrategyService.LoadStrategies();
-                    _selectedMapIndex = -1;
+                    _selectedMapIndex = _strategies.Count > 0 ? 0 : -1;
                     _currentStepIndex = 0;
                     _currentImageIndex = 0;
                     _isEditing = false;
