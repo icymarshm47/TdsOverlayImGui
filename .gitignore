@@ -13,9 +13,12 @@ x86/
 *.sln.docstates
 
 exports/
+strategies/
 
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 
 *.png
+imgui.ini
+settings.json
