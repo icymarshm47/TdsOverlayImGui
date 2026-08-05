@@ -13,4 +13,10 @@
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Roboto-Regular.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
