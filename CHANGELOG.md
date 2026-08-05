@@ -2,8 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+---
+
 ## Unreleased
-nothing
+### Added
+- Moved the "Current Wave" progress card above the "General Info" section.
+- Buttons and input fields now dynamically scale and wrap when resizing the window.
+
+### Fixed
+- Fixed button clipping and text overlapping when changing overlay window dimensions.
+
+---
 
 ## [0.3] 2026-8-5
 ### Added
@@ -17,6 +26,8 @@ nothing
 
 ### Removed
 - Removed the strategy search bar from the main window.
+
+---
 
 ## [0.2] - 2026-8-4
 ### Added
