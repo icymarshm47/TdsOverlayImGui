@@ -31,7 +31,7 @@ namespace TdsOverlayImGui
         private string _latestVersionTag = "";
         private string _releaseUrl = "";
         private string _manualCheckMessage = "";
-        private float _manualCheckMessageTimer = 0.0f; // Таймер на 5 секунд
+        private float _manualCheckMessageTimer = 0.0f;
 
         // Completed tasks checklist
         private HashSet<string> _completedTasks = new();
@@ -42,6 +42,10 @@ namespace TdsOverlayImGui
         // Regex for <ocr N>
         private static readonly Regex OcrTagRegex = new Regex(@"<ocr\s+([\d\-]+)>(.*?)</ocr[^>]*>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
+        // Regex for Markdown formatting: **bold**, *italic*, ~~strike~~, `code`
+        private static readonly Regex InlineMarkdownRegex = new Regex(@"(\*\*.*?\*\*|\*.*?\*|~~.*?~~|`.*?`)", RegexOptions.Compiled);
+
+        private string _searchFilter = "";
         private float _toastTimer = 0.0f;
         private string _clipboardToastMessage = "";
 
@@ -113,6 +117,22 @@ namespace TdsOverlayImGui
             CheckForUpdatesInBackground(silent: true);
         }
 
+        private static void SafeTextColored(Vector4 color, string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            ImGui.PushStyleColor(ImGuiCol.Text, color);
+            ImGui.TextUnformatted(text);
+            ImGui.PopStyleColor();
+        }
+
+        private static void SafeTextWrapped(Vector4 color, string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            ImGui.PushStyleColor(ImGuiCol.Text, color);
+            ImGui.TextWrapped(text);
+            ImGui.PopStyleColor();
+        }
+
         private void CheckForUpdatesInBackground(bool silent = true)
         {
             Task.Run(async () =>
@@ -136,7 +156,7 @@ namespace TdsOverlayImGui
                     {
                         _manualCheckMessage = Loc.Tr("NoUpdatesNotice");
                     }
-                    _manualCheckMessageTimer = 5.0f; // Таймер исчезновения надписи (5 сек)
+                    _manualCheckMessageTimer = 5.0f;
                 }
             });
         }
@@ -181,7 +201,7 @@ namespace TdsOverlayImGui
                 {
                     if (ImGui.MenuItem(Loc.Tr("CheckUpdates")))
                     {
-                        _manualCheckMessage = "Проверка...";
+                        _manualCheckMessage = "Checking...";
                         _manualCheckMessageTimer = 5.0f;
                         CheckForUpdatesInBackground(silent: false);
                     }
@@ -199,10 +219,9 @@ namespace TdsOverlayImGui
                 ImGui.EndMenuBar();
             }
 
-            // Таймер сброса надписи статуса проверки обновлений (5 секунд)
             if (!string.IsNullOrEmpty(_manualCheckMessage))
             {
-                ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), _manualCheckMessage);
+                SafeTextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), _manualCheckMessage);
                 _manualCheckMessageTimer -= ImGui.GetIO().DeltaTime;
                 if (_manualCheckMessageTimer <= 0.0f)
                 {
@@ -267,9 +286,264 @@ namespace TdsOverlayImGui
             _styleConfigured = true;
         }
 
+        private void ProcessBackgroundOcr()
+        {
+            if (!_settings.EnableOcr || _selectedMapIndex < 0 || _selectedMapIndex >= _strategies.Count) return;
+
+            if ((DateTime.Now - _lastOcrScanTime).TotalSeconds >= 1.5)
+            {
+                _lastOcrScanTime = DateTime.Now;
+
+                Task.Run(async () =>
+                {
+                    int? wave = await OcrService.RecognizeWaveFromScreenAsync(
+                        _settings.OcrX, _settings.OcrY, _settings.OcrW, _settings.OcrH);
+
+                    if (wave.HasValue)
+                    {
+                        _detectedWaveNumber = wave.Value;
+                        _currentWaveNumber = wave.Value;
+
+                        var currentMap = _strategies[_selectedMapIndex];
+                        UpdateStepByWaveNumber(currentMap, wave.Value);
+                    }
+                });
+            }
+        }
+
+        private void UpdateStepByWaveNumber(MapStrategy map, int waveNumber)
+        {
+            for (int i = 0; i < map.Steps.Count; i++)
+            {
+                var s = map.Steps[i];
+                if (waveNumber >= s.StartWave && waveNumber <= s.EndWave)
+                {
+                    if (_currentStepIndex != i)
+                    {
+                        _currentStepIndex = i;
+                        ResetImageTransform();
+                    }
+                    break;
+                }
+            }
+        }
+
+        private static bool IsMarkdownCheckbox(string line, out bool isCheckedInText, out string cleanText)
+        {
+            isCheckedInText = false;
+            cleanText = line;
+
+            string trimmed = line.TrimStart();
+
+            if (trimmed.StartsWith("- [ ] ") || trimmed.StartsWith("* [ ] "))
+            {
+                isCheckedInText = false;
+                cleanText = trimmed.Substring(6);
+                return true;
+            }
+
+            if (trimmed.StartsWith("- [x] ") || trimmed.StartsWith("- [X] ") ||
+                trimmed.StartsWith("* [x] ") || trimmed.StartsWith("* [X] "))
+            {
+                isCheckedInText = true;
+                cleanText = trimmed.Substring(6);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static float GetIndentPixels(string line)
+        {
+            float pixels = 0;
+            foreach (char c in line)
+            {
+                if (c == '\t') pixels += 20.0f;
+                else if (c == ' ') pixels += 5.0f;
+                else break;
+            }
+            return pixels;
+        }
+
+        private void RenderMarkdownFormattedText(string text, bool isTagActive, bool isDone, int headingLevel)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            if (isTagActive && !isDone)
+            {
+                SafeTextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), "[WAVE!] ");
+                ImGui.SameLine(0, 0);
+            }
+
+            if (headingLevel == 1)
+            {
+                ImGui.SetWindowFontScale(1.3f);
+                SafeTextColored(new Vector4(1.0f, 0.85f, 0.3f, 1.0f), text);
+                ImGui.SetWindowFontScale(1.0f);
+                ImGui.Separator();
+                return;
+            }
+            else if (headingLevel == 2)
+            {
+                ImGui.SetWindowFontScale(1.15f);
+                SafeTextColored(new Vector4(0.35f, 0.75f, 1.0f, 1.0f), text);
+                ImGui.SetWindowFontScale(1.0f);
+                return;
+            }
+            else if (headingLevel == 3)
+            {
+                ImGui.SetWindowFontScale(1.05f);
+                SafeTextColored(new Vector4(0.85f, 0.5f, 1.0f, 1.0f), text);
+                ImGui.SetWindowFontScale(1.0f);
+                return;
+            }
+
+            if (isDone)
+            {
+                SafeTextWrapped(new Vector4(0.3f, 1.0f, 0.4f, 0.85f), text);
+                return;
+            }
+
+            if (!InlineMarkdownRegex.IsMatch(text))
+            {
+                Vector4 plainColor = isTagActive ? new Vector4(0.3f, 1.0f, 0.4f, 1.0f) : new Vector4(0.92f, 0.92f, 0.96f, 1.0f);
+                SafeTextWrapped(plainColor, text);
+                return;
+            }
+
+            string[] parts = InlineMarkdownRegex.Split(text);
+
+            for (int i = 0; i < parts.Length; i++)
+            {
+                string part = parts[i];
+                if (string.IsNullOrEmpty(part)) continue;
+
+                if (i > 0)
+                {
+                    ImGui.SameLine(0, 0);
+                }
+
+                Vector4 color = isTagActive ? new Vector4(0.3f, 1.0f, 0.4f, 1.0f) : new Vector4(0.92f, 0.92f, 0.96f, 1.0f);
+                string content = part;
+
+                if (part.StartsWith("**") && part.EndsWith("**") && part.Length >= 4)
+                {
+                    content = part.Substring(2, part.Length - 4);
+                    color = new Vector4(1.0f, 0.90f, 0.35f, 1.0f);
+                }
+                else if (part.StartsWith("*") && part.EndsWith("*") && part.Length >= 2)
+                {
+                    content = part.Substring(1, part.Length - 2);
+                    color = new Vector4(0.70f, 0.85f, 1.0f, 1.0f);
+                }
+                else if (part.StartsWith("~~") && part.EndsWith("~~") && part.Length >= 4)
+                {
+                    content = part.Substring(2, part.Length - 4);
+                    color = new Vector4(0.55f, 0.58f, 0.62f, 0.8f);
+                }
+                else if (part.StartsWith("`") && part.EndsWith("`") && part.Length >= 2)
+                {
+                    content = "[" + part.Substring(1, part.Length - 2) + "]";
+                    color = new Vector4(0.35f, 0.95f, 0.85f, 1.0f);
+                }
+
+                SafeTextColored(color, content);
+            }
+        }
+
+        private void RenderInstructionLine(string rawLine, int activeWave, string taskKey)
+        {
+            if (string.IsNullOrWhiteSpace(rawLine))
+            {
+                ImGui.Spacing();
+                return;
+            }
+
+            float indentPixels = GetIndentPixels(rawLine);
+            if (indentPixels > 0)
+            {
+                ImGui.Indent(indentPixels);
+            }
+
+            bool hasCheckbox = IsMarkdownCheckbox(rawLine, out bool defaultCheckedInText, out string lineAfterCheck);
+
+            var ocrMatch = OcrTagRegex.Match(lineAfterCheck);
+            bool isTagActive = false;
+            string displayText = lineAfterCheck;
+
+            if (ocrMatch.Success)
+            {
+                string waveSpec = ocrMatch.Groups[1].Value.Trim();
+                displayText = ocrMatch.Groups[2].Value;
+
+                int startW = 0, endW = 0;
+                if (waveSpec.Contains('-'))
+                {
+                    var parts = waveSpec.Split('-');
+                    int.TryParse(parts[0], out startW);
+                    int.TryParse(parts[1], out endW);
+                }
+                else
+                {
+                    int.TryParse(waveSpec, out startW);
+                    endW = startW;
+                }
+
+                if (activeWave >= startW && activeWave <= endW && startW > 0)
+                {
+                    isTagActive = true;
+                }
+            }
+
+            if (!hasCheckbox)
+            {
+                if (IsMarkdownCheckbox(displayText, out bool checkInside, out string textInside))
+                {
+                    hasCheckbox = true;
+                    defaultCheckedInText = checkInside;
+                    displayText = textInside;
+                }
+            }
+
+            string trimmedText = displayText.TrimStart();
+            int headingLevel = 0;
+            if (trimmedText.StartsWith("# ")) { headingLevel = 1; displayText = trimmedText.Substring(2); }
+            else if (trimmedText.StartsWith("## ")) { headingLevel = 2; displayText = trimmedText.Substring(3); }
+            else if (trimmedText.StartsWith("### ")) { headingLevel = 3; displayText = trimmedText.Substring(4); }
+
+            if (hasCheckbox)
+            {
+                bool isDone = _completedTasks.Contains(taskKey) || defaultCheckedInText;
+
+                ImGui.PushID($"MdTask_{taskKey}");
+
+                if (ImGui.Checkbox("##MdCheck", ref isDone))
+                {
+                    if (isDone)
+                        _completedTasks.Add(taskKey);
+                    else
+                        _completedTasks.Remove(taskKey);
+                }
+
+                ImGui.SameLine();
+
+                RenderMarkdownFormattedText(displayText, isTagActive, isDone, headingLevel);
+
+                ImGui.PopID();
+            }
+            else
+            {
+                RenderMarkdownFormattedText(displayText, isTagActive, false, headingLevel);
+            }
+
+            if (indentPixels > 0)
+            {
+                ImGui.Unindent(indentPixels);
+            }
+        }
+
         private void RenderMainUI()
         {
-            // Карточка выбора стратегии
             ImGui.BeginChild("MapSelectorCard", new Vector2(0, 98), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
             ImGui.TextDisabled(Loc.Tr("SelectStrategyHeader"));
@@ -351,7 +625,7 @@ namespace TdsOverlayImGui
             if (_selectedMapIndex < 0 || _selectedMapIndex >= _strategies.Count)
             {
                 ImGui.Spacing();
-                ImGui.TextColored(new Vector4(1.0f, 0.8f, 0.2f, 1.0f), Loc.Tr("NoStrategySelected"));
+                SafeTextColored(new Vector4(1.0f, 0.8f, 0.2f, 1.0f), Loc.Tr("NoStrategySelected"));
                 ImGui.TextWrapped(Loc.Tr("SelectStrategyPrompt"));
                 return;
             }
@@ -398,24 +672,21 @@ namespace TdsOverlayImGui
                 // 1. CURRENT WAVE & STEP PROGRESS
                 if (currentMap.Steps.Count > 0)
                 {
-                    if (_currentStepIndex >= currentMap.Steps.Count)
-                    {
-                        _currentStepIndex = 0;
-                    }
+                    _currentStepIndex = Math.Clamp(_currentStepIndex, 0, currentMap.Steps.Count - 1);
 
                     var step = currentMap.Steps[_currentStepIndex];
 
                     ImGui.BeginChild("StepProgressCard", new Vector2(0, 115), true);
 
-                    ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("CurrentWaveHeader"));
+                    SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("CurrentWaveHeader"));
                     ImGui.SameLine();
 
-                    ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), $"[ {activeWave} ]");
+                    SafeTextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), $"[ {activeWave} ]");
 
                     if (_detectedWaveNumber.HasValue)
                     {
                         ImGui.SameLine();
-                        ImGui.TextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Loc.Tr("AutoOcrTag"));
+                        SafeTextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Loc.Tr("AutoOcrTag"));
                     }
 
                     ImGui.SameLine();
@@ -435,12 +706,12 @@ namespace TdsOverlayImGui
 
                     bool isOcrMatched = activeWave >= step.StartWave && activeWave <= step.EndWave;
                     Vector4 waveColor = isOcrMatched ? new Vector4(0.3f, 1.0f, 0.4f, 1.0f) : new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
-                    ImGui.TextColored(waveColor, $"{Loc.Tr("Waves")} {step.StartWave} - {step.EndWave}");
+                    SafeTextColored(waveColor, $"{Loc.Tr("Waves")} {step.StartWave} - {step.EndWave}");
 
                     if (isOcrMatched)
                     {
                         ImGui.SameLine();
-                        ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), Loc.Tr("ActiveInGame"));
+                        SafeTextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), Loc.Tr("ActiveInGame"));
                     }
 
                     float navAvailW = ImGui.GetContentRegionAvail().X;
@@ -468,7 +739,7 @@ namespace TdsOverlayImGui
                 // 2. GENERAL INFO
                 if (!string.IsNullOrWhiteSpace(currentMap.GeneralInfo))
                 {
-                    ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("GeneralInfo"));
+                    SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("GeneralInfo"));
                     float infoH = _settings.GeneralInfoBoxHeight;
                     ImGui.BeginChild("GeneralInfoScroll", new Vector2(0, infoH), true);
 
@@ -489,6 +760,7 @@ namespace TdsOverlayImGui
                 // 3. INSTRUCTION FEED
                 if (currentMap.Steps.Count > 0)
                 {
+                    _currentStepIndex = Math.Clamp(_currentStepIndex, 0, currentMap.Steps.Count - 1);
                     var step = currentMap.Steps[_currentStepIndex];
 
                     string headerText = Loc.Tr("InstructionHeader");
@@ -529,7 +801,7 @@ namespace TdsOverlayImGui
                     {
                         _toastTimer -= ImGui.GetIO().DeltaTime;
                         ImGui.SameLine();
-                        ImGui.TextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Loc.Tr("CopiedToast"));
+                        SafeTextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Loc.Tr("CopiedToast"));
                     }
 
                     float textH = _settings.InstructionBoxHeight;
@@ -588,8 +860,8 @@ namespace TdsOverlayImGui
             }
             else
             {
-                // EDITING MODE (Асинхронные кнопки Выбора Файла и Вставки без зависания UI)
-                ImGui.TextColored(new Vector4(1f, 0.8f, 0.2f, 1f), Loc.Tr("EditingTitle"));
+                // EDITING MODE
+                SafeTextColored(new Vector4(1f, 0.8f, 0.2f, 1f), Loc.Tr("EditingTitle"));
                 ImGui.Spacing();
 
                 ImGui.Text($"{Loc.Tr("StrategyVariant")}:");
@@ -609,7 +881,7 @@ namespace TdsOverlayImGui
                 ImGui.InputTextMultiline("##EditGeneralInfo", ref _editGeneralInfo, 500000, new Vector2(-1, 60), ImGuiInputTextFlags.AllowTabInput);
 
                 ImGui.Separator();
-                ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ImagesHeader"));
+                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ImagesHeader"));
 
                 for (int imgIdx = 0; imgIdx < currentMap.ImagePaths.Count; imgIdx++)
                 {
@@ -625,19 +897,18 @@ namespace TdsOverlayImGui
                     }
                     else
                     {
-                        ImGui.TextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Path.GetFileName(imgPath));
+                        SafeTextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Path.GetFileName(imgPath));
                     }
 
                     float availImgW = ImGui.GetContentRegionAvail().X;
                     float spacingImg = ImGui.GetStyle().ItemSpacing.X;
                     float btnImgW = (availImgW - spacingImg * 2 - 30) / 2.0f;
 
-                    // Выбор файла через проводник (асинхронно)
                     if (ImGui.Button(Loc.Tr("SelectFileBtn"), new Vector2(btnImgW, 0)))
                     {
                         int targetIdx = imgIdx;
                         var map = currentMap;
-                        ImGui.GetIO().MouseDown[0] = false; // Сбрасываем клик мыши, чтобы окно не открывалось повторно
+                        ImGui.GetIO().MouseDown[0] = false;
 
                         Task.Run(() =>
                         {
@@ -651,7 +922,6 @@ namespace TdsOverlayImGui
 
                     ImGui.SameLine();
 
-                    // Вставка из буфера обмена (асинхронно)
                     if (ImGui.Button(Loc.Tr("PasteClipboardBtn"), new Vector2(btnImgW, 0)))
                     {
                         int targetIdx = imgIdx;
@@ -683,7 +953,7 @@ namespace TdsOverlayImGui
 
                     if (!string.IsNullOrEmpty(_clipboardToastMessage))
                     {
-                        ImGui.TextColored(new Vector4(1f, 0.4f, 0.4f, 1f), _clipboardToastMessage);
+                        SafeTextColored(new Vector4(1f, 0.4f, 0.4f, 1f), _clipboardToastMessage);
                     }
 
                     ImGui.PopID();
@@ -781,158 +1051,18 @@ namespace TdsOverlayImGui
             }
         }
 
-        private static bool IsMarkdownCheckbox(string line, out bool isCheckedInText, out string cleanText)
-        {
-            isCheckedInText = false;
-            cleanText = line;
-
-            string trimmed = line.TrimStart();
-
-            if (trimmed.StartsWith("- [ ] ") || trimmed.StartsWith("* [ ] "))
-            {
-                isCheckedInText = false;
-                cleanText = trimmed.Substring(6);
-                return true;
-            }
-
-            if (trimmed.StartsWith("- [x] ") || trimmed.StartsWith("- [X] ") ||
-                trimmed.StartsWith("* [x] ") || trimmed.StartsWith("* [X] "))
-            {
-                isCheckedInText = true;
-                cleanText = trimmed.Substring(6);
-                return true;
-            }
-
-            return false;
-        }
-
-        private static float GetIndentPixels(string line)
-        {
-            float pixels = 0;
-            foreach (char c in line)
-            {
-                if (c == '\t') pixels += 20.0f;
-                else if (c == ' ') pixels += 5.0f;
-                else break;
-            }
-            return pixels;
-        }
-
-        private void RenderInstructionLine(string rawLine, int activeWave, string taskKey)
-        {
-            if (string.IsNullOrWhiteSpace(rawLine))
-            {
-                ImGui.Spacing();
-                return;
-            }
-
-            float indentPixels = GetIndentPixels(rawLine);
-            if (indentPixels > 0)
-            {
-                ImGui.Indent(indentPixels);
-            }
-
-            bool hasCheckbox = IsMarkdownCheckbox(rawLine, out bool defaultCheckedInText, out string lineAfterCheck);
-
-            var ocrMatch = OcrTagRegex.Match(lineAfterCheck);
-            bool isTagActive = false;
-            string displayText = lineAfterCheck;
-
-            if (ocrMatch.Success)
-            {
-                string waveSpec = ocrMatch.Groups[1].Value.Trim();
-                displayText = ocrMatch.Groups[2].Value;
-
-                int startW = 0, endW = 0;
-                if (waveSpec.Contains('-'))
-                {
-                    var parts = waveSpec.Split('-');
-                    int.TryParse(parts[0], out startW);
-                    int.TryParse(parts[1], out endW);
-                }
-                else
-                {
-                    int.TryParse(waveSpec, out startW);
-                    endW = startW;
-                }
-
-                if (activeWave >= startW && activeWave <= endW && startW > 0)
-                {
-                    isTagActive = true;
-                }
-            }
-
-            if (!hasCheckbox)
-            {
-                if (IsMarkdownCheckbox(displayText, out bool checkInside, out string textInside))
-                {
-                    hasCheckbox = true;
-                    defaultCheckedInText = checkInside;
-                    displayText = textInside;
-                }
-            }
-
-            if (hasCheckbox)
-            {
-                bool isDone = _completedTasks.Contains(taskKey) || defaultCheckedInText;
-
-                ImGui.PushID($"MdTask_{taskKey}");
-
-                if (ImGui.Checkbox("##MdCheck", ref isDone))
-                {
-                    if (isDone)
-                        _completedTasks.Add(taskKey);
-                    else
-                        _completedTasks.Remove(taskKey);
-                }
-
-                ImGui.SameLine();
-
-                if (isDone)
-                {
-                    ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 0.85f), displayText);
-                }
-                else if (isTagActive)
-                {
-                    ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), $"[WAVE!] {displayText}");
-                }
-                else
-                {
-                    ImGui.TextWrapped(displayText);
-                }
-
-                ImGui.PopID();
-            }
-            else
-            {
-                if (isTagActive)
-                {
-                    ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), $"[WAVE!] {displayText.TrimStart()}");
-                }
-                else
-                {
-                    ImGui.TextWrapped(displayText.TrimStart());
-                }
-            }
-
-            if (indentPixels > 0)
-            {
-                ImGui.Unindent(indentPixels);
-            }
-        }
-
         private void RenderUpdateModal()
         {
             ImGui.OpenPopup(Loc.Tr("UpdateModalTitle"));
             if (ImGui.BeginPopupModal(Loc.Tr("UpdateModalTitle"), ref _showUpdateModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("UpdateNotice"));
+                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("UpdateNotice"));
                 ImGui.Spacing();
                 ImGui.Separator();
                 ImGui.Spacing();
 
                 ImGui.Text($"{Loc.Tr("CurrentVersionLabel")} {CurrentAppVersion}");
-                ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), $"{Loc.Tr("LatestVersionLabel")} {_latestVersionTag}");
+                SafeTextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), $"{Loc.Tr("LatestVersionLabel")} {_latestVersionTag}");
 
                 ImGui.Spacing();
                 ImGui.Separator();
@@ -952,48 +1082,6 @@ namespace TdsOverlayImGui
                 }
 
                 ImGui.EndPopup();
-            }
-        }
-
-        private void ProcessBackgroundOcr()
-        {
-            if (!_settings.EnableOcr || _selectedMapIndex < 0 || _selectedMapIndex >= _strategies.Count) return;
-
-            if ((DateTime.Now - _lastOcrScanTime).TotalSeconds >= 1.5)
-            {
-                _lastOcrScanTime = DateTime.Now;
-
-                Task.Run(async () =>
-                {
-                    int? wave = await OcrService.RecognizeWaveFromScreenAsync(
-                        _settings.OcrX, _settings.OcrY, _settings.OcrW, _settings.OcrH);
-
-                    if (wave.HasValue)
-                    {
-                        _detectedWaveNumber = wave.Value;
-                        _currentWaveNumber = wave.Value;
-
-                        var currentMap = _strategies[_selectedMapIndex];
-                        UpdateStepByWaveNumber(currentMap, wave.Value);
-                    }
-                });
-            }
-        }
-
-        private void UpdateStepByWaveNumber(MapStrategy map, int waveNumber)
-        {
-            for (int i = 0; i < map.Steps.Count; i++)
-            {
-                var s = map.Steps[i];
-                if (waveNumber >= s.StartWave && waveNumber <= s.EndWave)
-                {
-                    if (_currentStepIndex != i)
-                    {
-                        _currentStepIndex = i;
-                        ResetImageTransform();
-                    }
-                    break;
-                }
             }
         }
 
@@ -1031,7 +1119,7 @@ namespace TdsOverlayImGui
 
                 if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
                 {
-                    if (w > 10 && h > 10)
+                    if (w > 2 && h > 2)
                     {
                         _settings.OcrX = (int)min.X;
                         _settings.OcrY = (int)min.Y;
@@ -1040,6 +1128,9 @@ namespace TdsOverlayImGui
                         _settings.EnableOcr = true;
 
                         StrategyService.SaveSettings(_settings);
+
+                        _lastOcrScanTime = DateTime.MinValue;
+                        _detectedWaveNumber = null;
                     }
 
                     _isSelectingOcrRegion = false;
@@ -1186,7 +1277,7 @@ namespace TdsOverlayImGui
             }
             catch
             {
-                ImGui.TextColored(new Vector4(1, 0.4f, 0.4f, 1), "[Error loading image]");
+                SafeTextColored(new Vector4(1, 0.4f, 0.4f, 1), "[Error loading image]");
             }
         }
 
@@ -1273,7 +1364,7 @@ namespace TdsOverlayImGui
             ImGui.OpenPopup(Loc.Tr("ImportExportTitle"));
             if (ImGui.BeginPopupModal(Loc.Tr("ImportExportTitle"), ref _showImportExportModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ExportSection"));
+                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ExportSection"));
                 if (_selectedMapIndex >= 0 && _selectedMapIndex < _strategies.Count)
                 {
                     var currentMap = _strategies[_selectedMapIndex];
@@ -1294,7 +1385,7 @@ namespace TdsOverlayImGui
 
                     if (!string.IsNullOrEmpty(_exportStatusMessage))
                     {
-                        ImGui.TextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), _exportStatusMessage);
+                        SafeTextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), _exportStatusMessage);
                     }
                 }
                 else
@@ -1305,7 +1396,7 @@ namespace TdsOverlayImGui
                 ImGui.Separator();
                 ImGui.Spacing();
 
-                ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ImportSection"));
+                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ImportSection"));
                 ImGui.Text($"{Loc.Tr("FilePath")}:");
                 ImGui.InputText("##ImportFilePath", ref _importFilePath, 500000);
 
@@ -1325,7 +1416,7 @@ namespace TdsOverlayImGui
 
                 if (!string.IsNullOrEmpty(_importStatusMessage))
                 {
-                    ImGui.TextColored(new Vector4(1.0f, 0.8f, 0.2f, 1.0f), _importStatusMessage);
+                    SafeTextColored(new Vector4(1.0f, 0.8f, 0.2f, 1.0f), _importStatusMessage);
                 }
 
                 ImGui.Spacing();
@@ -1345,8 +1436,17 @@ namespace TdsOverlayImGui
             ImGui.OpenPopup(Loc.Tr("Settings"));
             if (ImGui.BeginPopupModal(Loc.Tr("Settings"), ref _showSettingsModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("LanguageSetting"));
+                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("LanguageSetting"));
                 ImGui.Spacing();
+
+                if (ImGui.RadioButton("Russian / Русский", Loc.CurrentLanguage == AppLanguage.Russian))
+                {
+                    Loc.CurrentLanguage = AppLanguage.Russian;
+                    _settings.Language = AppLanguage.Russian;
+                    StrategyService.SaveSettings(_settings);
+                }
+
+                ImGui.SameLine();
 
                 if (ImGui.RadioButton("English", Loc.CurrentLanguage == AppLanguage.English))
                 {
@@ -1355,17 +1455,10 @@ namespace TdsOverlayImGui
                     StrategyService.SaveSettings(_settings);
                 }
 
-                if (ImGui.RadioButton("Русский", Loc.CurrentLanguage == AppLanguage.Russian))
-                {
-                    Loc.CurrentLanguage = AppLanguage.Russian;
-                    _settings.Language = AppLanguage.Russian;
-                    StrategyService.SaveSettings(_settings);
-                }
-
                 ImGui.Spacing();
                 ImGui.Separator();
 
-                ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ImageModeSetting"));
+                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ImageModeSetting"));
                 ImGui.Spacing();
 
                 bool separate = _settings.SeparateImageWindow;
@@ -1399,7 +1492,7 @@ namespace TdsOverlayImGui
             ImGui.OpenPopup(Loc.Tr("AboutTitle"));
             if (ImGui.BeginPopupModal(Loc.Tr("AboutTitle"), ref _showAboutModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), "TDS Strategy Overlay");
+                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), "TDS Strategy Overlay");
                 ImGui.Separator();
                 ImGui.Spacing();
 
