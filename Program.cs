@@ -11,6 +11,11 @@ namespace TdsOverlayImGui
 {
     public class TdsImGuiOverlay : Overlay
     {
+        // ВАШИ ДАННЫЕ НА GITHUB
+        private const string GitHubOwner = "icymarshm47";         // Имя вашего аккаунта GitHub
+        private const string GitHubRepo = "TdsOverlayImGui";   // Название репозитория
+        private const string CurrentAppVersion = "0.3";      // Текущая версия приложения
+
         private List<MapStrategy> _strategies = new();
         private AppSettings _settings = new();
 
@@ -21,6 +26,12 @@ namespace TdsOverlayImGui
         // Флаг работы главного окна ImGui (если false — закрываем приложение)
         private bool _isOverlayOpen = true;
 
+        // Auto Update State
+        private bool _showUpdateModal = false;
+        private string _latestVersionTag = "";
+        private string _releaseUrl = "";
+        private string _manualCheckMessage = "";
+
         // Completed tasks checklist
         private HashSet<string> _completedTasks = new();
 
@@ -30,7 +41,6 @@ namespace TdsOverlayImGui
         // Regex for <ocr N>
         private static readonly Regex OcrTagRegex = new Regex(@"<ocr\s+([\d\-]+)>(.*?)</ocr[^>]*>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
-        private string _searchFilter = "";
         private float _toastTimer = 0.0f;
 
         private float _imageScale = 1.0f;
@@ -55,7 +65,6 @@ namespace TdsOverlayImGui
         private string _newMapName = "";
         private string _newMapDiff = "Fallen";
         private string _newMapStrat = "Solo";
-        private string _newMapGeneralInfo = "";
 
         private bool _showImportExportModal = false;
         private string _importFilePath = "";
@@ -98,11 +107,40 @@ namespace TdsOverlayImGui
             _settings = StrategyService.LoadSettings();
             _strategies = StrategyService.LoadStrategies();
             _selectedMapIndex = -1;
+
+            // Запускаем фоновую проверку обновлений при старте
+            CheckForUpdatesInBackground(silent: true);
+        }
+
+        private void CheckForUpdatesInBackground(bool silent = true)
+        {
+            Task.Run(async () =>
+            {
+                var (available, latestTag, url, error) = await UpdateService.CheckForUpdatesAsync(
+                    GitHubOwner, GitHubRepo, CurrentAppVersion);
+
+                if (available)
+                {
+                    _latestVersionTag = latestTag;
+                    _releaseUrl = url;
+                    _showUpdateModal = true;
+                }
+                else if (!silent)
+                {
+                    if (!string.IsNullOrEmpty(error))
+                    {
+                        _manualCheckMessage = error;
+                    }
+                    else
+                    {
+                        _manualCheckMessage = Loc.Tr("NoUpdatesNotice");
+                    }
+                }
+            });
         }
 
         protected override void Render()
         {
-            // Если нативный крестик в заголовке был нажат — закрываем оверлей
             if (!_isOverlayOpen)
             {
                 Close();
@@ -114,7 +152,7 @@ namespace TdsOverlayImGui
 
             ImGui.SetNextWindowSize(new Vector2(520, 600), ImGuiCond.FirstUseEver);
 
-            // Передача ref _isOverlayOpen включаeт нативный крестик (X) в правом верхнем углу ImGui
+            // Передача ref _isOverlayOpen включает нативный крестик (X) в правом верхнем углу ImGui
             ImGui.Begin("TDS Strategy Overlay (ImGui)", ref _isOverlayOpen, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.MenuBar);
 
             if (ImGui.BeginMenuBar())
@@ -135,18 +173,19 @@ namespace TdsOverlayImGui
                         _showSettingsModal = true;
                     }
 
-                    ImGui.Separator();
-
-                    if (ImGui.MenuItem(Loc.Tr("ExitApp")))
-                    {
-                        Close();
-                    }
-
                     ImGui.EndMenu();
                 }
 
                 if (ImGui.BeginMenu(Loc.Tr("Other")))
                 {
+                    if (ImGui.MenuItem(Loc.Tr("CheckUpdates")))
+                    {
+                        _manualCheckMessage = "Проверка...";
+                        CheckForUpdatesInBackground(silent: false);
+                    }
+
+                    ImGui.Separator();
+
                     if (ImGui.MenuItem(Loc.Tr("About")))
                     {
                         _showAboutModal = true;
@@ -156,6 +195,11 @@ namespace TdsOverlayImGui
                 }
 
                 ImGui.EndMenuBar();
+            }
+
+            if (!string.IsNullOrEmpty(_manualCheckMessage))
+            {
+                ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), _manualCheckMessage);
             }
 
             ImGui.Spacing();
@@ -178,6 +222,7 @@ namespace TdsOverlayImGui
             if (_showSettingsModal) RenderSettingsModal();
             if (_showAboutModal) RenderAboutModal();
             if (_showDeleteConfirmModal) RenderDeleteConfirmModal();
+            if (_showUpdateModal) RenderUpdateModal();
 
             ImGui.End();
 
@@ -189,6 +234,40 @@ namespace TdsOverlayImGui
             if (_isSelectingOcrRegion)
             {
                 RenderOcrSelectionOverlay();
+            }
+        }
+
+        private void RenderUpdateModal()
+        {
+            ImGui.OpenPopup(Loc.Tr("UpdateModalTitle"));
+            if (ImGui.BeginPopupModal(Loc.Tr("UpdateModalTitle"), ref _showUpdateModal, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("UpdateNotice"));
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
+
+                ImGui.Text($"{Loc.Tr("CurrentVersionLabel")} {CurrentAppVersion}");
+                ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), $"{Loc.Tr("LatestVersionLabel")} {_latestVersionTag}");
+
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
+
+                if (ImGui.Button(Loc.Tr("DownloadUpdateBtn"), new Vector2(160, 0)))
+                {
+                    UpdateService.OpenUrlInBrowser(_releaseUrl);
+                    _showUpdateModal = false;
+                }
+
+                ImGui.SameLine();
+
+                if (ImGui.Button(Loc.Tr("Cancel"), new Vector2(100, 0)))
+                {
+                    _showUpdateModal = false;
+                }
+
+                ImGui.EndPopup();
             }
         }
 
@@ -386,47 +465,30 @@ namespace TdsOverlayImGui
 
         private void RenderMainUI()
         {
-            ImGui.BeginChild("MapSelectorCard", new Vector2(0, 95), true);
+            // Высота увеличена до 98px, чтобы кнопки выравнивались без обрезания
+            ImGui.BeginChild("MapSelectorCard", new Vector2(0, 98), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
             ImGui.TextDisabled(Loc.Tr("SelectStrategyHeader"));
-            ImGui.SameLine();
 
-            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-            ImGui.InputText("##SearchFilter", ref _searchFilter, 100);
-            if (string.IsNullOrWhiteSpace(_searchFilter))
-            {
-                ImGui.SameLine();
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 180);
-                ImGui.TextDisabled(Loc.Tr("SearchPlaceholder"));
-            }
-
-            var filteredIndices = new List<int>();
             var comboItemsList = new List<string> { Loc.Tr("SelectStrategyCombo") };
-
             for (int i = 0; i < _strategies.Count; i++)
             {
-                if (string.IsNullOrWhiteSpace(_searchFilter) ||
-                    _strategies[i].DisplayName.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase) ||
-                    _strategies[i].MapName.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase))
-                {
-                    filteredIndices.Add(i);
-                    comboItemsList.Add(_strategies[i].DisplayName);
-                }
+                comboItemsList.Add(_strategies[i].DisplayName);
             }
 
             string[] comboItems = comboItemsList.ToArray();
             int currentComboIdx = 0;
-            if (_selectedMapIndex >= 0 && filteredIndices.Contains(_selectedMapIndex))
+            if (_selectedMapIndex >= 0 && _selectedMapIndex < _strategies.Count)
             {
-                currentComboIdx = filteredIndices.IndexOf(_selectedMapIndex) + 1;
+                currentComboIdx = _selectedMapIndex + 1;
             }
 
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
             if (ImGui.Combo("##MapSelect", ref currentComboIdx, comboItems, comboItems.Length))
             {
-                if (currentComboIdx > 0 && currentComboIdx <= filteredIndices.Count)
+                if (currentComboIdx > 0 && currentComboIdx <= _strategies.Count)
                 {
-                    _selectedMapIndex = filteredIndices[currentComboIdx - 1];
+                    _selectedMapIndex = currentComboIdx - 1;
                 }
                 else
                 {
@@ -661,14 +723,14 @@ namespace TdsOverlayImGui
                     ImGui.TextColored(new Vector4(1f, 0.8f, 0.2f, 1f), Loc.Tr("EditingTitle"));
                     ImGui.Spacing();
 
+                    ImGui.Text($"{Loc.Tr("StrategyVariant")}:");
+                    ImGui.InputText("##EditStrategyName", ref _editStrategyName, 100);
+
                     ImGui.Text($"{Loc.Tr("MapName")}:");
                     ImGui.InputText("##EditMapName", ref _editMapName, 100);
 
                     ImGui.Text($"{Loc.Tr("Difficulty")}:");
                     ImGui.InputText("##EditDifficulty", ref _editDifficulty, 50);
-
-                    ImGui.Text($"{Loc.Tr("StrategyVariant")}:");
-                    ImGui.InputText("##EditStrategyName", ref _editStrategyName, 100);
 
                     ImGui.Spacing();
                     ImGui.Text(Loc.Tr("GeneralInfoLabel"));
@@ -1019,17 +1081,19 @@ namespace TdsOverlayImGui
             ImGui.OpenPopup(Loc.Tr("Create"));
             if (ImGui.BeginPopupModal(Loc.Tr("Create"), ref _showAddMapModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                ImGui.Text($"{Loc.Tr("MapName")}:");
-                ImGui.InputText("##NewMapName", ref _newMapName, 100);
-
-                ImGui.Text($"{Loc.Tr("Difficulty")}:");
-                ImGui.InputText("##NewMapDiff", ref _newMapDiff, 50);
-
+                // 1. Самый первый пункт: Название стратегии
                 ImGui.Text($"{Loc.Tr("StrategyVariant")}:");
                 ImGui.InputText("##NewMapStrat", ref _newMapStrat, 100);
 
-                ImGui.Text(Loc.Tr("GeneralInfoLabel"));
-                ImGui.InputTextMultiline("##NewMapGeneralInfo", ref _newMapGeneralInfo, 500, new Vector2(-1, 50));
+                // 2. Название карты
+                ImGui.Text($"{Loc.Tr("MapName")}:");
+                ImGui.InputText("##NewMapName", ref _newMapName, 100);
+
+                // 3. Сложность
+                ImGui.Text($"{Loc.Tr("Difficulty")}:");
+                ImGui.InputText("##NewMapDiff", ref _newMapDiff, 50);
+
+                // Поле "Общая информация" удалено отсюда (но сохранено при редактировании)
 
                 if (ImGui.Button(Loc.Tr("Create"), new Vector2(100, 0)))
                 {
@@ -1038,7 +1102,7 @@ namespace TdsOverlayImGui
                         MapName = string.IsNullOrWhiteSpace(_newMapName) ? "New Map" : _newMapName,
                         Difficulty = _newMapDiff,
                         StrategyName = string.IsNullOrWhiteSpace(_newMapStrat) ? "Solo" : _newMapStrat,
-                        GeneralInfo = _newMapGeneralInfo,
+                        GeneralInfo = "", // Изначально пустое
                         ImagePaths = new List<string>(),
                         Steps = new List<StrategyStep>
                         {

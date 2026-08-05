@@ -59,7 +59,7 @@ namespace TdsOverlayImGui
             { "YesDelete", "Yes, delete" },
             { "MapName", "Map Name" },
             { "Difficulty", "Difficulty" },
-            { "StrategyVariant", "Strategy Variant" },
+            { "StrategyVariant", "Strategy Name" },
             { "ExportZip", "Export to ZIP archive" },
             { "ImportFile", "Import strategy" },
             { "FilePath", "File path" },
@@ -91,9 +91,18 @@ namespace TdsOverlayImGui
             { "OcrOverlayInstruction", "CLICK AND HOLD LMB ON SCREEN TO SELECT WAVE NUMBER IN ROBLOX (ESC - Cancel)" },
             { "SeparateImageTitle", "Placement Image" },
             { "AboutTitle", "About" },
-            { "AboutVersion", "Version: 0.2 Alpha" },
-            { "AboutAuthor", "Author: icymarsh" },
-            { "AboutDesc", "Overlay for Tower Defense Simulator in Roblox" }
+            { "AboutVersion", "Version: 0.3" },
+            { "AboutAuthor", "Authors: icymarsh, Google Gemini (code)" },
+            { "AboutDesc", "Overlay for Tower Defense Simulator in Roblox" },
+
+            // Update Translations
+            { "CheckUpdates", "Check for Updates" },
+            { "UpdateModalTitle", "New Update Available!" },
+            { "UpdateNotice", "A new version of TDS Strategy Overlay is available on GitHub." },
+            { "CurrentVersionLabel", "Current Version:" },
+            { "LatestVersionLabel", "Latest Version:" },
+            { "DownloadUpdateBtn", "Open Download Page" },
+            { "NoUpdatesNotice", "You are using the latest version!" }
         };
 
         private static readonly Dictionary<string, string> DictRu = new()
@@ -142,7 +151,7 @@ namespace TdsOverlayImGui
             { "YesDelete", "Да, удалить" },
             { "MapName", "Название карты" },
             { "Difficulty", "Сложность" },
-            { "StrategyVariant", "Вариант стратегии" },
+            { "StrategyVariant", "Название стратегии" },
             { "ExportZip", "Экспортировать в ZIP-архив" },
             { "ImportFile", "Импортировать стратегию" },
             { "FilePath", "Путь к файлу" },
@@ -174,9 +183,18 @@ namespace TdsOverlayImGui
             { "OcrOverlayInstruction", "ЗАЖМИТЕ ЛКМ НА ЭКРАНЕ, ЧТОБЫ ВЫДЕЛИТЬ НОМЕР ВОЛНЫ В ROBLOX (ESC - Отмена)" },
             { "SeparateImageTitle", "Изображение расстановки" },
             { "AboutTitle", "О программе" },
-            { "AboutVersion", "Версия: 0.2 Alpha" },
-            { "AboutAuthor", "Автор: icymarsh" },
-            { "AboutDesc", "Оверлей для Tower Defense Simulator в Roblox" }
+            { "AboutVersion", "Версия: 0.3" },
+            { "AboutAuthor", "Авторы: icymarsh, Google Gemini (code)" },
+            { "AboutDesc", "Оверлей для Tower Defense Simulator в Roblox" },
+
+            // Update Translations
+            { "CheckUpdates", "Проверить обновления" },
+            { "UpdateModalTitle", "Доступно новое обновление!" },
+            { "UpdateNotice", "На GitHub вышло новое обновление оверлея." },
+            { "CurrentVersionLabel", "Текущая версия:" },
+            { "LatestVersionLabel", "Новая версия:" },
+            { "DownloadUpdateBtn", "Скачать обновление" },
+            { "NoUpdatesNotice", "У вас установлена последняя версия!" }
         };
 
         public static string Tr(string key)
