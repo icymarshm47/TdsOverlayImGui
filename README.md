@@ -20,7 +20,6 @@ An ultra-lightweight, **Always-On-Top Overlay** for **Roblox Tower Defense Simul
 ## How to download
 - Go to the **Releases** section.
 - Download the latest `TdsOverlayImGui.zip` or `TdsOverlayImgui.7z`.
-- *(Optional)* Download the recommended font located in [`fonts/Roboto-Regular.ttf`](./fonts/Roboto-Regular.ttf) for the best visual experience: create a `fonts` folder in the directory where the app is installed and place the `.ttf` file inside it.
 - Extract the archive and run the application.
 
 ## How to Build
