@@ -67,13 +67,29 @@ namespace TdsOverlayImGui
 
         public TdsImGuiOverlay() : base("TDS Strategy Overlay", true)
         {
-            string fontPath = @"C:\Windows\Fonts\segoeui.ttf";
-            if (!File.Exists(fontPath))
-                fontPath = @"C:\Windows\Fonts\arial.ttf";
-
-            if (File.Exists(fontPath))
+            string[] fontCandidates = new[]
             {
-                ReplaceFont(fontPath, 18, FontGlyphRangeType.Cyrillic);
+                "Roboto-Regular.ttf",
+                "roboto.ttf",
+                Path.Combine("fonts", "Roboto-Regular.ttf"),
+                @"C:\Windows\Fonts\Roboto-Regular.ttf",
+                @"C:\Windows\Fonts\segoeui.ttf",
+                @"C:\Windows\Fonts\arial.ttf"
+            };
+
+            string? selectedFont = null;
+            foreach (var candidate in fontCandidates)
+            {
+                if (File.Exists(candidate))
+                {
+                    selectedFont = candidate;
+                    break;
+                }
+            }
+
+            if (selectedFont != null)
+            {
+                ReplaceFont(selectedFont, 18, FontGlyphRangeType.Cyrillic);
             }
 
             _settings = StrategyService.LoadSettings();
@@ -318,7 +334,8 @@ namespace TdsOverlayImGui
 
                 if (isDone)
                 {
-                    ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 0.85f), $"[v] {cleanText}");
+                    // Без знака [v], просто подсвечиваем цвет
+                    ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 0.85f), cleanText);
                 }
                 else if (isTagActive)
                 {
@@ -366,7 +383,7 @@ namespace TdsOverlayImGui
             }
 
             var filteredIndices = new List<int>();
-            var comboItemsList = new List<string> { Loc.Tr("SelectStrategyPrompt") };
+            var comboItemsList = new List<string> { Loc.Tr("SelectStrategyCombo") };
 
             for (int i = 0; i < _strategies.Count; i++)
             {
@@ -445,6 +462,7 @@ namespace TdsOverlayImGui
             }
 
             var currentMap = _strategies[_selectedMapIndex];
+            int activeWave = _detectedWaveNumber ?? _currentWaveNumber;
 
             // WINDOWS OCR PANEL
             ImGui.BeginChild("OcrHeaderCard", new Vector2(0, 42), true);
@@ -465,13 +483,21 @@ namespace TdsOverlayImGui
             ImGui.EndChild();
             ImGui.Spacing();
 
-            // GENERAL INFO
+            // GENERAL INFO (с поддержкой - [ ] и <ocr>)
             if (!string.IsNullOrWhiteSpace(currentMap.GeneralInfo))
             {
                 ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("GeneralInfo"));
                 float infoH = _settings.GeneralInfoBoxHeight;
                 ImGui.BeginChild("GeneralInfoScroll", new Vector2(0, infoH), true);
-                ImGui.TextWrapped(currentMap.GeneralInfo);
+
+                string[] lines = currentMap.GeneralInfo.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+                for (int lineIdx = 0; lineIdx < lines.Length; lineIdx++)
+                {
+                    string rawLine = lines[lineIdx];
+                    string taskKey = $"gen_{_selectedMapIndex}_{lineIdx}";
+                    RenderInstructionLine(rawLine, activeWave, taskKey);
+                }
+
                 ImGui.EndChild();
 
                 _settings.GeneralInfoBoxHeight = DrawHeightResizeHandle(_settings.GeneralInfoBoxHeight, 40.0f, 400.0f, "GeneralInfoHandle");
@@ -492,7 +518,6 @@ namespace TdsOverlayImGui
                 ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("CurrentWaveHeader"));
                 ImGui.SameLine();
 
-                int activeWave = _detectedWaveNumber ?? _currentWaveNumber;
                 ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), $"[ {activeWave} ]");
 
                 if (_detectedWaveNumber.HasValue)
@@ -519,6 +544,12 @@ namespace TdsOverlayImGui
                 bool isOcrMatched = activeWave >= step.StartWave && activeWave <= step.EndWave;
                 Vector4 waveColor = isOcrMatched ? new Vector4(0.3f, 1.0f, 0.4f, 1.0f) : new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
                 ImGui.TextColored(waveColor, $"{Loc.Tr("Waves")} {step.StartWave} - {step.EndWave}");
+
+                if (isOcrMatched)
+                {
+                    ImGui.SameLine();
+                    ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), Loc.Tr("ActiveInGame"));
+                }
 
                 if (ImGui.Button("|<")) { _currentStepIndex = 0; ResetImageTransform(); }
                 ImGui.SameLine();
@@ -967,8 +998,8 @@ namespace TdsOverlayImGui
 
         private void RenderAddMapModal()
         {
-            ImGui.OpenPopup("Создать стратегию");
-            if (ImGui.BeginPopupModal("Создать стратегию", ref _showAddMapModal, ImGuiWindowFlags.AlwaysAutoResize))
+            ImGui.OpenPopup(Loc.Tr("Create"));
+            if (ImGui.BeginPopupModal(Loc.Tr("Create"), ref _showAddMapModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 ImGui.Text($"{Loc.Tr("MapName")}:");
                 ImGui.InputText("##NewMapName", ref _newMapName, 100);
@@ -979,7 +1010,7 @@ namespace TdsOverlayImGui
                 ImGui.Text($"{Loc.Tr("StrategyVariant")}:");
                 ImGui.InputText("##NewMapStrat", ref _newMapStrat, 100);
 
-                ImGui.Text("Общая информация (Инфо):");
+                ImGui.Text(Loc.Tr("GeneralInfoLabel"));
                 ImGui.InputTextMultiline("##NewMapGeneralInfo", ref _newMapGeneralInfo, 500, new Vector2(-1, 50));
 
                 if (ImGui.Button(Loc.Tr("Create"), new Vector2(100, 0)))
@@ -1101,19 +1132,17 @@ namespace TdsOverlayImGui
                 ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("LanguageSetting"));
                 ImGui.Spacing();
 
-                if (ImGui.RadioButton("Russian / Русский", Loc.CurrentLanguage == AppLanguage.Russian))
-                {
-                    Loc.CurrentLanguage = AppLanguage.Russian;
-                    _settings.Language = AppLanguage.Russian;
-                    StrategyService.SaveSettings(_settings);
-                }
-
-                ImGui.SameLine();
-
                 if (ImGui.RadioButton("English", Loc.CurrentLanguage == AppLanguage.English))
                 {
                     Loc.CurrentLanguage = AppLanguage.English;
                     _settings.Language = AppLanguage.English;
+                    StrategyService.SaveSettings(_settings);
+                }
+
+                if (ImGui.RadioButton("Русский", Loc.CurrentLanguage == AppLanguage.Russian))
+                {
+                    Loc.CurrentLanguage = AppLanguage.Russian;
+                    _settings.Language = AppLanguage.Russian;
                     StrategyService.SaveSettings(_settings);
                 }
 

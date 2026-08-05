@@ -20,14 +20,12 @@ namespace TdsOverlayImGui
 
             try
             {
-                // 1. Делаем скриншот выделенной области экрана
                 using var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
                 using (var g = Graphics.FromImage(bitmap))
                 {
                     g.CopyFromScreen(x, y, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
                 }
 
-                // 2. Конвертируем Bitmap в WinRT SoftwareBitmap через поток InMemoryRandomAccessStream
                 using var stream = new MemoryStream();
                 bitmap.Save(stream, ImageFormat.Png);
                 byte[] bytes = stream.ToArray();
@@ -42,7 +40,6 @@ namespace TdsOverlayImGui
                 var decoder = await BitmapDecoder.CreateAsync(randomAccessStream);
                 using var softwareBitmap = await decoder.GetSoftwareBitmapAsync();
 
-                // 3. Инициализируем нативный движок Windows OCR
                 if (_ocrEngine == null)
                 {
                     _ocrEngine = OcrEngine.TryCreateFromUserProfileLanguages() 
@@ -51,11 +48,9 @@ namespace TdsOverlayImGui
 
                 if (_ocrEngine == null) return null;
 
-                // 4. Распознаем текст
                 var ocrResult = await _ocrEngine.RecognizeAsync(softwareBitmap);
                 string text = ocrResult.Text;
 
-                // 5. Вытаскиваем число волны из текста
                 var match = Regex.Match(text, @"\d+");
                 if (match.Success && int.TryParse(match.Value, out int waveNum))
                 {
@@ -64,7 +59,7 @@ namespace TdsOverlayImGui
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка Windows OCR: {ex.Message}");
+                Console.WriteLine($"Windows OCR Error: {ex.Message}");
             }
 
             return null;

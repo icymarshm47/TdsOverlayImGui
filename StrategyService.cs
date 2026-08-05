@@ -14,7 +14,6 @@ namespace TdsOverlayImGui
         public float EmbeddedImageBoxHeight { get; set; } = 220.0f;
         public AppLanguage Language { get; set; } = AppLanguage.English;
 
-        // Windows OCR Settings
         public bool EnableOcr { get; set; } = false;
         public int OcrX { get; set; } = 100;
         public int OcrY { get; set; } = 100;
