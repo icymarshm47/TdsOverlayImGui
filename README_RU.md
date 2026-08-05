@@ -2,8 +2,6 @@
 > [!IMPORTANT]
 > Roblox TDS Strategy Overlay — это безопасный внешний оверлей, не внедряющийся в игру. Он **НЕ** внедряется в память `RobloxPlayerBeta.exe` и не изменяет файлы игры. Программа просто отображает прозрачное окно Windows поверх игры и использует встроенный инструмент распознавания текста (Windows OCR).
 
-[Читать на русском языке](README_RU.md)
-
 Ультралегкий **оверлей поверх всех окон (Always-On-Top)** для **Roblox Tower Defense Simulator**, написанный на C#, .NET 10, Dear ImGui (DirectX 11) и Native Windows OCR.
 
 ## Возможности

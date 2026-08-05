@@ -2,6 +2,8 @@
 > [!IMPORTANT]
 > Roblox TDS Strategy Overlay is safe, an external, non-invasive overlay. It does NOT inject into RobloxPlayerBeta.exe memory or modify game files. It simply renders a transparent Windows window on top and uses Windows OCR screen capture.
 
+[Читать на русском языке](README_RU.md)
+
 An ultra-lightweight, **Always-On-Top Overlay** for **Roblox Tower Defense Simulator** built with C#, .NET 10, Dear ImGui (DirectX 11), and Native Windows OCR.
 
 ## Features
