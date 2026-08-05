@@ -334,7 +334,6 @@ namespace TdsOverlayImGui
 
                 if (isDone)
                 {
-                    // Без знака [v], просто подсвечиваем цвет
                     ImGui.TextColored(new Vector4(0.3f, 1.0f, 0.4f, 0.85f), cleanText);
                 }
                 else if (isTagActive)
@@ -483,7 +482,7 @@ namespace TdsOverlayImGui
             ImGui.EndChild();
             ImGui.Spacing();
 
-            // GENERAL INFO (с поддержкой - [ ] и <ocr>)
+            // GENERAL INFO
             if (!string.IsNullOrWhiteSpace(currentMap.GeneralInfo))
             {
                 ImGui.TextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("GeneralInfo"));
