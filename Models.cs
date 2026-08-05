@@ -20,6 +20,7 @@ namespace TdsOverlayImGui
             { "Settings", "Settings" },
             { "ImportExport", "Import / Export" },
             { "About", "About" },
+            { "ExitApp", "Exit Application" },
             { "AddStrategy", "+ Strategy" },
             { "EditStrategy", "Edit" },
             { "ViewMode", "View Mode" },
@@ -90,7 +91,7 @@ namespace TdsOverlayImGui
             { "OcrOverlayInstruction", "CLICK AND HOLD LMB ON SCREEN TO SELECT WAVE NUMBER IN ROBLOX (ESC - Cancel)" },
             { "SeparateImageTitle", "Placement Image" },
             { "AboutTitle", "About" },
-            { "AboutVersion", "Version: 0.3 Alpha" },
+            { "AboutVersion", "Version: 0.2 Alpha" },
             { "AboutAuthor", "Author: icymarsh" },
             { "AboutDesc", "Overlay for Tower Defense Simulator in Roblox" }
         };
@@ -102,6 +103,7 @@ namespace TdsOverlayImGui
             { "Settings", "Настройки" },
             { "ImportExport", "Импорт / Экспорт" },
             { "About", "О программе" },
+            { "ExitApp", "Закрыть приложение" },
             { "AddStrategy", "+ Стратегия" },
             { "EditStrategy", "Редактировать" },
             { "ViewMode", "Режим просмотра" },
@@ -172,7 +174,7 @@ namespace TdsOverlayImGui
             { "OcrOverlayInstruction", "ЗАЖМИТЕ ЛКМ НА ЭКРАНЕ, ЧТОБЫ ВЫДЕЛИТЬ НОМЕР ВОЛНЫ В ROBLOX (ESC - Отмена)" },
             { "SeparateImageTitle", "Изображение расстановки" },
             { "AboutTitle", "О программе" },
-            { "AboutVersion", "Версия: 0.3 Alpha" },
+            { "AboutVersion", "Версия: 0.2 Alpha" },
             { "AboutAuthor", "Автор: icymarsh" },
             { "AboutDesc", "Оверлей для Tower Defense Simulator в Roblox" }
         };

@@ -18,6 +18,9 @@ namespace TdsOverlayImGui
         private int _currentStepIndex = 0;
         private int _currentImageIndex = 0;
 
+        // Флаг работы главного окна ImGui (если false — закрываем приложение)
+        private bool _isOverlayOpen = true;
+
         // Completed tasks checklist
         private HashSet<string> _completedTasks = new();
 
@@ -99,11 +102,20 @@ namespace TdsOverlayImGui
 
         protected override void Render()
         {
+            // Если нативный крестик в заголовке был нажат — закрываем оверлей
+            if (!_isOverlayOpen)
+            {
+                Close();
+                return;
+            }
+
             SetupStyle();
             ProcessBackgroundOcr();
 
             ImGui.SetNextWindowSize(new Vector2(520, 600), ImGuiCond.FirstUseEver);
-            ImGui.Begin("TDS Strategy Overlay (ImGui)", ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.MenuBar);
+
+            // Передача ref _isOverlayOpen включаeт нативный крестик (X) в правом верхнем углу ImGui
+            ImGui.Begin("TDS Strategy Overlay (ImGui)", ref _isOverlayOpen, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.MenuBar);
 
             if (ImGui.BeginMenuBar())
             {
@@ -121,6 +133,13 @@ namespace TdsOverlayImGui
                     if (ImGui.MenuItem(Loc.Tr("Settings")))
                     {
                         _showSettingsModal = true;
+                    }
+
+                    ImGui.Separator();
+
+                    if (ImGui.MenuItem(Loc.Tr("ExitApp")))
+                    {
+                        Close();
                     }
 
                     ImGui.EndMenu();
