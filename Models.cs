@@ -1,244 +1,85 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace TdsOverlayImGui
 {
-    public enum AppLanguage
-    {
-        English,
-        Russian
-    }
-
     public static class Loc
     {
-        public static AppLanguage CurrentLanguage = AppLanguage.English;
+        private const string LocalesFolder = "locales";
+        private static readonly Dictionary<string, Dictionary<string, string>> Languages = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, string> DisplayNames = new(StringComparer.OrdinalIgnoreCase);
 
-        private static readonly Dictionary<string, string> DictEn = new()
-        {
-            { "File", "File" },
-            { "Other", "Other" },
-            { "Settings", "Settings" },
-            { "ImportExport", "Import / Export" },
-            { "About", "About" },
-            { "Help", "Help" },
-            { "ExitApp", "Exit Application" },
-            { "AddStrategy", "+ Strategy" },
-            { "EditStrategy", "Edit" },
-            { "ViewMode", "View Mode" },
-            { "DeleteStrategy", "Delete" },
-            { "NoStrategySelected", "No strategy selected!" },
-            { "SelectStrategyPrompt", "Select a strategy from the list above or click '+ Strategy' to create a new one." },
-            { "SearchPlaceholder", "Search strategy..." },
-            { "SelectStrategyHeader", "STRATEGY SELECTION:" },
-            { "SelectStrategyCombo", "- Select Strategy -" },
-            { "GeneralInfo", "GENERAL INFO & LOADOUT:" },
-            { "Step", "Step" },
-            { "Of", "of" },
-            { "Waves", "WAVES" },
-            { "PrevStep", "< Prev" },
-            { "NextStep", "Next >" },
-            { "InstructionHeader", "INSTRUCTION FOR CURRENT RANGE:" },
-            { "CopyInstruction", "[Copy Text]" },
-            { "ClearChecks", "[Clear Checks]" },
-            { "CopiedToast", "[Copied to clipboard!]" },
-            { "SeparateImageNotice", "Images opened in separate window ->" },
-            { "PlacementImage", "Placement Image:" },
-            { "ZoomNotice", "Zoom: {0}% | LMB: Drag | Wheel: Zoom | MMB: Reset" },
-            { "PrevPhoto", "< Prev Photo" },
-            { "NextPhoto", "Next Photo >" },
-            { "PhotoCount", "Photo {0} of {1}" },
-            { "LanguageSetting", "UI LANGUAGE:" },
-            { "ImageModeSetting", "PLACEMENT IMAGE DISPLAY:" },
-            { "WindowOpacitySetting", "WINDOW TRANSPARENCY:" },
-            { "SeparateWindowMode", "Show in separate movable window" },
-            { "EmbeddedMode", "Show inside main window" },
-            { "Close", "Close" },
-            { "Cancel", "Cancel" },
-            { "Save", "Save changes" },
-            { "Create", "Create" },
-            { "DeleteConfirmTitle", "Delete strategy?" },
-            { "DeleteConfirmText", "Are you sure you want to delete strategy:\n\"{0}\"?" },
-            { "YesDelete", "Yes, delete" },
-            { "MapName", "Map Name" },
-            { "Difficulty", "Difficulty" },
-            { "StrategyVariant", "Strategy Name" },
-            { "ExportZip", "Export to ZIP File..." },
-            { "ExportClipboard", "Export to Clipboard" },
-            { "ImportFileBtn", "Import Strategy File..." },
-            { "ImportClipboard", "Import from Clipboard" },
-            { "ClipboardExportSuccess", "[Strategy copied to clipboard!]" },
-            { "ClipboardImportSuccess", "[Strategy imported from clipboard!]" },
-            { "ClipboardImportError", "[Failed to import strategy from clipboard!]" },
-            { "ExportSection", "EXPORT CURRENT STRATEGY:" },
-            { "ImportSection", "IMPORT STRATEGY:" },
-            { "AutoOcrHeader", "Auto Wave Scanner (OCR)" },
-            { "SelectOcrRegionBtn", "Select Screen Region" },
-            { "InGameWave", "IN-GAME WAVE:" },
-            { "AutoOcrTag", "(Auto-OCR)" },
-            { "CurrentWaveHeader", "CURRENT WAVE:" },
-            { "ActiveInGame", "(ACTIVE IN-GAME)" },
-            { "ResizeHandleText", "[=== Hold LMB and drag to resize height ===]" },
-            { "EditingTitle", "EDITING STRATEGY" },
-            { "GeneralInfoLabel", "General Info / Notes (for entire strategy):" },
-            { "ImagesHeader", "PLACEMENT IMAGES (COMMON FOR ENTIRE STRATEGY):" },
-            { "PhotoNum", "Photo #{0}:" },
-            { "DeletePhotoBtn", "Delete Photo" },
-            { "AddPhotoBtn", "+ Add Strategy Photo" },
-            { "SelectFileBtn", "Browse File" },
-            { "PasteClipboardBtn", "Paste from clipboard" },
-            { "NoImageSelected", "[No image selected]" },
-            { "ClipboardNoImageToast", "[No image in clipboard!]" },
-            { "StepsHeader", "Steps & Wave Ranges:" },
-            { "MarkdownHint", "(Use - [ ] for checkboxes, <ocr 10 red>text</ocr> for DJ alerts)" },
-            { "FromWave", "From wave" },
-            { "ToWave", "To wave" },
-            { "StepInstructionLabel", "Step instruction:" },
-            { "DeleteStepBtn", "Delete this step" },
-            { "AddStepBtn", "+ Add another step" },
-            { "DeleteEntireStrategyBtn", "Delete Entire Strategy" },
-            { "NoStepsNotice", "No steps in this strategy." },
-            { "AddDefaultStepBtn", "+ Add step (1-30)" },
-            { "OcrOverlayInstruction", "CLICK AND HOLD LMB ON SCREEN TO SELECT WAVE NUMBER IN ROBLOX (ESC - Cancel)" },
-            { "SeparateImageTitle", "Placement Image" },
-            { "AboutTitle", "About" },
-            { "AboutVersion", "Version: 0.4" },
-            { "AboutAuthor", "Authors: icymarsh, Gti_Olen, Google Gemini (code)" },
-            { "AboutDesc", "Overlay for Tower Defense Simulator in Roblox" },
-            { "CheckUpdates", "Check for Updates" },
-            { "UpdateModalTitle", "New Update Available!" },
-            { "UpdateNotice", "A new version of TDS Strategy Overlay is available on GitHub." },
-            { "CurrentVersionLabel", "Current Version:" },
-            { "LatestVersionLabel", "Latest Version:" },
-            { "DownloadUpdateBtn", "Open Download Page" },
-            { "NoUpdatesNotice", "You are using the latest version!" },
-            { "CompactMode", "Compact Mode" },
-            { "DjToastRed", "[!] SWITCH DJ TO RED TRACK [!]" },
-            { "DjToastGreen", "[!] SWITCH DJ TO GREEN TRACK [!]" },
-            { "DjToastPurple", "[!] SWITCH DJ TO PURPLE TRACK [!]" },
-            { "HelpTitle", "FORMATTING CHEAT SHEET" },
-            { "HelpLine1", "- [ ] text - create a checkbox." },
-            { "HelpLine2", "<ocr 15>text</ocr> - highlight line on wave 15." },
-            { "HelpLine3", "<ocr 20 red>text</ocr> - red DJ toast on wave 20 (colors: red, green, purple)." }
-        };
+        public static string CurrentLanguage = "en";
 
-        private static readonly Dictionary<string, string> DictRu = new()
+        public static void LoadLanguages()
         {
-            { "File", "Файл" },
-            { "Other", "Другое" },
-            { "Settings", "Настройки" },
-            { "ImportExport", "Импорт / Экспорт" },
-            { "About", "О программе" },
-            { "Help", "Справка" },
-            { "ExitApp", "Закрыть приложение" },
-            { "AddStrategy", "+ Стратегия" },
-            { "EditStrategy", "Редактировать" },
-            { "ViewMode", "Режим просмотра" },
-            { "DeleteStrategy", "Удалить" },
-            { "NoStrategySelected", "Стратегия не выбрана!" },
-            { "SelectStrategyPrompt", "Выберите стратегию из списка выше или нажмите '+ Стратегия', чтобы создать новую." },
-            { "SearchPlaceholder", "Поиск стратегии..." },
-            { "SelectStrategyHeader", "ВЫБОР СТРАТЕГИИ:" },
-            { "SelectStrategyCombo", "- Выберите стратегию -" },
-            { "GeneralInfo", "ОБЩАЯ ИНФОРМАЦИЯ И ЛОАДАУТ:" },
-            { "Step", "Шаг" },
-            { "Of", "из" },
-            { "Waves", "ВОЛНЫ" },
-            { "PrevStep", "< Назад" },
-            { "NextStep", "Вперед >" },
-            { "InstructionHeader", "ИНСТРУКЦИЯ ДЛЯ ТЕКУЩЕГО ДИАПАЗОНА:" },
-            { "CopyInstruction", "[Копировать текст]" },
-            { "ClearChecks", "[Сбросить галочки]" },
-            { "CopiedToast", "[Скопировано в буфер обмена!]" },
-            { "SeparateImageNotice", "Изображения открыты в отдельном окне ->" },
-            { "PlacementImage", "Изображение расстановки:" },
-            { "ZoomNotice", "Масштаб: {0}% | ЛКМ: Перемещение | Колесо: Масштаб | СКМ: Сброс" },
-            { "PrevPhoto", "< Пред. фото" },
-            { "NextPhoto", "След. фото >" },
-            { "PhotoCount", "Фото {0} из {1}" },
-            { "LanguageSetting", "ЯЗЫК ИНТЕРФЕЙСА:" },
-            { "ImageModeSetting", "ОТОБРАЖЕНИЕ ИЗОБРАЖЕНИЙ:" },
-            { "WindowOpacitySetting", "ПРОЗРАЧНОСТЬ ОКНА:" },
-            { "SeparateWindowMode", "Показывать в отдельном перемещаемом окне" },
-            { "EmbeddedMode", "Показывать внутри главного окна" },
-            { "Close", "Закрыть" },
-            { "Cancel", "Отмена" },
-            { "Save", "Сохранить изменения" },
-            { "Create", "Создать" },
-            { "DeleteConfirmTitle", "Удалить стратегию?" },
-            { "DeleteConfirmText", "Вы уверены, что хотите удалить стратегию:\n\"{0}\"?" },
-            { "YesDelete", "Да, удалить" },
-            { "MapName", "Название карты" },
-            { "Difficulty", "Сложность" },
-            { "StrategyVariant", "Название стратегии" },
-            { "ExportZip", "Экспорт в ZIP файл..." },
-            { "ExportClipboard", "Экспорт в буфер обмена" },
-            { "ImportFileBtn", "Импортировать файл..." },
-            { "ImportClipboard", "Импорт из буфера обмена" },
-            { "ClipboardExportSuccess", "[Стратегия скопирована в буфер обмена!]" },
-            { "ClipboardImportSuccess", "[Стратегия успешно импортирована из буфера!]" },
-            { "ClipboardImportError", "[Не удалось прочитать стратегию из буфера!]" },
-            { "ExportSection", "ЭКСПОРТ ТЕКУЩЕЙ СТРАТЕГИИ:" },
-            { "ImportSection", "ИМПОРТ СТРАТЕГИИ:" },
-            { "AutoOcrHeader", "Сканер волн (OCR)" },
-            { "SelectOcrRegionBtn", "Выбрать область экрана" },
-            { "InGameWave", "ВОЛНА В ИГРЕ:" },
-            { "AutoOcrTag", "(Авто-OCR)" },
-            { "CurrentWaveHeader", "ТЕКУЩАЯ ВОЛНА:" },
-            { "ActiveInGame", "(АКТИВНО В ИГРЕ)" },
-            { "ResizeHandleText", "[=== Зажмите ЛКМ и тяните для изменения высоты ===]" },
-            { "EditingTitle", "РЕДАКТИРОВАНИЕ СТРАТЕГИИ" },
-            { "GeneralInfoLabel", "Общая информация / Заметки (для всей стратегии):" },
-            { "ImagesHeader", "ИЗОБРАЖЕНИЯ РАССТАНОВКИ (ОБЩИЕ ДЛЯ ВСЕЙ СТРАТЕГИИ):" },
-            { "PhotoNum", "Фото №{0}:" },
-            { "DeletePhotoBtn", "Удалить фото" },
-            { "AddPhotoBtn", "+ Добавить фото стратегии" },
-            { "SelectFileBtn", "Выбрать файл" },
-            { "PasteClipboardBtn", "Вставить из буфера" },
-            { "NoImageSelected", "[Файл не выбран]" },
-            { "ClipboardNoImageToast", "[В буфере нет картинки!]" },
-            { "StepsHeader", "Шаги и диапазоны волн:" },
-            { "MarkdownHint", "(Используйте - [ ] для галочек, <ocr 10 red>текст</ocr> для DJ-плашек)" },
-            { "FromWave", "С волны" },
-            { "ToWave", "По волну" },
-            { "StepInstructionLabel", "Инструкция шага:" },
-            { "DeleteStepBtn", "Удалить этот шаг" },
-            { "AddStepBtn", "+ Добавить еще один шаг" },
-            { "DeleteEntireStrategyBtn", "Удалить всю стратегию" },
-            { "NoStepsNotice", "В этой стратегии нет шагов." },
-            { "AddDefaultStepBtn", "+ Добавить шаг (1-30)" },
-            { "OcrOverlayInstruction", "ЗАЖМИТЕ ЛКМ НА ЭКРАНЕ, ЧТОБЫ ВЫДЕЛИТЬ НОМЕР ВОЛНЫ В ROBLOX (ESC - Отмена)" },
-            { "SeparateImageTitle", "Изображение расстановки" },
-            { "AboutTitle", "О программе" },
-            { "AboutVersion", "Версия: 0.4" },
-            { "AboutAuthor", "Авторы: icymarsh, Gti_Olen, Google Gemini (code)" },
-            { "AboutDesc", "Оверлей для Tower Defense Simulator в Roblox" },
-            { "CheckUpdates", "Проверить обновления" },
-            { "UpdateModalTitle", "Доступно новое обновление!" },
-            { "UpdateNotice", "На GitHub вышло новое обновление оверлея." },
-            { "CurrentVersionLabel", "Текущая версия:" },
-            { "LatestVersionLabel", "Новая версия:" },
-            { "DownloadUpdateBtn", "Скачать обновление" },
-            { "NoUpdatesNotice", "У вас установлена последняя версия!" },
-            { "CompactMode", "Компактный режим" },
-            { "DjToastRed", "[!] ВКЛЮЧИТЕ КРАСНУЮ ПЛАСТИНКУ У DJ [!]" },
-            { "DjToastGreen", "[!] ВКЛЮЧИТЕ ЗЕЛЕНУЮ ПЛАСТИНКУ У DJ [!]" },
-            { "DjToastPurple", "[!] ВКЛЮЧИТЕ ФИОЛЕТОВУЮ ПЛАСТИНКУ У DJ [!]" },
-            { "HelpTitle", "ШПАРГАЛКА ПО ФОРМАТИРОВАНИЮ" },
-            { "HelpLine1", "- [ ] текст - создать чек-бокс." },
-            { "HelpLine2", "<ocr 15>текст</ocr> - подсветка строки на 15 волне." },
-            { "HelpLine3", "<ocr 20 red>текст</ocr> - красная плашка для DJ на 20 волне (цвета: red, green, purple)." }
-        };
+            Languages.Clear();
+            DisplayNames.Clear();
+
+            if (!Directory.Exists(LocalesFolder))
+            {
+                Directory.CreateDirectory(LocalesFolder);
+            }
+
+            string[] files = Directory.GetFiles(LocalesFolder, "*.json");
+
+            foreach (var file in files)
+            {
+                try
+                {
+                    string langCode = Path.GetFileNameWithoutExtension(file).ToLower();
+                    string json = File.ReadAllText(file);
+                    var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+
+                    if (dict != null)
+                    {
+                        Languages[langCode] = dict;
+                        string name = dict.TryGetValue("LanguageName", out var langName) ? langName : langCode.ToUpper();
+                        DisplayNames[langCode] = name;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading locale file {file}: {ex.Message}");
+                }
+            }
+
+            // Запасной вариант если папка была пуста
+            if (Languages.Count == 0)
+            {
+                Languages["en"] = new Dictionary<string, string>();
+                DisplayNames["en"] = "English";
+            }
+        }
+
+        public static List<string> GetAvailableLanguages()
+        {
+            return new List<string>(Languages.Keys);
+        }
+
+        public static string GetLanguageDisplayName(string langCode)
+        {
+            if (DisplayNames.TryGetValue(langCode, out var name))
+                return name;
+            return langCode.ToUpper();
+        }
 
         public static string Tr(string key)
         {
-            if (CurrentLanguage == AppLanguage.Russian && DictRu.TryGetValue(key, out var valRu))
+            if (Languages.TryGetValue(CurrentLanguage, out var dict))
             {
-                return valRu;
+                if (dict.TryGetValue(key, out var val) && !string.IsNullOrEmpty(val))
+                    return val;
             }
 
-            if (DictEn.TryGetValue(key, out var valEn))
+            // Фолбэк на английский
+            if (Languages.TryGetValue("en", out var enDict))
             {
-                return valEn;
+                if (enDict.TryGetValue(key, out var enVal) && !string.IsNullOrEmpty(enVal))
+                    return enVal;
             }
 
             return key;

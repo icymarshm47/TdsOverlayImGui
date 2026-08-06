@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 ---
 
 ## Unreleased
+### Added
+- Added window background transparency slider to settings.
+- Added sound notifications for <ocr> tags.
+- Added strategy import and export via clipboard.
+- Added file picker dialogs for import and export locations.
+- Added autosaving for checkbox states.
 
 ---
 

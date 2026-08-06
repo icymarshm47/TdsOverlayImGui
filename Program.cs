@@ -92,6 +92,9 @@ namespace TdsOverlayImGui
 
         public TdsImGuiOverlay() : base("TDS Strategy Overlay", true)
         {
+            // Загружаем языковые файлы из папки locales/
+            Loc.LoadLanguages();
+
             string[] fontCandidates = new[]
             {
                 "Roboto-Regular.ttf",
@@ -636,7 +639,7 @@ namespace TdsOverlayImGui
                     }
                 }
 
-                // Заменяем все конструкции <ocr N>текст</ocr> на их внутреннее содержимое, сохраняя весь внешний текст
+                // Заменяем конструкции <ocr N>текст</ocr> на их внутреннее содержимое, сохраняя весь внешний текст
                 displayText = OcrTagRegex.Replace(lineAfterCheck, "$3");
             }
 
@@ -1648,18 +1651,15 @@ namespace TdsOverlayImGui
                 SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("LanguageSetting"));
                 ImGui.Spacing();
 
-                if (ImGui.RadioButton("English", Loc.CurrentLanguage == AppLanguage.English))
+                foreach (var langCode in Loc.GetAvailableLanguages())
                 {
-                    Loc.CurrentLanguage = AppLanguage.English;
-                    _settings.Language = AppLanguage.English;
-                    StrategyService.SaveSettings(_settings);
-                }
-
-                if (ImGui.RadioButton("Русский", Loc.CurrentLanguage == AppLanguage.Russian))
-                {
-                    Loc.CurrentLanguage = AppLanguage.Russian;
-                    _settings.Language = AppLanguage.Russian;
-                    StrategyService.SaveSettings(_settings);
+                    string displayName = Loc.GetLanguageDisplayName(langCode);
+                    if (ImGui.RadioButton(displayName, Loc.CurrentLanguage.Equals(langCode, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        Loc.CurrentLanguage = langCode;
+                        _settings.Language = langCode;
+                        StrategyService.SaveSettings(_settings);
+                    }
                 }
 
                 ImGui.Spacing();

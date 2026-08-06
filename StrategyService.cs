@@ -16,7 +16,7 @@ namespace TdsOverlayImGui
         public float InstructionBoxHeight { get; set; } = 160.0f;
         public float EmbeddedImageBoxHeight { get; set; } = 220.0f;
         public float WindowOpacity { get; set; } = 0.96f;
-        public AppLanguage Language { get; set; } = AppLanguage.English;
+        public string Language { get; set; } = "en";
 
         public bool CompactMode { get; set; } = false;
         public bool EnableOcr { get; set; } = false;
@@ -45,6 +45,13 @@ namespace TdsOverlayImGui
             {
                 string json = File.ReadAllText(SettingsFilePath);
                 var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+
+                // Совместимость со старыми значениями enum
+                if (settings.Language == "0" || settings.Language.Equals("English", StringComparison.OrdinalIgnoreCase))
+                    settings.Language = "en";
+                else if (settings.Language == "1" || settings.Language.Equals("Russian", StringComparison.OrdinalIgnoreCase))
+                    settings.Language = "ru";
+
                 Loc.CurrentLanguage = settings.Language;
                 return settings;
             }
@@ -305,7 +312,7 @@ namespace TdsOverlayImGui
         public static string ExportStrategyToClipboardBase64(MapStrategy strategy, int mapIndex, HashSet<string> completedTasks)
         {
             var exportMap = PrepareStrategyForExport(strategy, mapIndex, completedTasks);
-            exportMap.ImagePaths = new List<string>(); // Изображения не передаются через Base64 текст
+            exportMap.ImagePaths = new List<string>();
 
             var options = new JsonSerializerOptions { WriteIndented = true };
             string json = JsonSerializer.Serialize(exportMap, options);
@@ -327,7 +334,6 @@ namespace TdsOverlayImGui
                 string trimmed = text.Trim();
                 string jsonText = "";
 
-                // Пробуем расшифровать из Base64
                 if (!trimmed.StartsWith("{"))
                 {
                     try
@@ -337,7 +343,7 @@ namespace TdsOverlayImGui
                     }
                     catch
                     {
-                        jsonText = trimmed; // fallback если был передан обычный JSON
+                        jsonText = trimmed;
                     }
                 }
                 else
