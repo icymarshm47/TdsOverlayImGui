@@ -20,6 +20,7 @@ namespace TdsOverlayImGui
             { "Settings", "Settings" },
             { "ImportExport", "Import / Export" },
             { "About", "About" },
+            { "Help", "Help" },
             { "ExitApp", "Exit Application" },
             { "AddStrategy", "+ Strategy" },
             { "EditStrategy", "Edit" },
@@ -50,7 +51,6 @@ namespace TdsOverlayImGui
             { "ImageModeSetting", "PLACEMENT IMAGE DISPLAY:" },
             { "SeparateWindowMode", "Show in separate movable window" },
             { "EmbeddedMode", "Show inside main window" },
-            { "AlwaysOnTop", "Always on Top" },
             { "Close", "Close" },
             { "Cancel", "Cancel" },
             { "Save", "Save changes" },
@@ -109,7 +109,11 @@ namespace TdsOverlayImGui
             { "CompactMode", "Compact Mode" },
             { "DjToastRed", "[!] SWITCH DJ TO RED TRACK [!]" },
             { "DjToastGreen", "[!] SWITCH DJ TO GREEN TRACK [!]" },
-            { "DjToastPurple", "[!] SWITCH DJ TO PURPLE TRACK [!]" }
+            { "DjToastPurple", "[!] SWITCH DJ TO PURPLE TRACK [!]" },
+            { "HelpTitle", "FORMATTING CHEAT SHEET" },
+            { "HelpLine1", "- [ ] text — create a checkbox." },
+            { "HelpLine2", "<ocr 15>text</ocr> — highlight line on wave 15." },
+            { "HelpLine3", "<ocr 20 red>text</ocr> — red DJ toast on wave 20. (colors: red, green, purple)." }
         };
 
         private static readonly Dictionary<string, string> DictRu = new()
@@ -119,6 +123,7 @@ namespace TdsOverlayImGui
             { "Settings", "Настройки" },
             { "ImportExport", "Импорт / Экспорт" },
             { "About", "О программе" },
+            { "Help", "Справка" },
             { "ExitApp", "Закрыть приложение" },
             { "AddStrategy", "+ Стратегия" },
             { "EditStrategy", "Редактировать" },
@@ -149,7 +154,6 @@ namespace TdsOverlayImGui
             { "ImageModeSetting", "ОТОБРАЖЕНИЕ ИЗОБРАЖЕНИЙ:" },
             { "SeparateWindowMode", "Показывать в отдельном перемещаемом окне" },
             { "EmbeddedMode", "Показывать внутри главного окна" },
-            { "AlwaysOnTop", "Поверх всех окон (Always on Top)" },
             { "Close", "Закрыть" },
             { "Cancel", "Отмена" },
             { "Save", "Сохранить изменения" },
@@ -208,7 +212,11 @@ namespace TdsOverlayImGui
             { "CompactMode", "Компактный режим" },
             { "DjToastRed", "[!] ВКЛЮЧИТЕ КРАСНУЮ ПЛАСТИНКУ У DJ [!]" },
             { "DjToastGreen", "[!] ВКЛЮЧИТЕ ЗЕЛЕНУЮ ПЛАСТИНКУ У DJ [!]" },
-            { "DjToastPurple", "[!] ВКЛЮЧИТЕ ФИОЛЕТОВУЮ ПЛАСТИНКУ У DJ [!]" }
+            { "DjToastPurple", "[!] ВКЛЮЧИТЕ ФИОЛЕТОВУЮ ПЛАСТИНКУ У DJ [!]" },
+            { "HelpTitle", "ШПАРГАЛКА ПО ФОРМАТИРОВАНИЮ" },
+            { "HelpLine1", "- [ ] текст — создать чек-бокс." },
+            { "HelpLine2", "<ocr 15>текст</ocr> — подсветка строки на 15 волне." },
+            { "HelpLine3", "<ocr 20 red>текст</ocr> — красная плашка для DJ на 20 волне. (цвета: red, green, purple)." }
         };
 
         public static string Tr(string key)

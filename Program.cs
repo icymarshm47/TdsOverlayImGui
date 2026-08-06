@@ -88,6 +88,7 @@ namespace TdsOverlayImGui
 
         private bool _showSettingsModal = false;
         private bool _showAboutModal = false;
+        private bool _showHelpModal = false;
         private bool _showDeleteConfirmModal = false;
 
         private bool _styleConfigured = false;
@@ -131,14 +132,7 @@ namespace TdsOverlayImGui
             IntPtr hWnd = FindWindow(null, "TDS Strategy Overlay");
             if (hWnd != IntPtr.Zero)
             {
-                if (_settings.AlwaysOnTop)
-                {
-                    SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-                }
-                else
-                {
-                    SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-                }
+                SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
             }
         }
 
@@ -239,6 +233,11 @@ namespace TdsOverlayImGui
 
                     ImGui.Separator();
 
+                    if (ImGui.MenuItem(Loc.Tr("Help")))
+                    {
+                        _showHelpModal = true;
+                    }
+
                     if (ImGui.MenuItem(Loc.Tr("CheckUpdates")))
                     {
                         _manualCheckMessage = "Checking...";
@@ -287,22 +286,16 @@ namespace TdsOverlayImGui
             ImGui.End();
 
             // Внешние компоненты и модальные окна
-            if (_settings.SeparateImageWindow)
-            {
-                RenderSeparateImageWindow();
-            }
-
-            if (_isSelectingOcrRegion)
-            {
-                RenderOcrSelectionOverlay();
-            }
-
+            if (_settings.SeparateImageWindow) RenderSeparateImageWindow();
+            if (_isSelectingOcrRegion) RenderOcrSelectionOverlay();
+            
             RenderDjToast();
 
             if (_showAddMapModal) RenderAddMapModal();
             if (_showImportExportModal) RenderImportExportModal();
             if (_showSettingsModal) RenderSettingsModal();
             if (_showAboutModal) RenderAboutModal();
+            if (_showHelpModal) RenderHelpModal();
             if (_showDeleteConfirmModal) RenderDeleteConfirmModal();
             if (_showUpdateModal) RenderUpdateModal();
         }
@@ -348,7 +341,7 @@ namespace TdsOverlayImGui
                         {
                             _triggeredDjAlerts.Clear();
                         }
-
+                        
                         _detectedWaveNumber = wave.Value;
                         _currentWaveNumber = wave.Value;
 
@@ -378,7 +371,7 @@ namespace TdsOverlayImGui
 
         private void TriggerDjToast(string color)
         {
-            _djToastTimer = 3.0f; // ТАЙМЕР РОВНО 3 СЕКУНДЫ
+            _djToastTimer = 3.0f;
             if (color == "red")
             {
                 _djToastMessage = Loc.Tr("DjToastRed");
@@ -1111,6 +1104,31 @@ namespace TdsOverlayImGui
             }
         }
 
+        private void RenderHelpModal()
+        {
+            ImGui.OpenPopup(Loc.Tr("HelpTitle"));
+            if (ImGui.BeginPopupModal(Loc.Tr("HelpTitle"), ref _showHelpModal, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("HelpTitle"));
+                ImGui.Separator();
+                ImGui.Spacing();
+
+                ImGui.Text(Loc.Tr("HelpLine1"));
+                ImGui.Text(Loc.Tr("HelpLine2"));
+                ImGui.Text(Loc.Tr("HelpLine3"));
+
+                ImGui.Spacing();
+                ImGui.Separator();
+
+                if (ImGui.Button(Loc.Tr("Close"), new Vector2(100, 0)))
+                {
+                    _showHelpModal = false;
+                }
+
+                ImGui.EndPopup();
+            }
+        }
+
         private void RenderUpdateModal()
         {
             ImGui.OpenPopup(Loc.Tr("UpdateModalTitle"));
@@ -1496,21 +1514,6 @@ namespace TdsOverlayImGui
             ImGui.OpenPopup(Loc.Tr("Settings"));
             if (ImGui.BeginPopupModal(Loc.Tr("Settings"), ref _showSettingsModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("AlwaysOnTop"));
-                ImGui.Spacing();
-
-                bool isAlwaysOnTop = _settings.AlwaysOnTop;
-                if (ImGui.Checkbox(Loc.Tr("AlwaysOnTop"), ref isAlwaysOnTop))
-                {
-                    _settings.AlwaysOnTop = isAlwaysOnTop;
-                    StrategyService.SaveSettings(_settings);
-                    ApplyAlwaysOnTop();
-                }
-
-                ImGui.Spacing();
-                ImGui.Separator();
-                ImGui.Spacing();
-
                 SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("LanguageSetting"));
                 ImGui.Spacing();
 
