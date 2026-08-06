@@ -5,12 +5,28 @@ All notable changes to this project will be documented in this file.
 ---
 
 ## Unreleased
+
+---
+
+## [0.4] 2026-8-6
 ### Added
+- Insert images via Clipboard Ctrl + V or native File Picker.
+- Added Compact Mode.
+- Added DJ track switch popup toasts.
+- Added text formatting guide and cheat sheet
+- Added custom application icon
+- Support for combining checkboxes and OCR tags together.
+
+### Changed
+- Auto-dismiss update check notice after 5 seconds.
 - Moved the "Current Wave" progress card above the "General Info" section.
 - Buttons and input fields now dynamically scale and wrap when resizing the window.
+- Removed character limits for step instructions and text fields.
 
 ### Fixed
 - Fixed button clipping and text overlapping when changing overlay window dimensions.
+- Auto-OCR fixes.
+- Fixed Settings rendering behind the overlay.
 
 ---
 
