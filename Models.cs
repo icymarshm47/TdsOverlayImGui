@@ -84,7 +84,7 @@ namespace TdsOverlayImGui
             { "NoImageSelected", "[No image selected]" },
             { "ClipboardNoImageToast", "[No image in clipboard!]" },
             { "StepsHeader", "Steps & Wave Ranges:" },
-            { "MarkdownHint", "(Use - [ ] in text for checkboxes)" },
+            { "MarkdownHint", "(Use - [ ] for checkboxes, <ocr 10 red>text</ocr> for DJ alerts)" },
             { "FromWave", "From wave" },
             { "ToWave", "To wave" },
             { "StepInstructionLabel", "Step instruction:" },
@@ -106,7 +106,10 @@ namespace TdsOverlayImGui
             { "LatestVersionLabel", "Latest Version:" },
             { "DownloadUpdateBtn", "Open Download Page" },
             { "NoUpdatesNotice", "You are using the latest version!" },
-            { "CompactMode", "Compact Mode" }
+            { "CompactMode", "Compact Mode" },
+            { "DjToastRed", "[!] SWITCH DJ TO RED TRACK [!]" },
+            { "DjToastGreen", "[!] SWITCH DJ TO GREEN TRACK [!]" },
+            { "DjToastPurple", "[!] SWITCH DJ TO PURPLE TRACK [!]" }
         };
 
         private static readonly Dictionary<string, string> DictRu = new()
@@ -180,7 +183,7 @@ namespace TdsOverlayImGui
             { "NoImageSelected", "[Файл не выбран]" },
             { "ClipboardNoImageToast", "[В буфере нет картинки!]" },
             { "StepsHeader", "Шаги и диапазоны волн:" },
-            { "MarkdownHint", "(Используйте - [ ] в тексте для чекбоксов)" },
+            { "MarkdownHint", "(Используйте - [ ] для галочек, <ocr 10 red>текст</ocr> для DJ-плашек)" },
             { "FromWave", "С волны" },
             { "ToWave", "По волну" },
             { "StepInstructionLabel", "Инструкция шага:" },
@@ -202,7 +205,10 @@ namespace TdsOverlayImGui
             { "LatestVersionLabel", "Новая версия:" },
             { "DownloadUpdateBtn", "Скачать обновление" },
             { "NoUpdatesNotice", "У вас установлена последняя версия!" },
-            { "CompactMode", "Компактный режим" }
+            { "CompactMode", "Компактный режим" },
+            { "DjToastRed", "[!] ВКЛЮЧИТЕ КРАСНУЮ ПЛАСТИНКУ У DJ [!]" },
+            { "DjToastGreen", "[!] ВКЛЮЧИТЕ ЗЕЛЕНУЮ ПЛАСТИНКУ У DJ [!]" },
+            { "DjToastPurple", "[!] ВКЛЮЧИТЕ ФИОЛЕТОВУЮ ПЛАСТИНКУ У DJ [!]" }
         };
 
         public static string Tr(string key)

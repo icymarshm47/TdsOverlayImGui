@@ -47,9 +47,17 @@ namespace TdsOverlayImGui
         private HashSet<string> _completedTasks = new();
         private int _currentWaveNumber = 1;
 
-        private static readonly Regex OcrTagRegex = new Regex(@"<ocr\s+([\d\-]+)>(.*?)</ocr[^>]*>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        // DJ Toast Variables
+        private HashSet<string> _triggeredDjAlerts = new();
+        private float _djToastTimer = 0.0f;
+        private string _djToastMessage = "";
+        private Vector4 _djToastColor = Vector4.One;
+
+        // Regex for <ocr N color>
+        private static readonly Regex OcrTagRegex = new Regex(@"<ocr\s+([\d\-]+)(?:\s+(red|green|purple))?\s*>(.*?)</ocr[^>]*>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
         private static readonly Regex InlineMarkdownRegex = new Regex(@"(\*\*.*?\*\*|\*.*?\*|~~.*?~~|`.*?`)", RegexOptions.Compiled);
 
+        private string _searchFilter = "";
         private float _toastTimer = 0.0f;
         private string _clipboardToastMessage = "";
 
@@ -278,6 +286,7 @@ namespace TdsOverlayImGui
 
             ImGui.End();
 
+            // Внешние компоненты и модальные окна
             if (_settings.SeparateImageWindow)
             {
                 RenderSeparateImageWindow();
@@ -287,6 +296,8 @@ namespace TdsOverlayImGui
             {
                 RenderOcrSelectionOverlay();
             }
+
+            RenderDjToast();
 
             if (_showAddMapModal) RenderAddMapModal();
             if (_showImportExportModal) RenderImportExportModal();
@@ -333,6 +344,11 @@ namespace TdsOverlayImGui
 
                     if (wave.HasValue)
                     {
+                        if (wave.Value < _currentWaveNumber && wave.Value <= 2)
+                        {
+                            _triggeredDjAlerts.Clear();
+                        }
+
                         _detectedWaveNumber = wave.Value;
                         _currentWaveNumber = wave.Value;
 
@@ -357,6 +373,54 @@ namespace TdsOverlayImGui
                     }
                     break;
                 }
+            }
+        }
+
+        private void TriggerDjToast(string color)
+        {
+            _djToastTimer = 3.0f; // ТАЙМЕР РОВНО 3 СЕКУНДЫ
+            if (color == "red")
+            {
+                _djToastMessage = Loc.Tr("DjToastRed");
+                _djToastColor = new Vector4(1.0f, 0.2f, 0.2f, 1.0f);
+            }
+            else if (color == "green")
+            {
+                _djToastMessage = Loc.Tr("DjToastGreen");
+                _djToastColor = new Vector4(0.2f, 1.0f, 0.2f, 1.0f);
+            }
+            else if (color == "purple")
+            {
+                _djToastMessage = Loc.Tr("DjToastPurple");
+                _djToastColor = new Vector4(0.7f, 0.2f, 1.0f, 1.0f);
+            }
+        }
+
+        private void RenderDjToast()
+        {
+            if (_djToastTimer > 0)
+            {
+                _djToastTimer -= ImGui.GetIO().DeltaTime;
+                
+                var io = ImGui.GetIO();
+                ImGui.SetNextWindowPos(new Vector2(io.DisplaySize.X * 0.5f, io.DisplaySize.Y * 0.25f), ImGuiCond.Always, new Vector2(0.5f, 0.5f));
+                
+                ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(0.08f, 0.08f, 0.09f, 0.95f));
+                ImGui.PushStyleColor(ImGuiCol.Border, _djToastColor);
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 2.0f);
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 12.0f);
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(25, 18));
+
+                ImGui.Begin("DjToastWindow", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoFocusOnAppearing);
+                
+                ImGui.SetWindowFontScale(1.4f);
+                ImGui.TextColored(_djToastColor, _djToastMessage);
+                ImGui.SetWindowFontScale(1.0f);
+
+                ImGui.End();
+
+                ImGui.PopStyleVar(3);
+                ImGui.PopStyleColor(2);
             }
         }
 
@@ -506,7 +570,8 @@ namespace TdsOverlayImGui
             if (ocrMatch.Success)
             {
                 string waveSpec = ocrMatch.Groups[1].Value.Trim();
-                displayText = ocrMatch.Groups[2].Value;
+                string djColor = ocrMatch.Groups[2].Value.Trim().ToLower();
+                displayText = ocrMatch.Groups[3].Value;
 
                 int startW = 0, endW = 0;
                 if (waveSpec.Contains('-'))
@@ -524,6 +589,16 @@ namespace TdsOverlayImGui
                 if (activeWave >= startW && activeWave <= endW && startW > 0)
                 {
                     isTagActive = true;
+
+                    if (!string.IsNullOrEmpty(djColor))
+                    {
+                        string alertKey = $"{taskKey}_{activeWave}_{djColor}";
+                        if (!_triggeredDjAlerts.Contains(alertKey))
+                        {
+                            _triggeredDjAlerts.Add(alertKey);
+                            TriggerDjToast(djColor);
+                        }
+                    }
                 }
             }
 
@@ -578,9 +653,7 @@ namespace TdsOverlayImGui
         {
             if (!_settings.CompactMode)
             {
-                // ПОЛНОСТЬЮ ВЫРЕЗАЛИ ПОИСК
-                // Высота увеличена до 105, чтобы все элементы поместились без обрезки
-                ImGui.BeginChild("MapSelectorCard", new Vector2(0, 105), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+                ImGui.BeginChild("MapSelectorCard", new Vector2(0, 92), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
                 ImGui.TextDisabled(Loc.Tr("SelectStrategyHeader"));
 
@@ -611,6 +684,7 @@ namespace TdsOverlayImGui
                     _currentStepIndex = 0;
                     _currentImageIndex = 0;
                     _isEditing = false;
+                    _triggeredDjAlerts.Clear();
                     ResetImageTransform();
                 }
 
@@ -733,6 +807,7 @@ namespace TdsOverlayImGui
                     {
                         _currentWaveNumber = Math.Clamp(_currentWaveNumber, 1, 100);
                         _detectedWaveNumber = null;
+                        if (_currentWaveNumber == 1) _triggeredDjAlerts.Clear();
                         UpdateStepByWaveNumber(currentMap, _currentWaveNumber);
                     }
 
@@ -833,6 +908,7 @@ namespace TdsOverlayImGui
                         if (ImGui.Button(clearText, new Vector2(clearW, 0)))
                         {
                             _completedTasks.Clear();
+                            _triggeredDjAlerts.Clear();
                         }
 
                         if (_toastTimer > 0)
@@ -928,78 +1004,23 @@ namespace TdsOverlayImGui
                     string imgPath = currentMap.ImagePaths[imgIdx];
 
                     ImGui.Text(string.Format(Loc.Tr("PhotoNum"), imgIdx + 1));
-                    ImGui.SameLine();
-
-                    if (string.IsNullOrWhiteSpace(imgPath))
+                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 110);
+                    if (ImGui.InputText($"##ImgPath_{imgIdx}", ref imgPath, 260))
                     {
-                        ImGui.TextDisabled(Loc.Tr("NoImageSelected"));
-                    }
-                    else
-                    {
-                        SafeTextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Path.GetFileName(imgPath));
-                    }
-
-                    float availImgW = ImGui.GetContentRegionAvail().X;
-                    float spacingImg = ImGui.GetStyle().ItemSpacing.X;
-                    float btnImgW = (availImgW - spacingImg * 2 - 30) / 2.0f;
-
-                    if (ImGui.Button(Loc.Tr("SelectFileBtn"), new Vector2(btnImgW, 0)))
-                    {
-                        int targetIdx = imgIdx;
-                        var map = currentMap;
-                        ImGui.GetIO().MouseDown[0] = false;
-
-                        Task.Run(() =>
-                        {
-                            string? selected = ImagePickerHelper.OpenImageFileDialog();
-                            if (!string.IsNullOrEmpty(selected))
-                            {
-                                map.ImagePaths[targetIdx] = selected;
-                            }
-                        });
+                        currentMap.ImagePaths[imgIdx] = imgPath;
                     }
 
                     ImGui.SameLine();
-
-                    if (ImGui.Button(Loc.Tr("PasteClipboardBtn"), new Vector2(btnImgW, 0)))
-                    {
-                        int targetIdx = imgIdx;
-                        var map = currentMap;
-                        ImGui.GetIO().MouseDown[0] = false;
-
-                        Task.Run(() =>
-                        {
-                            string? savedClip = ImagePickerHelper.SaveImageFromClipboard(map.MapName, targetIdx + 1);
-                            if (!string.IsNullOrEmpty(savedClip))
-                            {
-                                map.ImagePaths[targetIdx] = savedClip;
-                            }
-                            else
-                            {
-                                _clipboardToastMessage = Loc.Tr("ClipboardNoImageToast");
-                            }
-                        });
-                    }
-
-                    ImGui.SameLine();
-
-                    if (ImGui.Button("X##DelImg", new Vector2(30, 0)))
+                    if (ImGui.Button(Loc.Tr("DeletePhotoBtn")))
                     {
                         currentMap.ImagePaths.RemoveAt(imgIdx);
                         ImGui.PopID();
                         break;
                     }
-
-                    if (!string.IsNullOrEmpty(_clipboardToastMessage))
-                    {
-                        SafeTextColored(new Vector4(1f, 0.4f, 0.4f, 1f), _clipboardToastMessage);
-                    }
-
                     ImGui.PopID();
-                    ImGui.Spacing();
                 }
 
-                if (ImGui.Button(Loc.Tr("AddPhotoBtn"), new Vector2(-1, 0)))
+                if (ImGui.Button(Loc.Tr("AddPhotoBtn")))
                 {
                     currentMap.ImagePaths.Add("");
                 }
