@@ -14,9 +14,6 @@ An ultra-lightweight, **Always-On-Top Overlay** for **Roblox Tower Defense Simul
 - **Multi-file JSON & ZIP**: Export/Import strategies with all attached screenshots in `.zip` archives.
 - **Localization**: Full Russian and English language support.
 
-## Requirements
-- .NET 10
-
 ## How to download
 - Go to the **Releases** section.
 - Download the latest `TdsOverlayImGui.zip` or `TdsOverlayImgui.7z`.

@@ -11,7 +11,10 @@ All notable changes to this project will be documented in this file.
 - Added strategy import and export via clipboard.
 - Added file picker dialogs for import and export locations.
 - Added autosaving for checkbox states.
-- Added .json locale.
+- Added `.json` locale.
+
+### Refactored
+- Refactored `Program.cs` into modular UI components and views for better code maintainability.
 
 ---
 
