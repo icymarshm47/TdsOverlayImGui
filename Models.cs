@@ -111,9 +111,9 @@ namespace TdsOverlayImGui
             { "DjToastGreen", "[!] SWITCH DJ TO GREEN TRACK [!]" },
             { "DjToastPurple", "[!] SWITCH DJ TO PURPLE TRACK [!]" },
             { "HelpTitle", "FORMATTING CHEAT SHEET" },
-            { "HelpLine1", "- [ ] text — create a checkbox." },
-            { "HelpLine2", "<ocr 15>text</ocr> — highlight line on wave 15." },
-            { "HelpLine3", "<ocr 20 red>text</ocr> — red DJ toast on wave 20 (colors: red, green, purple)." }
+            { "HelpLine1", "- [ ] text - create a checkbox." },
+            { "HelpLine2", "<ocr 15>text</ocr> - highlight line on wave 15." },
+            { "HelpLine3", "<ocr 20 red>text</ocr> - red DJ toast on wave 20 (colors: red, green, purple)." }
         };
 
         private static readonly Dictionary<string, string> DictRu = new()
@@ -214,9 +214,9 @@ namespace TdsOverlayImGui
             { "DjToastGreen", "[!] ВКЛЮЧИТЕ ЗЕЛЕНУЮ ПЛАСТИНКУ У DJ [!]" },
             { "DjToastPurple", "[!] ВКЛЮЧИТЕ ФИОЛЕТОВУЮ ПЛАСТИНКУ У DJ [!]" },
             { "HelpTitle", "ШПАРГАЛКА ПО ФОРМАТИРОВАНИЮ" },
-            { "HelpLine1", "- [ ] текст — создать чек-бокс." },
-            { "HelpLine2", "<ocr 15>текст</ocr> — подсветка строки на 15 волне." },
-            { "HelpLine3", "<ocr 20 red>текст</ocr> — красная плашка для DJ на 20 волне (цвета: red, green, purple)." }
+            { "HelpLine1", "- [ ] текст - создать чек-бокс." },
+            { "HelpLine2", "<ocr 15>текст</ocr> - подсветка строки на 15 волне." },
+            { "HelpLine3", "<ocr 20 red>текст</ocr> - красная плашка для DJ на 20 волне (цвета: red, green, purple)." }
         };
 
         public static string Tr(string key)
