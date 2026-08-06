@@ -2,17 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace TdsOverlayImGui
 {
     public class AppSettings
     {
-        public bool AlwaysOnTop { get; set; } = true; // Настройка Always on Top
+        public bool AlwaysOnTop { get; set; } = true;
         public bool SeparateImageWindow { get; set; } = true;
         public float GeneralInfoBoxHeight { get; set; } = 60.0f;
         public float InstructionBoxHeight { get; set; } = 160.0f;
         public float EmbeddedImageBoxHeight { get; set; } = 220.0f;
+        public float WindowOpacity { get; set; } = 0.96f;
         public AppLanguage Language { get; set; } = AppLanguage.English;
 
         public bool CompactMode { get; set; } = false;
@@ -27,8 +30,11 @@ namespace TdsOverlayImGui
     {
         private const string FolderPath = "strategies";
         private const string ImagesFolder = "images";
-        private const string ExportsFolder = "exports";
         private const string SettingsFilePath = "settings.json";
+        private const string TasksFilePath = "completed_tasks.json";
+
+        private static readonly Regex UncheckedBoxRegex = new Regex(@"^(\s*[\-*]\s*)\[\s*\]", RegexOptions.Compiled);
+        private static readonly Regex CheckedBoxRegex = new Regex(@"^(\s*[\-*]\s*)\[[xX]\]", RegexOptions.Compiled);
 
         public static AppSettings LoadSettings()
         {
@@ -59,6 +65,38 @@ namespace TdsOverlayImGui
             catch (Exception ex)
             {
                 Console.WriteLine($"Error saving settings: {ex.Message}");
+            }
+        }
+
+        public static HashSet<string> LoadCompletedTasks()
+        {
+            if (!File.Exists(TasksFilePath))
+                return new HashSet<string>();
+
+            try
+            {
+                string json = File.ReadAllText(TasksFilePath);
+                var list = JsonSerializer.Deserialize<List<string>>(json);
+                return list != null ? new HashSet<string>(list) : new HashSet<string>();
+            }
+            catch
+            {
+                return new HashSet<string>();
+            }
+        }
+
+        public static void SaveCompletedTasks(HashSet<string> tasks)
+        {
+            try
+            {
+                var list = new List<string>(tasks);
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string json = JsonSerializer.Serialize(list, options);
+                File.WriteAllText(TasksFilePath, json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving tasks: {ex.Message}");
             }
         }
 
@@ -156,28 +194,73 @@ namespace TdsOverlayImGui
             }
         }
 
-        public static string ExportStrategy(MapStrategy strategy)
+        public static MapStrategy PrepareStrategyForExport(MapStrategy source, int mapIndex, HashSet<string> completedTasks)
+        {
+            var exportMap = new MapStrategy
+            {
+                MapName = source.MapName,
+                Difficulty = source.Difficulty,
+                StrategyName = source.StrategyName,
+                GeneralInfo = ApplyCheckboxStatesToText(source.GeneralInfo, $"gen_{mapIndex}", completedTasks),
+                ImagePaths = new List<string>(source.ImagePaths),
+                Steps = new List<StrategyStep>()
+            };
+
+            for (int i = 0; i < source.Steps.Count; i++)
+            {
+                var step = source.Steps[i];
+                exportMap.Steps.Add(new StrategyStep
+                {
+                    StartWave = step.StartWave,
+                    EndWave = step.EndWave,
+                    Instruction = ApplyCheckboxStatesToText(step.Instruction, $"{mapIndex}_{i}", completedTasks),
+                    ImagePaths = new List<string>(step.ImagePaths)
+                });
+            }
+
+            return exportMap;
+        }
+
+        private static string ApplyCheckboxStatesToText(string text, string keyPrefix, HashSet<string> completedTasks)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+
+            string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            for (int lineIdx = 0; lineIdx < lines.Length; lineIdx++)
+            {
+                string line = lines[lineIdx];
+                string taskKey = $"{keyPrefix}_{lineIdx}";
+
+                bool isCompleted = completedTasks.Contains(taskKey);
+
+                if (isCompleted)
+                {
+                    if (UncheckedBoxRegex.IsMatch(line))
+                    {
+                        lines[lineIdx] = UncheckedBoxRegex.Replace(line, "${1}[x]");
+                    }
+                }
+                else
+                {
+                    if (CheckedBoxRegex.IsMatch(line))
+                    {
+                        lines[lineIdx] = CheckedBoxRegex.Replace(line, "${1}[ ]");
+                    }
+                }
+            }
+
+            return string.Join("\n", lines);
+        }
+
+        public static bool ExportStrategyToZip(MapStrategy strategy, int mapIndex, HashSet<string> completedTasks, string zipPath)
         {
             try
             {
-                if (!Directory.Exists(ExportsFolder))
-                    Directory.CreateDirectory(ExportsFolder);
-
-                string safeName = SanitizeFileName($"{strategy.MapName}_{strategy.Difficulty}_{strategy.StrategyName}");
-                string zipPath = Path.Combine(ExportsFolder, $"{safeName}.zip");
-
                 if (File.Exists(zipPath))
                     File.Delete(zipPath);
 
-                var exportMap = new MapStrategy
-                {
-                    MapName = strategy.MapName,
-                    Difficulty = strategy.Difficulty,
-                    StrategyName = strategy.StrategyName,
-                    GeneralInfo = strategy.GeneralInfo,
-                    Steps = strategy.Steps,
-                    ImagePaths = new List<string>()
-                };
+                var exportMap = PrepareStrategyForExport(strategy, mapIndex, completedTasks);
+                exportMap.ImagePaths = new List<string>();
 
                 using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
                 {
@@ -210,12 +293,77 @@ namespace TdsOverlayImGui
                     }
                 }
 
-                return Path.GetFullPath(zipPath);
+                return true;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Export error: {ex.Message}");
-                return "";
+                return false;
+            }
+        }
+
+        public static string ExportStrategyToClipboardBase64(MapStrategy strategy, int mapIndex, HashSet<string> completedTasks)
+        {
+            var exportMap = PrepareStrategyForExport(strategy, mapIndex, completedTasks);
+            exportMap.ImagePaths = new List<string>(); // Изображения не передаются через Base64 текст
+
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            string json = JsonSerializer.Serialize(exportMap, options);
+            byte[] bytes = Encoding.UTF8.GetBytes(json);
+            return Convert.ToBase64String(bytes);
+        }
+
+        public static bool ImportStrategyFromClipboardBase64(string text, out string statusMessage)
+        {
+            statusMessage = "";
+            try
+            {
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    statusMessage = Loc.Tr("ClipboardImportError");
+                    return false;
+                }
+
+                string trimmed = text.Trim();
+                string jsonText = "";
+
+                // Пробуем расшифровать из Base64
+                if (!trimmed.StartsWith("{"))
+                {
+                    try
+                    {
+                        byte[] bytes = Convert.FromBase64String(trimmed);
+                        jsonText = Encoding.UTF8.GetString(bytes);
+                    }
+                    catch
+                    {
+                        jsonText = trimmed; // fallback если был передан обычный JSON
+                    }
+                }
+                else
+                {
+                    jsonText = trimmed;
+                }
+
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var strat = JsonSerializer.Deserialize<MapStrategy>(jsonText, options);
+
+                if (strat == null || string.IsNullOrWhiteSpace(strat.MapName))
+                {
+                    statusMessage = Loc.Tr("ClipboardImportError");
+                    return false;
+                }
+
+                strat.ImagePaths = new List<string>();
+                SaveStrategy(strat);
+
+                statusMessage = $"{Loc.Tr("ClipboardImportSuccess")}\n({strat.DisplayName})";
+                return true;
+            }
+            catch (Exception ex)
+            {
+                statusMessage = $"Import error: {ex.Message}";
+                return false;
             }
         }
 
@@ -234,11 +382,8 @@ namespace TdsOverlayImGui
 
                 if (ext == ".json")
                 {
-                    string targetName = Path.GetFileName(importPath);
-                    string targetPath = Path.Combine(FolderPath, targetName);
-                    File.Copy(importPath, targetPath, overwrite: true);
-                    statusMessage = "Strategy file (.json) successfully imported!";
-                    return true;
+                    string jsonText = File.ReadAllText(importPath);
+                    return ImportStrategyFromClipboardBase64(jsonText, out statusMessage);
                 }
                 else if (ext == ".zip")
                 {

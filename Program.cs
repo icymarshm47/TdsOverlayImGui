@@ -46,9 +46,11 @@ namespace TdsOverlayImGui
 
         private HashSet<string> _completedTasks = new();
         private int _currentWaveNumber = 1;
+        private int _previousWaveNumber = 1;
 
-        // DJ Toast Variables
+        // DJ Toast & Audio Notifications
         private HashSet<string> _triggeredDjAlerts = new();
+        private HashSet<string> _triggeredOcrSounds = new();
         private float _djToastTimer = 0.0f;
         private string _djToastMessage = "";
         private Vector4 _djToastColor = Vector4.One;
@@ -57,9 +59,7 @@ namespace TdsOverlayImGui
         private static readonly Regex OcrTagRegex = new Regex(@"<ocr\s+([\d\-]+)(?:\s+(red|green|purple))?\s*>(.*?)</ocr[^>]*>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
         private static readonly Regex InlineMarkdownRegex = new Regex(@"(\*\*.*?\*\*|\*.*?\*|~~.*?~~|`.*?`)", RegexOptions.Compiled);
 
-        private string _searchFilter = "";
         private float _toastTimer = 0.0f;
-        private string _clipboardToastMessage = "";
 
         private float _imageScale = 1.0f;
         private Vector2 _imageOffset = Vector2.Zero;
@@ -82,7 +82,6 @@ namespace TdsOverlayImGui
         private string _newMapStrat = "Solo";
 
         private bool _showImportExportModal = false;
-        private string _importFilePath = "";
         private string _importStatusMessage = "";
         private string _exportStatusMessage = "";
 
@@ -90,8 +89,6 @@ namespace TdsOverlayImGui
         private bool _showAboutModal = false;
         private bool _showHelpModal = false;
         private bool _showDeleteConfirmModal = false;
-
-        private bool _styleConfigured = false;
 
         public TdsImGuiOverlay() : base("TDS Strategy Overlay", true)
         {
@@ -122,18 +119,59 @@ namespace TdsOverlayImGui
 
             _settings = StrategyService.LoadSettings();
             _strategies = StrategyService.LoadStrategies();
+            _completedTasks = StrategyService.LoadCompletedTasks();
             _selectedMapIndex = -1;
 
             CheckForUpdatesInBackground(silent: true);
         }
 
-        private void ApplyAlwaysOnTop()
+        public static void SetAlwaysOnTop(bool enable)
         {
             IntPtr hWnd = FindWindow(null, "TDS Strategy Overlay");
             if (hWnd != IntPtr.Zero)
             {
-                SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+                IntPtr insertAfter = enable ? HWND_TOPMOST : HWND_NOTOPMOST;
+                SetWindowPos(hWnd, insertAfter, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
             }
+        }
+
+        private static void PlayOcrBeep()
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    Console.Beep(880, 100);  // A5
+                    Console.Beep(1175, 180); // D6
+                }
+                catch { }
+            });
+        }
+
+        private void OnWaveChanged(int newWave)
+        {
+            if (newWave < _previousWaveNumber)
+            {
+                RemoveTriggersForWaveOrHigher(_triggeredOcrSounds, newWave);
+                RemoveTriggersForWaveOrHigher(_triggeredDjAlerts, newWave);
+            }
+            _previousWaveNumber = newWave;
+        }
+
+        private static void RemoveTriggersForWaveOrHigher(HashSet<string> set, int targetWave)
+        {
+            set.RemoveWhere(key =>
+            {
+                var parts = key.Split('_');
+                for (int i = parts.Length - 1; i >= 0; i--)
+                {
+                    if (int.TryParse(parts[i], out int w))
+                    {
+                        return w >= targetWave;
+                    }
+                }
+                return false;
+            });
         }
 
         private static void SafeTextColored(Vector4 color, string text)
@@ -184,7 +222,7 @@ namespace TdsOverlayImGui
         {
             if (_isFirstFrame)
             {
-                ApplyAlwaysOnTop();
+                SetAlwaysOnTop(true);
                 _isFirstFrame = false;
             }
 
@@ -285,7 +323,6 @@ namespace TdsOverlayImGui
 
             ImGui.End();
 
-            // Внешние компоненты и модальные окна
             if (_settings.SeparateImageWindow) RenderSeparateImageWindow();
             if (_isSelectingOcrRegion) RenderOcrSelectionOverlay();
             
@@ -302,8 +339,6 @@ namespace TdsOverlayImGui
 
         private void SetupStyle()
         {
-            if (_styleConfigured) return;
-
             var style = ImGui.GetStyle();
             style.WindowRounding = 8.0f;
             style.FrameRounding = 6.0f;
@@ -311,15 +346,13 @@ namespace TdsOverlayImGui
             style.ScrollbarRounding = 6.0f;
 
             var colors = style.Colors;
-            colors[(int)ImGuiCol.WindowBg] = new Vector4(0.07f, 0.08f, 0.09f, 0.96f);
+            colors[(int)ImGuiCol.WindowBg] = new Vector4(0.07f, 0.08f, 0.09f, _settings.WindowOpacity);
             colors[(int)ImGuiCol.Header] = new Vector4(0.18f, 0.19f, 0.22f, 1.0f);
             colors[(int)ImGuiCol.HeaderHovered] = new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
             colors[(int)ImGuiCol.Button] = new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
             colors[(int)ImGuiCol.ButtonHovered] = new Vector4(0.28f, 0.32f, 0.77f, 1.0f);
             colors[(int)ImGuiCol.ButtonActive] = new Vector4(0.22f, 0.25f, 0.60f, 1.0f);
             colors[(int)ImGuiCol.FrameBg] = new Vector4(0.14f, 0.15f, 0.17f, 1.0f);
-
-            _styleConfigured = true;
         }
 
         private void ProcessBackgroundOcr()
@@ -340,8 +373,10 @@ namespace TdsOverlayImGui
                         if (wave.Value < _currentWaveNumber && wave.Value <= 2)
                         {
                             _triggeredDjAlerts.Clear();
+                            _triggeredOcrSounds.Clear();
                         }
-                        
+
+                        OnWaveChanged(wave.Value);
                         _detectedWaveNumber = wave.Value;
                         _currentWaveNumber = wave.Value;
 
@@ -556,43 +591,53 @@ namespace TdsOverlayImGui
 
             bool hasCheckbox = IsMarkdownCheckbox(rawLine, out bool defaultCheckedInText, out string lineAfterCheck);
 
-            var ocrMatch = OcrTagRegex.Match(lineAfterCheck);
+            var ocrMatches = OcrTagRegex.Matches(lineAfterCheck);
             bool isTagActive = false;
             string displayText = lineAfterCheck;
 
-            if (ocrMatch.Success)
+            if (ocrMatches.Count > 0)
             {
-                string waveSpec = ocrMatch.Groups[1].Value.Trim();
-                string djColor = ocrMatch.Groups[2].Value.Trim().ToLower();
-                displayText = ocrMatch.Groups[3].Value;
-
-                int startW = 0, endW = 0;
-                if (waveSpec.Contains('-'))
+                foreach (Match ocrMatch in ocrMatches)
                 {
-                    var parts = waveSpec.Split('-');
-                    int.TryParse(parts[0], out startW);
-                    int.TryParse(parts[1], out endW);
-                }
-                else
-                {
-                    int.TryParse(waveSpec, out startW);
-                    endW = startW;
-                }
+                    string waveSpec = ocrMatch.Groups[1].Value.Trim();
+                    string djColor = ocrMatch.Groups[2].Value.Trim().ToLower();
 
-                if (activeWave >= startW && activeWave <= endW && startW > 0)
-                {
-                    isTagActive = true;
-
-                    if (!string.IsNullOrEmpty(djColor))
+                    int startW = 0, endW = 0;
+                    if (waveSpec.Contains('-'))
                     {
-                        string alertKey = $"{taskKey}_{activeWave}_{djColor}";
-                        if (!_triggeredDjAlerts.Contains(alertKey))
+                        var parts = waveSpec.Split('-');
+                        int.TryParse(parts[0], out startW);
+                        int.TryParse(parts[1], out endW);
+                    }
+                    else
+                    {
+                        int.TryParse(waveSpec, out startW);
+                        endW = startW;
+                    }
+
+                    if (activeWave >= startW && activeWave <= endW && startW > 0)
+                    {
+                        isTagActive = true;
+
+                        string soundKey = $"{taskKey}_{activeWave}";
+                        if (_triggeredOcrSounds.Add(soundKey))
                         {
-                            _triggeredDjAlerts.Add(alertKey);
-                            TriggerDjToast(djColor);
+                            PlayOcrBeep();
+                        }
+
+                        if (!string.IsNullOrEmpty(djColor))
+                        {
+                            string alertKey = $"{taskKey}_{activeWave}_{djColor}";
+                            if (_triggeredDjAlerts.Add(alertKey))
+                            {
+                                TriggerDjToast(djColor);
+                            }
                         }
                     }
                 }
+
+                // Заменяем все конструкции <ocr N>текст</ocr> на их внутреннее содержимое, сохраняя весь внешний текст
+                displayText = OcrTagRegex.Replace(lineAfterCheck, "$3");
             }
 
             if (!hasCheckbox)
@@ -623,6 +668,8 @@ namespace TdsOverlayImGui
                         _completedTasks.Add(taskKey);
                     else
                         _completedTasks.Remove(taskKey);
+
+                    StrategyService.SaveCompletedTasks(_completedTasks);
                 }
 
                 ImGui.SameLine();
@@ -678,6 +725,8 @@ namespace TdsOverlayImGui
                     _currentImageIndex = 0;
                     _isEditing = false;
                     _triggeredDjAlerts.Clear();
+                    _triggeredOcrSounds.Clear();
+                    _previousWaveNumber = 1;
                     ResetImageTransform();
                 }
 
@@ -800,7 +849,13 @@ namespace TdsOverlayImGui
                     {
                         _currentWaveNumber = Math.Clamp(_currentWaveNumber, 1, 100);
                         _detectedWaveNumber = null;
-                        if (_currentWaveNumber == 1) _triggeredDjAlerts.Clear();
+                        if (_currentWaveNumber == 1)
+                        {
+                            _triggeredDjAlerts.Clear();
+                            _triggeredOcrSounds.Clear();
+                        }
+                        OnWaveChanged(_currentWaveNumber);
+                        activeWave = _currentWaveNumber;
                         UpdateStepByWaveNumber(currentMap, _currentWaveNumber);
                     }
 
@@ -824,19 +879,51 @@ namespace TdsOverlayImGui
                     float navSpacing = ImGui.GetStyle().ItemSpacing.X;
                     float navBtnW = (navAvailW - navSpacing * 3) / 4.0f;
 
-                    if (ImGui.Button("|<", new Vector2(navBtnW, 0))) { _currentStepIndex = 0; ResetImageTransform(); }
+                    if (ImGui.Button("|<", new Vector2(navBtnW, 0)))
+                    {
+                        _currentStepIndex = 0;
+                        _currentWaveNumber = currentMap.Steps[0].StartWave;
+                        _detectedWaveNumber = null;
+                        OnWaveChanged(_currentWaveNumber);
+                        activeWave = _currentWaveNumber;
+                        ResetImageTransform();
+                    }
                     ImGui.SameLine();
                     if (ImGui.Button("<", new Vector2(navBtnW, 0)))
                     {
-                        if (_currentStepIndex > 0) { _currentStepIndex--; ResetImageTransform(); }
+                        if (_currentStepIndex > 0)
+                        {
+                            _currentStepIndex--;
+                            _currentWaveNumber = currentMap.Steps[_currentStepIndex].StartWave;
+                            _detectedWaveNumber = null;
+                            OnWaveChanged(_currentWaveNumber);
+                            activeWave = _currentWaveNumber;
+                            ResetImageTransform();
+                        }
                     }
                     ImGui.SameLine();
                     if (ImGui.Button(">", new Vector2(navBtnW, 0)))
                     {
-                        if (_currentStepIndex < currentMap.Steps.Count - 1) { _currentStepIndex++; ResetImageTransform(); }
+                        if (_currentStepIndex < currentMap.Steps.Count - 1)
+                        {
+                            _currentStepIndex++;
+                            _currentWaveNumber = currentMap.Steps[_currentStepIndex].StartWave;
+                            _detectedWaveNumber = null;
+                            OnWaveChanged(_currentWaveNumber);
+                            activeWave = _currentWaveNumber;
+                            ResetImageTransform();
+                        }
                     }
                     ImGui.SameLine();
-                    if (ImGui.Button(">|", new Vector2(navBtnW, 0))) { _currentStepIndex = currentMap.Steps.Count - 1; ResetImageTransform(); }
+                    if (ImGui.Button(">|", new Vector2(navBtnW, 0)))
+                    {
+                        _currentStepIndex = currentMap.Steps.Count - 1;
+                        _currentWaveNumber = currentMap.Steps[^1].StartWave;
+                        _detectedWaveNumber = null;
+                        OnWaveChanged(_currentWaveNumber);
+                        activeWave = _currentWaveNumber;
+                        ResetImageTransform();
+                    }
 
                     ImGui.EndChild();
                     ImGui.Spacing();
@@ -892,7 +979,7 @@ namespace TdsOverlayImGui
 
                         if (ImGui.Button(copyText, new Vector2(copyW, 0)))
                         {
-                            ImGui.SetClipboardText(step.Instruction);
+                            ImagePickerHelper.SetClipboardText(step.Instruction);
                             _toastTimer = 2.0f;
                         }
 
@@ -902,6 +989,8 @@ namespace TdsOverlayImGui
                         {
                             _completedTasks.Clear();
                             _triggeredDjAlerts.Clear();
+                            _triggeredOcrSounds.Clear();
+                            StrategyService.SaveCompletedTasks(_completedTasks);
                         }
 
                         if (_toastTimer > 0)
@@ -1439,26 +1528,41 @@ namespace TdsOverlayImGui
 
         private void RenderImportExportModal()
         {
-            ImGui.OpenPopup(Loc.Tr("ImportExportTitle"));
-            if (ImGui.BeginPopupModal(Loc.Tr("ImportExportTitle"), ref _showImportExportModal, ImGuiWindowFlags.AlwaysAutoResize))
+            ImGui.OpenPopup(Loc.Tr("ImportExport"));
+            if (ImGui.BeginPopupModal(Loc.Tr("ImportExport"), ref _showImportExportModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ExportSection"));
                 if (_selectedMapIndex >= 0 && _selectedMapIndex < _strategies.Count)
                 {
                     var currentMap = _strategies[_selectedMapIndex];
                     ImGui.Text($"Strategy: {currentMap.DisplayName}");
+                    ImGui.Spacing();
 
-                    if (ImGui.Button(Loc.Tr("ExportZip")))
+                    if (ImGui.Button(Loc.Tr("ExportZip"), new Vector2(220, 0)))
                     {
-                        string zipPath = StrategyService.ExportStrategy(currentMap);
-                        if (!string.IsNullOrEmpty(zipPath))
+                        string defaultFileName = $"{currentMap.MapName}_{currentMap.Difficulty}_{currentMap.StrategyName}.zip";
+                        string? targetPath = ImagePickerHelper.SaveFileDialog(defaultFileName, "ZIP Archive (*.zip)|*.zip", "zip");
+
+                        if (!string.IsNullOrEmpty(targetPath))
                         {
-                            _exportStatusMessage = $"Saved to folder:\n{zipPath}";
+                            if (StrategyService.ExportStrategyToZip(currentMap, _selectedMapIndex, _completedTasks, targetPath))
+                            {
+                                _exportStatusMessage = $"Saved successfully to:\n{targetPath}";
+                            }
+                            else
+                            {
+                                _exportStatusMessage = "Export error!";
+                            }
                         }
-                        else
-                        {
-                            _exportStatusMessage = "Export error!";
-                        }
+                    }
+
+                    ImGui.SameLine();
+
+                    if (ImGui.Button(Loc.Tr("ExportClipboard"), new Vector2(220, 0)))
+                    {
+                        string base64 = StrategyService.ExportStrategyToClipboardBase64(currentMap, _selectedMapIndex, _completedTasks);
+                        ImagePickerHelper.SetClipboardText(base64);
+                        _exportStatusMessage = Loc.Tr("ClipboardExportSuccess");
                     }
 
                     if (!string.IsNullOrEmpty(_exportStatusMessage))
@@ -1475,20 +1579,47 @@ namespace TdsOverlayImGui
                 ImGui.Spacing();
 
                 SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ImportSection"));
-                ImGui.Text($"{Loc.Tr("FilePath")}:");
-                ImGui.InputText("##ImportFilePath", ref _importFilePath, 500000);
+                ImGui.Spacing();
 
-                if (ImGui.Button(Loc.Tr("ImportFile")))
+                if (ImGui.Button(Loc.Tr("ImportFileBtn"), new Vector2(220, 0)))
                 {
-                    if (StrategyService.ImportStrategy(_importFilePath, out string msg))
+                    string? selectedFile = ImagePickerHelper.OpenFileDialog("Strategy Files (*.zip;*.json)|*.zip;*.json|All Files (*.*)|*.*", "zip");
+                    if (!string.IsNullOrEmpty(selectedFile))
                     {
-                        _importStatusMessage = msg;
-                        _strategies = StrategyService.LoadStrategies();
-                        _selectedMapIndex = _strategies.Count - 1;
+                        if (StrategyService.ImportStrategy(selectedFile, out string msg))
+                        {
+                            _importStatusMessage = msg;
+                            _strategies = StrategyService.LoadStrategies();
+                            _selectedMapIndex = _strategies.Count - 1;
+                        }
+                        else
+                        {
+                            _importStatusMessage = msg;
+                        }
+                    }
+                }
+
+                ImGui.SameLine();
+
+                if (ImGui.Button(Loc.Tr("ImportClipboard"), new Vector2(220, 0)))
+                {
+                    string? clipText = ImagePickerHelper.GetClipboardText();
+                    if (!string.IsNullOrEmpty(clipText))
+                    {
+                        if (StrategyService.ImportStrategyFromClipboardBase64(clipText, out string msg))
+                        {
+                            _importStatusMessage = msg;
+                            _strategies = StrategyService.LoadStrategies();
+                            _selectedMapIndex = _strategies.Count - 1;
+                        }
+                        else
+                        {
+                            _importStatusMessage = msg;
+                        }
                     }
                     else
                     {
-                        _importStatusMessage = msg;
+                        _importStatusMessage = Loc.Tr("ClipboardImportError");
                     }
                 }
 
@@ -1548,6 +1679,20 @@ namespace TdsOverlayImGui
                 if (ImGui.RadioButton(Loc.Tr("EmbeddedMode"), !separate))
                 {
                     _settings.SeparateImageWindow = false;
+                    StrategyService.SaveSettings(_settings);
+                }
+
+                ImGui.Spacing();
+                ImGui.Separator();
+
+                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("WindowOpacitySetting"));
+                ImGui.Spacing();
+
+                float opacity = _settings.WindowOpacity;
+                ImGui.SetNextItemWidth(250);
+                if (ImGui.SliderFloat("##OpacitySlider", ref opacity, 0.1f, 1.0f, "%.2f"))
+                {
+                    _settings.WindowOpacity = opacity;
                     StrategyService.SaveSettings(_settings);
                 }
 

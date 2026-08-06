@@ -4,6 +4,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace TdsOverlayImGui
 {
@@ -28,7 +29,7 @@ namespace TdsOverlayImGui
             public int maxFileTitle = 640;
             public string initialDir = null!;
             public string title = "Select Image File";
-            public int flags = 0x00080000 | 0x00001000 | 0x00000800 | 0x00000200 | 0x00000008; // OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST
+            public int flags = 0x00080000 | 0x00001000 | 0x00000800 | 0x00000200 | 0x00000008;
             public short fileOffset = 0;
             public short fileExtension = 0;
             public string defExt = "png";
@@ -42,6 +43,7 @@ namespace TdsOverlayImGui
 
         public static string? OpenImageFileDialog()
         {
+            TdsImGuiOverlay.SetAlwaysOnTop(false);
             string? selectedPath = null;
             var thread = new Thread(() =>
             {
@@ -55,13 +57,117 @@ namespace TdsOverlayImGui
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine($"Error opening image dialog: {ex.Message}");
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            TdsImGuiOverlay.SetAlwaysOnTop(true);
+            return selectedPath;
+        }
+
+        public static string? OpenFileDialog(string filter, string defaultExt)
+        {
+            TdsImGuiOverlay.SetAlwaysOnTop(false);
+            string? selectedPath = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    using var dlg = new OpenFileDialog
+                    {
+                        Filter = filter,
+                        DefaultExt = defaultExt,
+                        CheckFileExists = true
+                    };
+                    if (dlg.ShowDialog() == DialogResult.OK)
+                    {
+                        selectedPath = dlg.FileName;
+                    }
+                }
+                catch (Exception ex)
+                {
                     Console.WriteLine($"Error opening file dialog: {ex.Message}");
                 }
             });
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             thread.Join();
+            TdsImGuiOverlay.SetAlwaysOnTop(true);
             return selectedPath;
+        }
+
+        public static string? SaveFileDialog(string defaultFileName, string filter, string defaultExt)
+        {
+            TdsImGuiOverlay.SetAlwaysOnTop(false);
+            string? selectedPath = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    using var dlg = new SaveFileDialog
+                    {
+                        FileName = defaultFileName,
+                        Filter = filter,
+                        DefaultExt = defaultExt
+                    };
+                    if (dlg.ShowDialog() == DialogResult.OK)
+                    {
+                        selectedPath = dlg.FileName;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error saving file dialog: {ex.Message}");
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            TdsImGuiOverlay.SetAlwaysOnTop(true);
+            return selectedPath;
+        }
+
+        public static void SetClipboardText(string text)
+        {
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    Clipboard.SetText(text);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Clipboard set error: {ex.Message}");
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+        }
+
+        public static string? GetClipboardText()
+        {
+            string? text = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    if (Clipboard.ContainsText())
+                    {
+                        text = Clipboard.GetText();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Clipboard get error: {ex.Message}");
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            return text;
         }
 
         public static string? SaveImageFromClipboard(string mapName, int imgNum)
@@ -73,9 +179,9 @@ namespace TdsOverlayImGui
                 {
                     try
                     {
-                        if (System.Windows.Forms.Clipboard.ContainsImage())
+                        if (Clipboard.ContainsImage())
                         {
-                            using var img = System.Windows.Forms.Clipboard.GetImage();
+                            using var img = Clipboard.GetImage();
                             if (img != null)
                             {
                                 if (!Directory.Exists("images"))
