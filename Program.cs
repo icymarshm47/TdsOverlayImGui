@@ -4,6 +4,7 @@ using System.IO;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using ClickableTransparentOverlay;
 using ImGuiNET;
 
@@ -11,7 +12,18 @@ namespace TdsOverlayImGui
 {
     public class TdsImGuiOverlay : Overlay
     {
-        // ВАШИ ДАННЫЕ НА GITHUB
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern IntPtr FindWindow(string? lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        private static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
+        private const uint SWP_NOSIZE = 0x0001;
+        private const uint SWP_NOMOVE = 0x0002;
+
         private const string GitHubOwner = "icymarshm47";
         private const string GitHubRepo = "TdsOverlayImGui";
         private const string CurrentAppVersion = "0.4";
@@ -23,50 +35,39 @@ namespace TdsOverlayImGui
         private int _currentStepIndex = 0;
         private int _currentImageIndex = 0;
 
-        // Флаг работы главного окна ImGui (если false — закрываем приложение)
         private bool _isOverlayOpen = true;
+        private bool _isFirstFrame = true;
 
-        // Auto Update State
         private bool _showUpdateModal = false;
         private string _latestVersionTag = "";
         private string _releaseUrl = "";
         private string _manualCheckMessage = "";
         private float _manualCheckMessageTimer = 0.0f;
 
-        // Completed tasks checklist
         private HashSet<string> _completedTasks = new();
-
-        // Current wave number
         private int _currentWaveNumber = 1;
 
-        // Regex for <ocr N>
         private static readonly Regex OcrTagRegex = new Regex(@"<ocr\s+([\d\-]+)>(.*?)</ocr[^>]*>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
-        // Regex for Markdown formatting: **bold**, *italic*, ~~strike~~, `code`
         private static readonly Regex InlineMarkdownRegex = new Regex(@"(\*\*.*?\*\*|\*.*?\*|~~.*?~~|`.*?`)", RegexOptions.Compiled);
 
-        private string _searchFilter = "";
         private float _toastTimer = 0.0f;
         private string _clipboardToastMessage = "";
 
         private float _imageScale = 1.0f;
         private Vector2 _imageOffset = Vector2.Zero;
 
-        // Windows OCR
         private int? _detectedWaveNumber = null;
         private bool _isSelectingOcrRegion = false;
         private int _ocrSelectionState = 0;
         private Vector2 _ocrDragStart = Vector2.Zero;
         private DateTime _lastOcrScanTime = DateTime.MinValue;
 
-        // Editor
         private bool _isEditing = false;
         private string _editMapName = "";
         private string _editDifficulty = "";
         private string _editStrategyName = "";
         private string _editGeneralInfo = "";
 
-        // Modals
         private bool _showAddMapModal = false;
         private string _newMapName = "";
         private string _newMapDiff = "Fallen";
@@ -117,6 +118,22 @@ namespace TdsOverlayImGui
             CheckForUpdatesInBackground(silent: true);
         }
 
+        private void ApplyAlwaysOnTop()
+        {
+            IntPtr hWnd = FindWindow(null, "TDS Strategy Overlay");
+            if (hWnd != IntPtr.Zero)
+            {
+                if (_settings.AlwaysOnTop)
+                {
+                    SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+                }
+                else
+                {
+                    SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+                }
+            }
+        }
+
         private static void SafeTextColored(Vector4 color, string text)
         {
             if (string.IsNullOrEmpty(text)) return;
@@ -163,6 +180,12 @@ namespace TdsOverlayImGui
 
         protected override void Render()
         {
+            if (_isFirstFrame)
+            {
+                ApplyAlwaysOnTop();
+                _isFirstFrame = false;
+            }
+
             if (!_isOverlayOpen)
             {
                 Close();
@@ -199,6 +222,15 @@ namespace TdsOverlayImGui
 
                 if (ImGui.BeginMenu(Loc.Tr("Other")))
                 {
+                    bool isCompact = _settings.CompactMode;
+                    if (ImGui.MenuItem(Loc.Tr("CompactMode"), "", ref isCompact))
+                    {
+                        _settings.CompactMode = isCompact;
+                        StrategyService.SaveSettings(_settings);
+                    }
+
+                    ImGui.Separator();
+
                     if (ImGui.MenuItem(Loc.Tr("CheckUpdates")))
                     {
                         _manualCheckMessage = "Checking...";
@@ -244,13 +276,6 @@ namespace TdsOverlayImGui
                 RenderMainUI();
             }
 
-            if (_showAddMapModal) RenderAddMapModal();
-            if (_showImportExportModal) RenderImportExportModal();
-            if (_showSettingsModal) RenderSettingsModal();
-            if (_showAboutModal) RenderAboutModal();
-            if (_showDeleteConfirmModal) RenderDeleteConfirmModal();
-            if (_showUpdateModal) RenderUpdateModal();
-
             ImGui.End();
 
             if (_settings.SeparateImageWindow)
@@ -262,6 +287,13 @@ namespace TdsOverlayImGui
             {
                 RenderOcrSelectionOverlay();
             }
+
+            if (_showAddMapModal) RenderAddMapModal();
+            if (_showImportExportModal) RenderImportExportModal();
+            if (_showSettingsModal) RenderSettingsModal();
+            if (_showAboutModal) RenderAboutModal();
+            if (_showDeleteConfirmModal) RenderDeleteConfirmModal();
+            if (_showUpdateModal) RenderUpdateModal();
         }
 
         private void SetupStyle()
@@ -544,83 +576,88 @@ namespace TdsOverlayImGui
 
         private void RenderMainUI()
         {
-            ImGui.BeginChild("MapSelectorCard", new Vector2(0, 98), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
-
-            ImGui.TextDisabled(Loc.Tr("SelectStrategyHeader"));
-
-            var comboItemsList = new List<string> { Loc.Tr("SelectStrategyCombo") };
-            for (int i = 0; i < _strategies.Count; i++)
+            if (!_settings.CompactMode)
             {
-                comboItemsList.Add(_strategies[i].DisplayName);
-            }
+                // ПОЛНОСТЬЮ ВЫРЕЗАЛИ ПОИСК
+                // Высота увеличена до 105, чтобы все элементы поместились без обрезки
+                ImGui.BeginChild("MapSelectorCard", new Vector2(0, 105), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
-            string[] comboItems = comboItemsList.ToArray();
-            int currentComboIdx = 0;
-            if (_selectedMapIndex >= 0 && _selectedMapIndex < _strategies.Count)
-            {
-                currentComboIdx = _selectedMapIndex + 1;
-            }
+                ImGui.TextDisabled(Loc.Tr("SelectStrategyHeader"));
 
-            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-            if (ImGui.Combo("##MapSelect", ref currentComboIdx, comboItems, comboItems.Length))
-            {
-                if (currentComboIdx > 0 && currentComboIdx <= _strategies.Count)
+                string[] comboItems = new string[_strategies.Count + 1];
+                comboItems[0] = Loc.Tr("SelectStrategyCombo");
+                for (int i = 0; i < _strategies.Count; i++)
                 {
-                    _selectedMapIndex = currentComboIdx - 1;
+                    comboItems[i + 1] = _strategies[i].DisplayName;
+                }
+
+                int currentComboIdx = 0;
+                if (_selectedMapIndex >= 0 && _selectedMapIndex < _strategies.Count)
+                {
+                    currentComboIdx = _selectedMapIndex + 1;
+                }
+
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                if (ImGui.Combo("##MapSelect", ref currentComboIdx, comboItems, comboItems.Length))
+                {
+                    if (currentComboIdx > 0 && currentComboIdx <= _strategies.Count)
+                    {
+                        _selectedMapIndex = currentComboIdx - 1;
+                    }
+                    else
+                    {
+                        _selectedMapIndex = -1;
+                    }
+                    _currentStepIndex = 0;
+                    _currentImageIndex = 0;
+                    _isEditing = false;
+                    ResetImageTransform();
+                }
+
+                float availWCard = ImGui.GetContentRegionAvail().X;
+                float spacingCard = ImGui.GetStyle().ItemSpacing.X;
+
+                if (_selectedMapIndex >= 0 && _selectedMapIndex < _strategies.Count)
+                {
+                    float btnW = (availWCard - spacingCard * 2) / 3.0f;
+
+                    if (ImGui.Button(Loc.Tr("AddStrategy"), new Vector2(btnW, 0)))
+                    {
+                        _showAddMapModal = true;
+                    }
+
+                    ImGui.SameLine();
+                    var map = _strategies[_selectedMapIndex];
+                    string editBtnText = _isEditing ? Loc.Tr("ViewMode") : Loc.Tr("EditStrategy");
+                    if (ImGui.Button(editBtnText, new Vector2(btnW, 0)))
+                    {
+                        _isEditing = !_isEditing;
+                        if (_isEditing)
+                        {
+                            _editMapName = map.MapName;
+                            _editDifficulty = map.Difficulty;
+                            _editStrategyName = map.StrategyName;
+                            _editGeneralInfo = map.GeneralInfo;
+                        }
+                    }
+
+                    ImGui.SameLine();
+                    if (ImGui.Button(Loc.Tr("DeleteStrategy"), new Vector2(btnW, 0)))
+                    {
+                        _showDeleteConfirmModal = true;
+                    }
                 }
                 else
                 {
-                    _selectedMapIndex = -1;
-                }
-                _currentStepIndex = 0;
-                _currentImageIndex = 0;
-                _isEditing = false;
-                ResetImageTransform();
-            }
-
-            float availWCard = ImGui.GetContentRegionAvail().X;
-            float spacingCard = ImGui.GetStyle().ItemSpacing.X;
-
-            if (_selectedMapIndex >= 0 && _selectedMapIndex < _strategies.Count)
-            {
-                float btnW = (availWCard - spacingCard * 2) / 3.0f;
-
-                if (ImGui.Button(Loc.Tr("AddStrategy"), new Vector2(btnW, 0)))
-                {
-                    _showAddMapModal = true;
-                }
-
-                ImGui.SameLine();
-                var map = _strategies[_selectedMapIndex];
-                string editBtnText = _isEditing ? Loc.Tr("ViewMode") : Loc.Tr("EditStrategy");
-                if (ImGui.Button(editBtnText, new Vector2(btnW, 0)))
-                {
-                    _isEditing = !_isEditing;
-                    if (_isEditing)
+                    if (ImGui.Button(Loc.Tr("AddStrategy"), new Vector2(availWCard, 0)))
                     {
-                        _editMapName = map.MapName;
-                        _editDifficulty = map.Difficulty;
-                        _editStrategyName = map.StrategyName;
-                        _editGeneralInfo = map.GeneralInfo;
+                        _showAddMapModal = true;
                     }
                 }
 
-                ImGui.SameLine();
-                if (ImGui.Button(Loc.Tr("DeleteStrategy"), new Vector2(btnW, 0)))
-                {
-                    _showDeleteConfirmModal = true;
-                }
+                ImGui.EndChild();
+                ImGui.Spacing();
             }
-            else
-            {
-                if (ImGui.Button(Loc.Tr("AddStrategy"), new Vector2(availWCard, 0)))
-                {
-                    _showAddMapModal = true;
-                }
-            }
-
-            ImGui.EndChild();
-            ImGui.Spacing();
 
             if (_selectedMapIndex < 0 || _selectedMapIndex >= _strategies.Count)
             {
@@ -633,43 +670,44 @@ namespace TdsOverlayImGui
             var currentMap = _strategies[_selectedMapIndex];
             int activeWave = _detectedWaveNumber ?? _currentWaveNumber;
 
-            // WINDOWS OCR PANEL
-            string ocrText = Loc.Tr("AutoOcrHeader");
-            string ocrBtnText = Loc.Tr("SelectOcrRegionBtn");
-
-            float ocrTextW = ImGui.CalcTextSize(ocrText).X + 35.0f;
-            float ocrBtnW = ImGui.CalcTextSize(ocrBtnText).X + ImGui.GetStyle().FramePadding.X * 2 + 10.0f;
-            float availOcrW = ImGui.GetContentRegionAvail().X;
-
-            bool ocrFitsSameLine = availOcrW >= ocrTextW + ocrBtnW + ImGui.GetStyle().ItemSpacing.X * 2;
-            float cardH = ocrFitsSameLine ? 42.0f : 68.0f;
-
-            ImGui.BeginChild("OcrHeaderCard", new Vector2(0, cardH), true);
-            bool enableOcr = _settings.EnableOcr;
-            if (ImGui.Checkbox(ocrText, ref enableOcr))
+            if (!_settings.CompactMode)
             {
-                _settings.EnableOcr = enableOcr;
-                StrategyService.SaveSettings(_settings);
-            }
+                string ocrText = Loc.Tr("AutoOcrHeader");
+                string ocrBtnText = Loc.Tr("SelectOcrRegionBtn");
 
-            if (ocrFitsSameLine)
-            {
-                ImGui.SameLine();
-                ImGui.SetCursorPosX(ImGui.GetWindowWidth() - ocrBtnW - 12.0f);
-            }
+                float ocrTextW = ImGui.CalcTextSize(ocrText).X + 35.0f;
+                float ocrBtnW = ImGui.CalcTextSize(ocrBtnText).X + ImGui.GetStyle().FramePadding.X * 2 + 10.0f;
+                float availOcrW = ImGui.GetContentRegionAvail().X;
 
-            if (ImGui.Button(ocrBtnText))
-            {
-                _isSelectingOcrRegion = true;
-                _ocrSelectionState = 0;
-            }
+                bool ocrFitsSameLine = availOcrW >= ocrTextW + ocrBtnW + ImGui.GetStyle().ItemSpacing.X * 2;
+                float cardH = ocrFitsSameLine ? 42.0f : 68.0f;
 
-            ImGui.EndChild();
-            ImGui.Spacing();
+                ImGui.BeginChild("OcrHeaderCard", new Vector2(0, cardH), true);
+                bool enableOcr = _settings.EnableOcr;
+                if (ImGui.Checkbox(ocrText, ref enableOcr))
+                {
+                    _settings.EnableOcr = enableOcr;
+                    StrategyService.SaveSettings(_settings);
+                }
+
+                if (ocrFitsSameLine)
+                {
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(ImGui.GetWindowWidth() - ocrBtnW - 12.0f);
+                }
+
+                if (ImGui.Button(ocrBtnText))
+                {
+                    _isSelectingOcrRegion = true;
+                    _ocrSelectionState = 0;
+                }
+
+                ImGui.EndChild();
+                ImGui.Spacing();
+            }
 
             if (!_isEditing)
             {
-                // 1. CURRENT WAVE & STEP PROGRESS
                 if (currentMap.Steps.Count > 0)
                 {
                     _currentStepIndex = Math.Clamp(_currentStepIndex, 0, currentMap.Steps.Count - 1);
@@ -736,7 +774,6 @@ namespace TdsOverlayImGui
                     ImGui.Spacing();
                 }
 
-                // 2. GENERAL INFO
                 if (!string.IsNullOrWhiteSpace(currentMap.GeneralInfo))
                 {
                     SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("GeneralInfo"));
@@ -757,51 +794,53 @@ namespace TdsOverlayImGui
                     ImGui.Spacing();
                 }
 
-                // 3. INSTRUCTION FEED
                 if (currentMap.Steps.Count > 0)
                 {
                     _currentStepIndex = Math.Clamp(_currentStepIndex, 0, currentMap.Steps.Count - 1);
                     var step = currentMap.Steps[_currentStepIndex];
 
                     string headerText = Loc.Tr("InstructionHeader");
-                    string copyText = Loc.Tr("CopyInstruction");
-                    string clearText = Loc.Tr("ClearChecks");
-
-                    float copyW = ImGui.CalcTextSize(copyText).X + ImGui.GetStyle().FramePadding.X * 2 + 6.0f;
-                    float clearW = ImGui.CalcTextSize(clearText).X + ImGui.GetStyle().FramePadding.X * 2 + 6.0f;
-                    float totalBtnW = copyW + clearW + ImGui.GetStyle().ItemSpacing.X;
-
-                    float availW = ImGui.GetContentRegionAvail().X;
-                    float headerTextW = ImGui.CalcTextSize(headerText).X;
-
                     ImGui.Text(headerText);
 
-                    bool headerFitsSameLine = availW >= headerTextW + totalBtnW + ImGui.GetStyle().ItemSpacing.X * 2;
-
-                    if (headerFitsSameLine)
+                    if (!_settings.CompactMode)
                     {
+                        string copyText = Loc.Tr("CopyInstruction");
+                        string clearText = Loc.Tr("ClearChecks");
+
+                        float copyW = ImGui.CalcTextSize(copyText).X + ImGui.GetStyle().FramePadding.X * 2 + 6.0f;
+                        float clearW = ImGui.CalcTextSize(clearText).X + ImGui.GetStyle().FramePadding.X * 2 + 6.0f;
+                        float totalBtnW = copyW + clearW + ImGui.GetStyle().ItemSpacing.X;
+
+                        float availW = ImGui.GetContentRegionAvail().X;
+                        float headerTextW = ImGui.CalcTextSize(headerText).X;
+
+                        bool headerFitsSameLine = availW >= headerTextW + totalBtnW + ImGui.GetStyle().ItemSpacing.X * 2;
+
+                        if (headerFitsSameLine)
+                        {
+                            ImGui.SameLine();
+                            ImGui.SetCursorPosX(ImGui.GetWindowWidth() - totalBtnW - 12.0f);
+                        }
+
+                        if (ImGui.Button(copyText, new Vector2(copyW, 0)))
+                        {
+                            ImGui.SetClipboardText(step.Instruction);
+                            _toastTimer = 2.0f;
+                        }
+
                         ImGui.SameLine();
-                        ImGui.SetCursorPosX(ImGui.GetWindowWidth() - totalBtnW - 12.0f);
-                    }
 
-                    if (ImGui.Button(copyText, new Vector2(copyW, 0)))
-                    {
-                        ImGui.SetClipboardText(step.Instruction);
-                        _toastTimer = 2.0f;
-                    }
+                        if (ImGui.Button(clearText, new Vector2(clearW, 0)))
+                        {
+                            _completedTasks.Clear();
+                        }
 
-                    ImGui.SameLine();
-
-                    if (ImGui.Button(clearText, new Vector2(clearW, 0)))
-                    {
-                        _completedTasks.Clear();
-                    }
-
-                    if (_toastTimer > 0)
-                    {
-                        _toastTimer -= ImGui.GetIO().DeltaTime;
-                        ImGui.SameLine();
-                        SafeTextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Loc.Tr("CopiedToast"));
+                        if (_toastTimer > 0)
+                        {
+                            _toastTimer -= ImGui.GetIO().DeltaTime;
+                            ImGui.SameLine();
+                            SafeTextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Loc.Tr("CopiedToast"));
+                        }
                     }
 
                     float textH = _settings.InstructionBoxHeight;
@@ -864,10 +903,6 @@ namespace TdsOverlayImGui
                 SafeTextColored(new Vector4(1f, 0.8f, 0.2f, 1f), Loc.Tr("EditingTitle"));
                 ImGui.Spacing();
 
-                ImGui.Text($"{Loc.Tr("StrategyVariant")}:");
-                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                ImGui.InputText("##EditStrategyName", ref _editStrategyName, 500000);
-
                 ImGui.Text($"{Loc.Tr("MapName")}:");
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
                 ImGui.InputText("##EditMapName", ref _editMapName, 500000);
@@ -875,6 +910,10 @@ namespace TdsOverlayImGui
                 ImGui.Text($"{Loc.Tr("Difficulty")}:");
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
                 ImGui.InputText("##EditDifficulty", ref _editDifficulty, 500000);
+
+                ImGui.Text($"{Loc.Tr("StrategyVariant")}:");
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                ImGui.InputText("##EditStrategyName", ref _editStrategyName, 500000);
 
                 ImGui.Spacing();
                 ImGui.Text(Loc.Tr("GeneralInfoLabel"));
@@ -1436,22 +1475,35 @@ namespace TdsOverlayImGui
             ImGui.OpenPopup(Loc.Tr("Settings"));
             if (ImGui.BeginPopupModal(Loc.Tr("Settings"), ref _showSettingsModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("LanguageSetting"));
+                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("AlwaysOnTop"));
                 ImGui.Spacing();
 
-                if (ImGui.RadioButton("Russian / Русский", Loc.CurrentLanguage == AppLanguage.Russian))
+                bool isAlwaysOnTop = _settings.AlwaysOnTop;
+                if (ImGui.Checkbox(Loc.Tr("AlwaysOnTop"), ref isAlwaysOnTop))
                 {
-                    Loc.CurrentLanguage = AppLanguage.Russian;
-                    _settings.Language = AppLanguage.Russian;
+                    _settings.AlwaysOnTop = isAlwaysOnTop;
                     StrategyService.SaveSettings(_settings);
+                    ApplyAlwaysOnTop();
                 }
 
-                ImGui.SameLine();
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
+
+                SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("LanguageSetting"));
+                ImGui.Spacing();
 
                 if (ImGui.RadioButton("English", Loc.CurrentLanguage == AppLanguage.English))
                 {
                     Loc.CurrentLanguage = AppLanguage.English;
                     _settings.Language = AppLanguage.English;
+                    StrategyService.SaveSettings(_settings);
+                }
+
+                if (ImGui.RadioButton("Русский", Loc.CurrentLanguage == AppLanguage.Russian))
+                {
+                    Loc.CurrentLanguage = AppLanguage.Russian;
+                    _settings.Language = AppLanguage.Russian;
                     StrategyService.SaveSettings(_settings);
                 }
 

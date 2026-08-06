@@ -8,12 +8,14 @@ namespace TdsOverlayImGui
 {
     public class AppSettings
     {
+        public bool AlwaysOnTop { get; set; } = true; // Настройка Always on Top
         public bool SeparateImageWindow { get; set; } = true;
         public float GeneralInfoBoxHeight { get; set; } = 60.0f;
         public float InstructionBoxHeight { get; set; } = 160.0f;
         public float EmbeddedImageBoxHeight { get; set; } = 220.0f;
         public AppLanguage Language { get; set; } = AppLanguage.English;
 
+        public bool CompactMode { get; set; } = false;
         public bool EnableOcr { get; set; } = false;
         public int OcrX { get; set; } = 100;
         public int OcrY { get; set; } = 100;

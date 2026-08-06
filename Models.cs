@@ -50,6 +50,7 @@ namespace TdsOverlayImGui
             { "ImageModeSetting", "PLACEMENT IMAGE DISPLAY:" },
             { "SeparateWindowMode", "Show in separate movable window" },
             { "EmbeddedMode", "Show inside main window" },
+            { "AlwaysOnTop", "Always on Top" },
             { "Close", "Close" },
             { "Cancel", "Cancel" },
             { "Save", "Save changes" },
@@ -98,15 +99,14 @@ namespace TdsOverlayImGui
             { "AboutVersion", "Version: 0.4" },
             { "AboutAuthor", "Authors: icymarsh, Google Gemini (code)" },
             { "AboutDesc", "Overlay for Tower Defense Simulator in Roblox" },
-
-            // Update Translations
             { "CheckUpdates", "Check for Updates" },
             { "UpdateModalTitle", "New Update Available!" },
             { "UpdateNotice", "A new version of TDS Strategy Overlay is available on GitHub." },
             { "CurrentVersionLabel", "Current Version:" },
             { "LatestVersionLabel", "Latest Version:" },
             { "DownloadUpdateBtn", "Open Download Page" },
-            { "NoUpdatesNotice", "You are using the latest version!" }
+            { "NoUpdatesNotice", "You are using the latest version!" },
+            { "CompactMode", "Compact Mode" }
         };
 
         private static readonly Dictionary<string, string> DictRu = new()
@@ -146,6 +146,7 @@ namespace TdsOverlayImGui
             { "ImageModeSetting", "ОТОБРАЖЕНИЕ ИЗОБРАЖЕНИЙ:" },
             { "SeparateWindowMode", "Показывать в отдельном перемещаемом окне" },
             { "EmbeddedMode", "Показывать внутри главного окна" },
+            { "AlwaysOnTop", "Поверх всех окон (Always on Top)" },
             { "Close", "Закрыть" },
             { "Cancel", "Отмена" },
             { "Save", "Сохранить изменения" },
@@ -194,15 +195,14 @@ namespace TdsOverlayImGui
             { "AboutVersion", "Версия: 0.4" },
             { "AboutAuthor", "Авторы: icymarsh, Google Gemini (code)" },
             { "AboutDesc", "Оверлей для Tower Defense Simulator в Roblox" },
-
-            // Update Translations
             { "CheckUpdates", "Проверить обновления" },
             { "UpdateModalTitle", "Доступно новое обновление!" },
             { "UpdateNotice", "На GitHub вышло новое обновление оверлея." },
             { "CurrentVersionLabel", "Текущая версия:" },
             { "LatestVersionLabel", "Новая версия:" },
             { "DownloadUpdateBtn", "Скачать обновление" },
-            { "NoUpdatesNotice", "У вас установлена последняя версия!" }
+            { "NoUpdatesNotice", "У вас установлена последняя версия!" },
+            { "CompactMode", "Компактный режим" }
         };
 
         public static string Tr(string key)
