@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ---
 
 ## Unreleased
+
+---
+
+## [0.5] 2026-8-6
 ### Added
 - Added window background transparency slider to settings.
 - Added sound notifications for <ocr> tags.
