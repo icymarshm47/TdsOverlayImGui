@@ -39,7 +39,6 @@ namespace TdsOverlayImGui.Components
         {
             ImGui.PushID(id);
 
-<<<<<<< HEAD
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.16f, 0.18f, 0.22f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.35f, 0.39f, 0.95f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.45f, 0.49f, 1.00f, 1.0f));
@@ -47,13 +46,6 @@ namespace TdsOverlayImGui.Components
 
             // Высота 0 позволяет ImGui автоматически вместить весь текст по вертикали без обрезки
             ImGui.Button(Loc.Tr("ResizeHandleText"), new Vector2(-1, 0));
-=======
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.18f, 0.20f, 0.22f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.35f, 0.39f, 0.95f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.45f, 0.49f, 1.00f, 1.0f));
-
-            ImGui.Button(Loc.Tr("ResizeHandleText"), new Vector2(-1, 26));
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 
             if (ImGui.IsItemHovered())
             {
@@ -65,7 +57,6 @@ namespace TdsOverlayImGui.Components
                 float deltaY = ImGui.GetIO().MouseDelta.Y;
                 if (Math.Abs(deltaY) > 0.1f)
                 {
-<<<<<<< HEAD
                     currentHeight = Math.Clamp(currentHeight + deltaY, minH, maxH);
                 }
             }
@@ -76,14 +67,6 @@ namespace TdsOverlayImGui.Components
             }
 
             ImGui.PopStyleVar();
-=======
-                    currentHeight += deltaY;
-                    currentHeight = Math.Clamp(currentHeight, minH, maxH);
-                    StrategyService.SaveSettings(ctx.Settings);
-                }
-            }
-
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
             ImGui.PopStyleColor(3);
             ImGui.PopID();
 
@@ -138,11 +121,7 @@ namespace TdsOverlayImGui.Components
                         }
                     }
 
-<<<<<<< HEAD
                     if (ImGui.IsMouseClicked(ImGuiMouseButton.Middle) && isHovered)
-=======
-                    if (ImGui.IsMouseClicked(ImGuiMouseButton.Middle) || (ImGui.IsWindowHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Middle)))
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                     {
                         ctx.ResetImageTransform();
                     }
@@ -176,26 +155,14 @@ namespace TdsOverlayImGui.Components
             string? activeImage = GetActiveImagePath(ctx, currentMap);
             if (string.IsNullOrWhiteSpace(activeImage) || !File.Exists(activeImage)) return;
 
-<<<<<<< HEAD
             ImGui.SetNextWindowSize(new Vector2(420, 340), ImGuiCond.FirstUseEver);
             ImGui.Begin($"{Loc.Tr("SeparateImageTitle")}###SeparateImageWindow", ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollWithMouse);
 
             RenderImageSelector(ctx, currentMap);
             float availH = Math.Max(120, ImGui.GetContentRegionAvail().Y - 26);
             RenderImageCanvas(overlay, ctx, activeImage, availH, $"SeparateCanvas_{ctx.CurrentImageIndex}", enableResizeGrip: false);
-=======
-            ImGui.SetNextWindowSize(new Vector2(400, 320), ImGuiCond.FirstUseEver);
-            ImGui.Begin($"{Loc.Tr("SeparateImageTitle")}##SeparateImageWindow", ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollWithMouse);
-
-            RenderImageSelector(ctx, currentMap);
-            RenderImageCanvas(overlay, ctx, activeImage, 230, $"SeparateCanvas_{ctx.CurrentImageIndex}", enableResizeGrip: false);
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 
             ImGui.End();
         }
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5

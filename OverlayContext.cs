@@ -1,8 +1,5 @@
 using System;
-<<<<<<< HEAD
 using System.Collections.Concurrent;
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -17,11 +14,8 @@ namespace TdsOverlayImGui
         public int CurrentStepIndex = 0;
         public int CurrentImageIndex = 0;
 
-<<<<<<< HEAD
         public string StrategySearchFilter = "";
 
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
         public bool IsOverlayOpen = true;
         public bool IsFirstFrame = true;
 
@@ -37,14 +31,11 @@ namespace TdsOverlayImGui
         public Vector4 DjToastColor = Vector4.One;
 
         public float ToastTimer = 0.0f;
-<<<<<<< HEAD
         public string DropStatusMessage = "";
         public float DropStatusTimer = 0.0f;
 
         // Очередь файлов, сброшенных через Drag-and-Drop
         public ConcurrentQueue<string> DroppedFilesQueue = new();
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 
         // Image Canvas Transform
         public float ImageScale = 1.0f;
@@ -63,11 +54,8 @@ namespace TdsOverlayImGui
         public string EditDifficulty = "";
         public string EditStrategyName = "";
         public string EditGeneralInfo = "";
-<<<<<<< HEAD
         public string EditorToastMessage = "";
         public float EditorToastTimer = 0.0f;
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 
         // Modals
         public bool ShowAddMapModal = false;
@@ -90,13 +78,8 @@ namespace TdsOverlayImGui
         public string ManualCheckMessage = "";
         public float ManualCheckMessageTimer = 0.0f;
 
-<<<<<<< HEAD
         public MapStrategy? CurrentMap => (SelectedMapIndex >= 0 && SelectedMapIndex < Strategies.Count)
             ? Strategies[SelectedMapIndex]
-=======
-        public MapStrategy? CurrentMap => (SelectedMapIndex >= 0 && SelectedMapIndex < Strategies.Count) 
-            ? Strategies[SelectedMapIndex] 
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
             : null;
 
         public void ResetImageTransform()
@@ -122,8 +105,4 @@ namespace TdsOverlayImGui
             }
         }
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5

@@ -12,11 +12,7 @@
   "ViewMode": "View Mode",
   "DeleteStrategy": "Delete",
   "NoStrategySelected": "No strategy selected!",
-<<<<<<< HEAD
   "SelectStrategyPrompt": "Select a strategy from the list above, drag & drop a .zip/.json file here, or click '+ Strategy'.",
-=======
-  "SelectStrategyPrompt": "Select a strategy from the list above or click '+ Strategy' to create a new one.",
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
   "SearchPlaceholder": "Search strategy...",
   "SelectStrategyHeader": "STRATEGY SELECTION:",
   "SelectStrategyCombo": "- Select Strategy -",
@@ -39,15 +35,12 @@
   "LanguageSetting": "UI LANGUAGE:",
   "ImageModeSetting": "PLACEMENT IMAGE DISPLAY:",
   "WindowOpacitySetting": "WINDOW TRANSPARENCY:",
-<<<<<<< HEAD
   "AudioAndOcrSetting": "AUDIO & AUTO-OCR:",
   "EnableOcrSoundSetting": "Play <ocr> sound alert on wave trigger",
   "OcrPreprocessSetting": "High-contrast OCR preprocessing (recommended)",
   "DragDropHint": "[Drag & Drop .zip/.json]",
   "DragDropModalHint": "Tip: You can simply drag & drop a .zip or .json file directly onto the overlay window!",
   "PhotoAddedToast": "[Photo added!]",
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
   "SeparateWindowMode": "Show in separate movable window",
   "EmbeddedMode": "Show inside main window",
   "Close": "Close",
@@ -69,14 +62,10 @@
   "ClipboardImportError": "[Failed to import strategy from clipboard!]",
   "ExportSection": "EXPORT CURRENT STRATEGY:",
   "ImportSection": "IMPORT STRATEGY:",
-<<<<<<< HEAD
   "AutoOcrHeader": "Auto-OCR",
   "OcrStatusOn": "[ON]",
   "OcrStatusOff": "[OFF]",
   "OcrScanningTag": "(Scanning...)",
-=======
-  "AutoOcrHeader": "Auto Wave Scanner (OCR)",
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
   "SelectOcrRegionBtn": "Select Screen Region",
   "InGameWave": "IN-GAME WAVE:",
   "AutoOcrTag": "(Auto-OCR)",
@@ -88,15 +77,9 @@
   "ImagesHeader": "PLACEMENT IMAGES (COMMON FOR ENTIRE STRATEGY):",
   "PhotoNum": "Photo #{0}:",
   "DeletePhotoBtn": "Delete Photo",
-<<<<<<< HEAD
   "AddPhotoBtn": "+ Browse Photo...",
   "SelectFileBtn": "Browse...",
   "PasteClipboardBtn": "+ Paste Screenshot from Clipboard",
-=======
-  "AddPhotoBtn": "+ Add Strategy Photo",
-  "SelectFileBtn": "Browse File",
-  "PasteClipboardBtn": "Paste from clipboard",
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
   "NoImageSelected": "[No image selected]",
   "ClipboardNoImageToast": "[No image in clipboard!]",
   "StepsHeader": "Steps & Wave Ranges:",
@@ -112,11 +95,7 @@
   "OcrOverlayInstruction": "CLICK AND HOLD LMB ON SCREEN TO SELECT WAVE NUMBER IN ROBLOX (ESC - Cancel)",
   "SeparateImageTitle": "Placement Image",
   "AboutTitle": "About",
-<<<<<<< HEAD
   "AboutVersion": "Version: 0.6",
-=======
-  "AboutVersion": "Version: 0.5",
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
   "AboutAuthor": "Authors: icymarsh, Gti_Olen, Google Gemini (code)",
   "AboutDesc": "Overlay for Tower Defense Simulator in Roblox",
   "CheckUpdates": "Check for Updates",
@@ -134,8 +113,4 @@
   "HelpLine1": "- [ ] text - create a checkbox.",
   "HelpLine2": "<ocr 15>text</ocr> - highlight line on wave 15.",
   "HelpLine3": "<ocr 20 red>text</ocr> - red DJ toast on wave 20 (colors: red, green, purple)."
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5

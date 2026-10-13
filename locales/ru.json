@@ -12,11 +12,7 @@
   "ViewMode": "Режим просмотра",
   "DeleteStrategy": "Удалить",
   "NoStrategySelected": "Стратегия не выбрана!",
-<<<<<<< HEAD
   "SelectStrategyPrompt": "Выберите стратегию из списка выше, перетащите .zip/.json файл в окно или нажмите '+ Стратегия'.",
-=======
-  "SelectStrategyPrompt": "Выберите стратегию из списка выше или нажмите '+ Стратегия', чтобы создать новую.",
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
   "SearchPlaceholder": "Поиск стратегии...",
   "SelectStrategyHeader": "ВЫБОР СТРАТЕГИИ:",
   "SelectStrategyCombo": "- Выберите стратегию -",
@@ -39,15 +35,12 @@
   "LanguageSetting": "ЯЗЫК ИНТЕРФЕЙСА:",
   "ImageModeSetting": "ОТОБРАЖЕНИЕ ИЗОБРАЖЕНИЙ:",
   "WindowOpacitySetting": "ПРОЗРАЧНОСТЬ ОКНА:",
-<<<<<<< HEAD
   "AudioAndOcrSetting": "ЗВУК И РАСПОЗНАВАНИЕ (AUTO-OCR):",
   "EnableOcrSoundSetting": "Звуковой сигнал <ocr> при смене волны",
   "OcrPreprocessSetting": "Повышать контраст текста для OCR (рекомендуется)",
   "DragDropHint": "[Drag & Drop .zip/.json]",
   "DragDropModalHint": "Совет: вы можете просто перетащить .zip или .json файл прямо в главное окно оверлея!",
   "PhotoAddedToast": "[Фото добавлено!]",
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
   "SeparateWindowMode": "Показывать в отдельном перемещаемом окне",
   "EmbeddedMode": "Показывать внутри главного окна",
   "Close": "Закрыть",
@@ -69,7 +62,6 @@
   "ClipboardImportError": "[Не удалось прочитать стратегию из буфера!]",
   "ExportSection": "ЭКСПОРТ ТЕКУЩЕЙ СТРАТЕГИИ:",
   "ImportSection": "ИМПОРТ СТРАТЕГИИ:",
-<<<<<<< HEAD
   "AutoOcrHeader": "Auto-OCR",
   "OcrStatusOn": "[ВКЛ]",
   "OcrStatusOff": "[ВЫКЛ]",
@@ -77,12 +69,6 @@
   "SelectOcrRegionBtn": "Выбрать область экрана",
   "InGameWave": "ВОЛНА В ИГРЕ:",
   "AutoOcrTag": "(Auto-OCR)",
-=======
-  "AutoOcrHeader": "Сканер волн (OCR)",
-  "SelectOcrRegionBtn": "Выбрать область экрана",
-  "InGameWave": "ВОЛНА В ИГРЕ:",
-  "AutoOcrTag": "(Авто-OCR)",
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
   "CurrentWaveHeader": "ТЕКУЩАЯ ВОЛНА:",
   "ActiveInGame": "(АКТИВНО В ИГРЕ)",
   "ResizeHandleText": "[=== Зажмите ЛКМ и тяните для изменения высоты ===]",
@@ -91,15 +77,9 @@
   "ImagesHeader": "ИЗОБРАЖЕНИЯ РАССТАНОВКИ (ОБЩИЕ ДЛЯ ВСЕЙ СТРАТЕГИИ):",
   "PhotoNum": "Фото №{0}:",
   "DeletePhotoBtn": "Удалить фото",
-<<<<<<< HEAD
   "AddPhotoBtn": "+ Выбрать фото с диска",
   "SelectFileBtn": "Обзор...",
   "PasteClipboardBtn": "+ Вставить скриншот из буфера",
-=======
-  "AddPhotoBtn": "+ Добавить фото стратегии",
-  "SelectFileBtn": "Выбрать файл",
-  "PasteClipboardBtn": "Вставить из буфера",
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
   "NoImageSelected": "[Файл не выбран]",
   "ClipboardNoImageToast": "[В буфере нет картинки!]",
   "StepsHeader": "Шаги и диапазоны волн:",
@@ -115,11 +95,7 @@
   "OcrOverlayInstruction": "ЗАЖМИТЕ ЛКМ НА ЭКРАНЕ, ЧТОБЫ ВЫДЕЛИТЬ НОМЕР ВОЛНЫ В ROBLOX (ESC - Отмена)",
   "SeparateImageTitle": "Изображение расстановки",
   "AboutTitle": "О программе",
-<<<<<<< HEAD
   "AboutVersion": "Версия: 0.6",
-=======
-  "AboutVersion": "Версия: 0.5",
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
   "AboutAuthor": "Авторы: icymarsh, Gti_Olen, Google Gemini (code)",
   "AboutDesc": "Оверлей для Tower Defense Simulator в Roblox",
   "CheckUpdates": "Проверить обновления",
@@ -137,8 +113,4 @@
   "HelpLine1": "- [ ] текст - создать чек-бокс.",
   "HelpLine2": "<ocr 15>текст</ocr> - подсветка строки на 15 волне.",
   "HelpLine3": "<ocr 20 red>текст</ocr> - красная плашка для DJ на 20 волне (цвета: red, green, purple)."
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5

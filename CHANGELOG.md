@@ -8,7 +8,6 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-<<<<<<< HEAD
 ## [0.6] 2026-10-13
 ### Added
 - Added native Windows Drag & Drop support for importing `.zip` and `.json` strategy files directly into the overlay window.
@@ -32,8 +31,6 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 ## [0.5] 2026-8-6
 ### Added
 - Added window background transparency slider to settings.
@@ -91,8 +88,4 @@ All notable changes to this project will be documented in this file.
 - Windows OCR for wave scanner.
 
 ## [0.1] - 2026-8-4
-<<<<<<< HEAD
 - Created a first version of app.
-=======
-- Created a first version of app.
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5

@@ -8,10 +8,6 @@ namespace TdsOverlayImGui
 {
     public static class Loc
     {
-<<<<<<< HEAD
-=======
-        private const string LocalesFolder = "locales";
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
         private static readonly Dictionary<string, Dictionary<string, string>> Languages = new(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, string> DisplayNames = new(StringComparer.OrdinalIgnoreCase);
 
@@ -22,7 +18,6 @@ namespace TdsOverlayImGui
             Languages.Clear();
             DisplayNames.Clear();
 
-<<<<<<< HEAD
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string localesPath = Path.Combine(baseDir, "locales");
 
@@ -36,35 +31,19 @@ namespace TdsOverlayImGui
             }
 
             string[] files = Directory.GetFiles(localesPath, "*.json");
-=======
-            if (!Directory.Exists(LocalesFolder))
-            {
-                Directory.CreateDirectory(LocalesFolder);
-            }
-
-            string[] files = Directory.GetFiles(LocalesFolder, "*.json");
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 
             foreach (var file in files)
             {
                 try
                 {
-<<<<<<< HEAD
                     string langCode = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
-=======
-                    string langCode = Path.GetFileNameWithoutExtension(file).ToLower();
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                     string json = File.ReadAllText(file);
                     var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
 
                     if (dict != null)
                     {
                         Languages[langCode] = dict;
-<<<<<<< HEAD
                         string name = dict.TryGetValue("LanguageName", out var langName) ? langName : langCode.ToUpperInvariant();
-=======
-                        string name = dict.TryGetValue("LanguageName", out var langName) ? langName : langCode.ToUpper();
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                         DisplayNames[langCode] = name;
                     }
                 }
@@ -74,10 +53,6 @@ namespace TdsOverlayImGui
                 }
             }
 
-<<<<<<< HEAD
-=======
-            // Запасной вариант если папка была пуста
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
             if (Languages.Count == 0)
             {
                 Languages["en"] = new Dictionary<string, string>();
@@ -94,11 +69,7 @@ namespace TdsOverlayImGui
         {
             if (DisplayNames.TryGetValue(langCode, out var name))
                 return name;
-<<<<<<< HEAD
             return langCode.ToUpperInvariant();
-=======
-            return langCode.ToUpper();
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
         }
 
         public static string Tr(string key)
@@ -109,10 +80,6 @@ namespace TdsOverlayImGui
                     return val;
             }
 
-<<<<<<< HEAD
-=======
-            // Фолбэк на английский
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
             if (Languages.TryGetValue("en", out var enDict))
             {
                 if (enDict.TryGetValue(key, out var enVal) && !string.IsNullOrEmpty(enVal))
@@ -159,8 +126,4 @@ namespace TdsOverlayImGui
             ? $"{MapName} [{Difficulty}]"
             : $"{MapName} [{Difficulty}] - {StrategyName}";
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5

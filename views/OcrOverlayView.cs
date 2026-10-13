@@ -7,7 +7,6 @@ namespace TdsOverlayImGui.Views
 {
     public static class OcrOverlayView
     {
-<<<<<<< HEAD
         private static bool _isScanning = false;
 
         public static void ProcessBackgroundOcr(OverlayContext ctx)
@@ -48,34 +47,6 @@ namespace TdsOverlayImGui.Views
                     finally
                     {
                         _isScanning = false;
-=======
-        public static void ProcessBackgroundOcr(OverlayContext ctx)
-        {
-            if (!ctx.Settings.EnableOcr || ctx.CurrentMap == null) return;
-
-            if ((DateTime.Now - ctx.LastOcrScanTime).TotalSeconds >= 1.5)
-            {
-                ctx.LastOcrScanTime = DateTime.Now;
-
-                Task.Run(async () =>
-                {
-                    int? wave = await OcrService.RecognizeWaveFromScreenAsync(
-                        ctx.Settings.OcrX, ctx.Settings.OcrY, ctx.Settings.OcrW, ctx.Settings.OcrH);
-
-                    if (wave.HasValue)
-                    {
-                        if (wave.Value < ctx.CurrentWaveNumber && wave.Value <= 2)
-                        {
-                            ctx.TriggeredDjAlerts.Clear();
-                            ctx.TriggeredOcrSounds.Clear();
-                        }
-
-                        Components.ToastAndAudioService.OnWaveChanged(ctx, wave.Value);
-                        ctx.DetectedWaveNumber = wave.Value;
-                        ctx.CurrentWaveNumber = wave.Value;
-
-                        ctx.UpdateStepByWaveNumber(ctx.CurrentMap, wave.Value);
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                     }
                 });
             }
@@ -109,13 +80,8 @@ namespace TdsOverlayImGui.Views
                 int w = (int)(max.X - min.X);
                 int h = (int)(max.Y - min.Y);
 
-<<<<<<< HEAD
                 drawList.AddRect(min, max, 0xFF00FFFF, 0, ImDrawFlags.None, 2.5f);
                 drawList.AddRectFilled(min, max, 0x3300FFFF);
-=======
-                drawList.AddRect(min, max, 0xFF00FFFF, 0, ImDrawFlags.None, 3.0f);
-                drawList.AddRectFilled(min, max, 0x4400FFFF);
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 drawList.AddText(max + new Vector2(10, 10), 0xFFFFFFFF, $"{w} x {h} px");
 
                 if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
@@ -148,8 +114,4 @@ namespace TdsOverlayImGui.Views
             ImGui.End();
         }
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5

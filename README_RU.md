@@ -27,6 +27,3 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 
 ## Благодарности
 Код полностью написан с помощью **Google Gemini**.
-
-## Благодарности
-Код полностью написан с помощью **Google Gemini**.

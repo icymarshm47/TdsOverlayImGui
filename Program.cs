@@ -2,10 +2,7 @@ using System;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
-<<<<<<< HEAD
 using System.Text;
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 using System.Threading.Tasks;
 using ClickableTransparentOverlay;
 using ImGuiNET;
@@ -23,7 +20,6 @@ namespace TdsOverlayImGui
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
-<<<<<<< HEAD
         [DllImport("shell32.dll")]
         private static extern void DragAcceptFiles(IntPtr hWnd, bool fAccept);
 
@@ -46,8 +42,6 @@ namespace TdsOverlayImGui
         private const int GWLP_WNDPROC = -4;
         private const uint WM_DROPFILES = 0x0233;
 
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
         private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
         private static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
         private const uint SWP_NOSIZE = 0x0001;
@@ -55,17 +49,12 @@ namespace TdsOverlayImGui
 
         private const string GitHubOwner = "icymarshm47";
         private const string GitHubRepo = "TdsOverlayImGui";
-<<<<<<< HEAD
         public const string CurrentAppVersion = "0.6";
-=======
-        private const string CurrentAppVersion = "0.5";
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 
         private readonly OverlayContext _ctx = new();
 
         public TdsImGuiOverlay() : base("TDS Strategy Overlay", true)
         {
-<<<<<<< HEAD
             // Синхронизация частоты кадров с герцовкой монитора (VSync)
             VSync = true;
 
@@ -78,15 +67,6 @@ namespace TdsOverlayImGui
                 Path.Combine(baseDir, "Roboto-Regular.ttf"),
                 Path.Combine("fonts", "Roboto-Regular.ttf"),
                 "Roboto-Regular.ttf",
-=======
-            Loc.LoadLanguages();
-
-            string[] fontCandidates = new[]
-            {
-                "Roboto-Regular.ttf",
-                "roboto.ttf",
-                Path.Combine("fonts", "Roboto-Regular.ttf"),
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 @"C:\Windows\Fonts\Roboto-Regular.ttf",
                 @"C:\Windows\Fonts\segoeui.ttf",
                 @"C:\Windows\Fonts\arial.ttf"
@@ -118,7 +98,6 @@ namespace TdsOverlayImGui
             }
         }
 
-<<<<<<< HEAD
         private void HookDragAndDrop()
         {
             IntPtr hWnd = FindWindow(null, "TDS Strategy Overlay");
@@ -182,8 +161,6 @@ namespace TdsOverlayImGui
             }
         }
 
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
         private void CheckForUpdatesInBackground(bool silent = true)
         {
             Task.Run(async () =>
@@ -209,12 +186,8 @@ namespace TdsOverlayImGui
         {
             if (_ctx.IsFirstFrame)
             {
-<<<<<<< HEAD
                 SetAlwaysOnTop(_ctx.Settings.AlwaysOnTop);
                 HookDragAndDrop();
-=======
-                SetAlwaysOnTop(true);
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 _ctx.IsFirstFrame = false;
             }
 
@@ -224,18 +197,11 @@ namespace TdsOverlayImGui
                 return;
             }
 
-<<<<<<< HEAD
             ProcessDroppedFiles();
             SetupStyle();
             OcrOverlayView.ProcessBackgroundOcr(_ctx);
 
             ImGui.SetNextWindowSize(new Vector2(540, 640), ImGuiCond.FirstUseEver);
-=======
-            SetupStyle();
-            OcrOverlayView.ProcessBackgroundOcr(_ctx);
-
-            ImGui.SetNextWindowSize(new Vector2(520, 600), ImGuiCond.FirstUseEver);
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 
             bool isOpen = _ctx.IsOverlayOpen;
             ImGui.Begin("TDS Strategy Overlay (ImGui)", ref isOpen, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.MenuBar);
@@ -253,7 +219,6 @@ namespace TdsOverlayImGui
                 }
             }
 
-<<<<<<< HEAD
             if (_ctx.DropStatusTimer > 0.0f && !string.IsNullOrEmpty(_ctx.DropStatusMessage))
             {
                 InstructionRenderer.SafeTextColored(new Vector4(0.4f, 0.9f, 1.0f, 1.0f), _ctx.DropStatusMessage);
@@ -264,17 +229,11 @@ namespace TdsOverlayImGui
                 }
             }
 
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
             ImGui.Spacing();
 
             if (_ctx.Strategies.Count == 0)
             {
-<<<<<<< HEAD
                 ImGui.Text(Loc.Tr("NoStrategySelected"));
-=======
-                ImGui.Text("No strategies found.");
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 if (ImGui.Button(Loc.Tr("AddStrategy"), new Vector2(-1, 0)))
                 {
                     _ctx.ShowAddMapModal = true;
@@ -292,11 +251,7 @@ namespace TdsOverlayImGui
 
             if (_ctx.Settings.SeparateImageWindow) ImageViewer.RenderSeparateImageWindow(this, _ctx);
             if (_ctx.IsSelectingOcrRegion) OcrOverlayView.RenderSelectionOverlay(_ctx);
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
             ToastAndAudioService.RenderDjToast(_ctx);
             ModalsView.RenderAll(_ctx);
         }
@@ -321,7 +276,6 @@ namespace TdsOverlayImGui
                         _ctx.ShowSettingsModal = true;
                     }
 
-<<<<<<< HEAD
                     ImGui.Separator();
 
                     if (ImGui.MenuItem(Loc.Tr("ExitApp")))
@@ -329,8 +283,6 @@ namespace TdsOverlayImGui
                         _ctx.IsOverlayOpen = false;
                     }
 
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                     ImGui.EndMenu();
                 }
 
@@ -367,7 +319,6 @@ namespace TdsOverlayImGui
                     ImGui.EndMenu();
                 }
 
-<<<<<<< HEAD
                 float hintW = ImGui.CalcTextSize(Loc.Tr("DragDropHint")).X + 16.0f;
                 if (ImGui.GetWindowWidth() > 380)
                 {
@@ -375,8 +326,6 @@ namespace TdsOverlayImGui
                     ImGui.TextDisabled(Loc.Tr("DragDropHint"));
                 }
 
-=======
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 ImGui.EndMenuBar();
             }
         }
@@ -384,7 +333,6 @@ namespace TdsOverlayImGui
         private void SetupStyle()
         {
             var style = ImGui.GetStyle();
-<<<<<<< HEAD
             style.WindowRounding = 10.0f;
             style.ChildRounding = 8.0f;
             style.FrameRounding = 6.0f;
@@ -415,21 +363,6 @@ namespace TdsOverlayImGui
             colors[(int)ImGuiCol.SliderGrabActive] = new Vector4(0.45f, 0.52f, 1.0f, 1.0f);
             colors[(int)ImGuiCol.TitleBg] = new Vector4(0.09f, 0.10f, 0.13f, 1.0f);
             colors[(int)ImGuiCol.TitleBgActive] = new Vector4(0.14f, 0.16f, 0.22f, 1.0f);
-=======
-            style.WindowRounding = 8.0f;
-            style.FrameRounding = 6.0f;
-            style.PopupRounding = 6.0f;
-            style.ScrollbarRounding = 6.0f;
-
-            var colors = style.Colors;
-            colors[(int)ImGuiCol.WindowBg] = new Vector4(0.07f, 0.08f, 0.09f, _ctx.Settings.WindowOpacity);
-            colors[(int)ImGuiCol.Header] = new Vector4(0.18f, 0.19f, 0.22f, 1.0f);
-            colors[(int)ImGuiCol.HeaderHovered] = new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
-            colors[(int)ImGuiCol.Button] = new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
-            colors[(int)ImGuiCol.ButtonHovered] = new Vector4(0.28f, 0.22f, 0.77f, 1.0f);
-            colors[(int)ImGuiCol.ButtonActive] = new Vector4(0.22f, 0.25f, 0.60f, 1.0f);
-            colors[(int)ImGuiCol.FrameBg] = new Vector4(0.14f, 0.15f, 0.17f, 1.0f);
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
         }
 
         public static async Task Main()
@@ -438,8 +371,4 @@ namespace TdsOverlayImGui
             await overlay.Run();
         }
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
