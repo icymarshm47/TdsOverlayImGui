@@ -7,14 +7,14 @@ namespace TdsOverlayImGui.Views
 {
     public static class ModalsView
     {
-        public static void RenderAll(OverlayContext ctx)
+        public static void RenderAll(TdsImGuiOverlay overlay, OverlayContext ctx)
         {
             if (ctx.ShowAddMapModal) RenderAddMapModal(ctx);
-            if (ctx.ShowImportExportModal) RenderImportExportModal(ctx);
+            if (ctx.ShowImportExportModal) RenderImportExportModal(overlay, ctx);
             if (ctx.ShowSettingsModal) RenderSettingsModal(ctx);
             if (ctx.ShowAboutModal) RenderAboutModal(ctx);
             if (ctx.ShowHelpModal) RenderHelpModal(ctx);
-            if (ctx.ShowDeleteConfirmModal) RenderDeleteConfirmModal(ctx);
+            if (ctx.ShowDeleteConfirmModal) RenderDeleteConfirmModal(overlay, ctx);
             if (ctx.ShowUpdateModal) RenderUpdateModal(ctx);
         }
 
@@ -50,7 +50,8 @@ namespace TdsOverlayImGui.Views
 
                     StrategyService.SaveStrategy(map);
                     ctx.Strategies = StrategyService.LoadStrategies();
-                    ctx.SelectedMapIndex = ctx.Strategies.Count - 1;
+                    ctx.SelectedMapIndex = ctx.Strategies.FindIndex(s => s.FilePath == map.FilePath);
+                    if (ctx.SelectedMapIndex < 0) ctx.SelectedMapIndex = ctx.Strategies.Count - 1;
                     ctx.CurrentStepIndex = 0;
                     ctx.CurrentImageIndex = 0;
                     ctx.ShowAddMapModal = false;
@@ -66,7 +67,7 @@ namespace TdsOverlayImGui.Views
             }
         }
 
-        private static void RenderImportExportModal(OverlayContext ctx)
+        private static void RenderImportExportModal(TdsImGuiOverlay overlay, OverlayContext ctx)
         {
             string popupId = $"{Loc.Tr("ImportExport")}###ImportExportModal";
             ImGui.OpenPopup(popupId);
@@ -86,7 +87,7 @@ namespace TdsOverlayImGui.Views
 
                         if (!string.IsNullOrEmpty(targetPath))
                         {
-                            if (StrategyService.ExportStrategyToZip(currentMap, ctx.SelectedMapIndex, ctx.CompletedTasks, targetPath))
+                            if (StrategyService.ExportStrategyToZip(currentMap, ctx.CompletedTasks, targetPath))
                             {
                                 ctx.ExportStatusMessage = $"Saved successfully to:\n{targetPath}";
                             }
@@ -101,7 +102,7 @@ namespace TdsOverlayImGui.Views
 
                     if (ImGui.Button(Loc.Tr("ExportClipboard"), new Vector2(220, 0)))
                     {
-                        string base64 = StrategyService.ExportStrategyToClipboardBase64(currentMap, ctx.SelectedMapIndex, ctx.CompletedTasks);
+                        string base64 = StrategyService.ExportStrategyToClipboardBase64(currentMap, ctx.CompletedTasks);
                         ImagePickerHelper.SetClipboardText(base64);
                         ctx.ExportStatusMessage = Loc.Tr("ClipboardExportSuccess");
                     }
@@ -130,6 +131,7 @@ namespace TdsOverlayImGui.Views
                     {
                         if (StrategyService.ImportStrategy(selectedFile, out string msg))
                         {
+                            ImageViewer.ClearLoadedTextures(overlay);
                             ctx.ImportStatusMessage = msg;
                             ctx.Strategies = StrategyService.LoadStrategies();
                             ctx.SelectedMapIndex = ctx.Strategies.Count - 1;
@@ -150,6 +152,7 @@ namespace TdsOverlayImGui.Views
                     {
                         if (StrategyService.ImportStrategyFromClipboardBase64(clipText, out string msg))
                         {
+                            ImageViewer.ClearLoadedTextures(overlay);
                             ctx.ImportStatusMessage = msg;
                             ctx.Strategies = StrategyService.LoadStrategies();
                             ctx.SelectedMapIndex = ctx.Strategies.Count - 1;
@@ -321,7 +324,7 @@ namespace TdsOverlayImGui.Views
             }
         }
 
-        private static void RenderDeleteConfirmModal(OverlayContext ctx)
+        private static void RenderDeleteConfirmModal(TdsImGuiOverlay overlay, OverlayContext ctx)
         {
             if (ctx.CurrentMap == null) return;
             var currentMap = ctx.CurrentMap;
@@ -336,9 +339,10 @@ namespace TdsOverlayImGui.Views
                 ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.65f, 0.20f, 0.22f, 1.0f));
                 if (ImGui.Button(Loc.Tr("YesDelete"), new Vector2(120, 0)))
                 {
+                    ImageViewer.ClearLoadedTextures(overlay);
                     StrategyService.DeleteStrategy(currentMap);
                     ctx.Strategies = StrategyService.LoadStrategies();
-                    ctx.SelectedMapIndex = -1;
+                    ctx.SelectedMapIndex = ctx.Strategies.Count > 0 ? 0 : -1;
                     ctx.CurrentStepIndex = 0;
                     ctx.CurrentImageIndex = 0;
                     ctx.IsEditing = false;
