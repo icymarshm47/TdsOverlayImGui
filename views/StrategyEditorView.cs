@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using ImGuiNET;
 using TdsOverlayImGui.Components;
@@ -7,7 +8,7 @@ namespace TdsOverlayImGui.Views
 {
     public static class StrategyEditorView
     {
-        public static void Render(OverlayContext ctx)
+        public static void Render(TdsImGuiOverlay overlay, OverlayContext ctx)
         {
             var currentMap = ctx.CurrentMap;
             if (currentMap == null) return;
@@ -34,16 +35,16 @@ namespace TdsOverlayImGui.Views
             ImGui.Separator();
             InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("ImagesHeader"));
 
-            for (int imgIdx = 0; imgIdx < currentMap.ImagePaths.Count; imgIdx++)
+            for (int imgIdx = 0; imgIdx < ctx.EditImagePaths.Count; imgIdx++)
             {
                 ImGui.PushID($"mapImg_{imgIdx}");
-                string imgPath = currentMap.ImagePaths[imgIdx];
+                string imgPath = ctx.EditImagePaths[imgIdx];
 
                 ImGui.Text(string.Format(Loc.Tr("PhotoNum"), imgIdx + 1));
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 210);
                 if (ImGui.InputText($"##ImgPath_{imgIdx}", ref imgPath, 512))
                 {
-                    currentMap.ImagePaths[imgIdx] = imgPath;
+                    ctx.EditImagePaths[imgIdx] = imgPath;
                 }
 
                 ImGui.SameLine();
@@ -52,7 +53,7 @@ namespace TdsOverlayImGui.Views
                     string? picked = ImagePickerHelper.OpenImageFileDialog();
                     if (!string.IsNullOrEmpty(picked))
                     {
-                        currentMap.ImagePaths[imgIdx] = picked;
+                        ctx.EditImagePaths[imgIdx] = picked;
                     }
                 }
 
@@ -60,7 +61,7 @@ namespace TdsOverlayImGui.Views
                 ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.65f, 0.20f, 0.22f, 1.0f));
                 if (ImGui.Button("X"))
                 {
-                    currentMap.ImagePaths.RemoveAt(imgIdx);
+                    ctx.EditImagePaths.RemoveAt(imgIdx);
                     ImGui.PopStyleColor();
                     ImGui.PopID();
                     break;
@@ -73,16 +74,16 @@ namespace TdsOverlayImGui.Views
             if (ImGui.Button(Loc.Tr("AddPhotoBtn")))
             {
                 string? picked = ImagePickerHelper.OpenImageFileDialog();
-                currentMap.ImagePaths.Add(picked ?? "");
+                ctx.EditImagePaths.Add(picked ?? "");
             }
 
             ImGui.SameLine();
             if (ImGui.Button(Loc.Tr("PasteClipboardBtn")))
             {
-                string? saved = ImagePickerHelper.SaveImageFromClipboard(ctx.EditMapName, currentMap.ImagePaths.Count + 1);
+                string? saved = ImagePickerHelper.SaveImageFromClipboard(ctx.EditMapName, ctx.EditImagePaths.Count + 1);
                 if (!string.IsNullOrEmpty(saved))
                 {
-                    currentMap.ImagePaths.Add(saved);
+                    ctx.EditImagePaths.Add(saved);
                     ctx.EditorToastMessage = Loc.Tr("PhotoAddedToast");
                     ctx.EditorToastTimer = 2.5f;
                 }
@@ -104,9 +105,9 @@ namespace TdsOverlayImGui.Views
             ImGui.Text(Loc.Tr("StepsHeader"));
             ImGui.TextDisabled(Loc.Tr("MarkdownHint"));
 
-            for (int i = 0; i < currentMap.Steps.Count; i++)
+            for (int i = 0; i < ctx.EditSteps.Count; i++)
             {
-                var s = currentMap.Steps[i];
+                var s = ctx.EditSteps[i];
                 ImGui.PushID(i);
 
                 ImGui.BeginChild($"StepEditCard_{i}", new Vector2(0, 142), true);
@@ -116,12 +117,12 @@ namespace TdsOverlayImGui.Views
                 ImGui.SameLine();
                 if (i > 0 && ImGui.SmallButton("^"))
                 {
-                    (currentMap.Steps[i - 1], currentMap.Steps[i]) = (currentMap.Steps[i], currentMap.Steps[i - 1]);
+                    (ctx.EditSteps[i - 1], ctx.EditSteps[i]) = (ctx.EditSteps[i], ctx.EditSteps[i - 1]);
                 }
                 ImGui.SameLine();
-                if (i < currentMap.Steps.Count - 1 && ImGui.SmallButton("v"))
+                if (i < ctx.EditSteps.Count - 1 && ImGui.SmallButton("v"))
                 {
-                    (currentMap.Steps[i + 1], currentMap.Steps[i]) = (currentMap.Steps[i], currentMap.Steps[i + 1]);
+                    (ctx.EditSteps[i + 1], ctx.EditSteps[i]) = (ctx.EditSteps[i], ctx.EditSteps[i + 1]);
                 }
 
                 int start = s.StartWave;
@@ -136,13 +137,13 @@ namespace TdsOverlayImGui.Views
                 ImGui.SetNextItemWidth(75);
                 if (ImGui.InputInt(Loc.Tr("ToWave"), ref end, 0)) s.EndWave = end;
 
-                if (currentMap.Steps.Count > 1)
+                if (ctx.EditSteps.Count > 1)
                 {
                     ImGui.SameLine(ImGui.GetWindowWidth() - 38);
                     ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.65f, 0.20f, 0.22f, 1.0f));
                     if (ImGui.SmallButton("X"))
                     {
-                        currentMap.Steps.RemoveAt(i);
+                        ctx.EditSteps.RemoveAt(i);
                         ImGui.PopStyleColor();
                         ImGui.EndChild();
                         ImGui.PopID();
@@ -162,8 +163,8 @@ namespace TdsOverlayImGui.Views
 
             if (ImGui.Button(Loc.Tr("AddStepBtn"), new Vector2(-1, 0)))
             {
-                int lastEnd = currentMap.Steps.Count > 0 ? currentMap.Steps[^1].EndWave : 0;
-                currentMap.Steps.Add(new StrategyStep
+                int lastEnd = ctx.EditSteps.Count > 0 ? ctx.EditSteps[^1].EndWave : 0;
+                ctx.EditSteps.Add(new StrategyStep
                 {
                     StartWave = lastEnd + 1,
                     EndWave = lastEnd + 10,
@@ -179,10 +180,14 @@ namespace TdsOverlayImGui.Views
 
             if (ImGui.Button(Loc.Tr("Save"), new Vector2(editBtnW, 0)))
             {
+                ImageViewer.ClearLoadedTextures(overlay);
+
                 currentMap.MapName = ctx.EditMapName;
                 currentMap.Difficulty = ctx.EditDifficulty;
                 currentMap.StrategyName = ctx.EditStrategyName;
                 currentMap.GeneralInfo = ctx.EditGeneralInfo;
+                currentMap.ImagePaths = new List<string>(ctx.EditImagePaths);
+                currentMap.Steps = new List<StrategyStep>(ctx.EditSteps);
 
                 StrategyService.SaveStrategy(currentMap);
                 ctx.IsEditing = false;
