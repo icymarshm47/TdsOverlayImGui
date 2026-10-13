@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using ImGuiNET;
@@ -7,6 +8,21 @@ namespace TdsOverlayImGui.Components
 {
     public static class ImageViewer
     {
+        private static readonly HashSet<string> LoadedTextures = new(StringComparer.OrdinalIgnoreCase);
+
+        public static void ClearLoadedTextures(TdsImGuiOverlay overlay)
+        {
+            foreach (var texPath in LoadedTextures)
+            {
+                try
+                {
+                    overlay.RemoveImage(texPath);
+                }
+                catch { }
+            }
+            LoadedTextures.Clear();
+        }
+
         public static string? GetActiveImagePath(OverlayContext ctx, MapStrategy map)
         {
             if (map.ImagePaths.Count == 0) return null;
@@ -44,7 +60,6 @@ namespace TdsOverlayImGui.Components
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.45f, 0.49f, 1.00f, 1.0f));
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(8, 3));
 
-            // Высота 0 позволяет ImGui автоматически вместить весь текст по вертикали без обрезки
             ImGui.Button(Loc.Tr("ResizeHandleText"), new Vector2(-1, 0));
 
             if (ImGui.IsItemHovered())
@@ -78,6 +93,7 @@ namespace TdsOverlayImGui.Components
             try
             {
                 overlay.AddOrGetImagePointer(imagePath, false, out nint handle, out uint imgW, out uint imgH);
+                LoadedTextures.Add(imagePath);
 
                 if (handle != nint.Zero && imgW > 0 && imgH > 0)
                 {
