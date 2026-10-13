@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using System.Threading;
 using System.Threading.Tasks;
 using ImGuiNET;
 
@@ -7,46 +8,58 @@ namespace TdsOverlayImGui.Views
 {
     public static class OcrOverlayView
     {
-        private static bool _isScanning = false;
+        private static int _isScanning = 0;
+        private static int? _pendingDetectedWave = null;
 
         public static void ProcessBackgroundOcr(OverlayContext ctx)
         {
-            if (!ctx.Settings.EnableOcr || ctx.CurrentMap == null || _isScanning) return;
+            if (_pendingDetectedWave.HasValue)
+            {
+                int waveVal = _pendingDetectedWave.Value;
+                _pendingDetectedWave = null;
+
+                if (ctx.Settings.EnableOcr && ctx.CurrentMap != null)
+                {
+                    if (waveVal < ctx.CurrentWaveNumber && waveVal <= 2)
+                    {
+                        ctx.TriggeredDjAlerts.Clear();
+                        ctx.TriggeredOcrSounds.Clear();
+                    }
+
+                    Components.ToastAndAudioService.OnWaveChanged(ctx, waveVal);
+                    ctx.DetectedWaveNumber = waveVal;
+                    ctx.CurrentWaveNumber = waveVal;
+
+                    ctx.UpdateStepByWaveNumber(ctx.CurrentMap, waveVal);
+                }
+            }
+
+            if (!ctx.Settings.EnableOcr || ctx.CurrentMap == null || _isScanning == 1) return;
 
             if ((DateTime.Now - ctx.LastOcrScanTime).TotalSeconds >= 1.2)
             {
                 ctx.LastOcrScanTime = DateTime.Now;
-                _isScanning = true;
+                Interlocked.Exchange(ref _isScanning, 1);
+
+                int x = ctx.Settings.OcrX;
+                int y = ctx.Settings.OcrY;
+                int w = ctx.Settings.OcrW;
+                int h = ctx.Settings.OcrH;
+                bool preprocess = ctx.Settings.OcrPreprocess;
 
                 Task.Run(async () =>
                 {
                     try
                     {
-                        int? wave = await OcrService.RecognizeWaveFromScreenAsync(
-                            ctx.Settings.OcrX,
-                            ctx.Settings.OcrY,
-                            ctx.Settings.OcrW,
-                            ctx.Settings.OcrH,
-                            ctx.Settings.OcrPreprocess);
-
-                        if (wave.HasValue && ctx.CurrentMap != null)
+                        int? wave = await OcrService.RecognizeWaveFromScreenAsync(x, y, w, h, preprocess);
+                        if (wave.HasValue)
                         {
-                            if (wave.Value < ctx.CurrentWaveNumber && wave.Value <= 2)
-                            {
-                                ctx.TriggeredDjAlerts.Clear();
-                                ctx.TriggeredOcrSounds.Clear();
-                            }
-
-                            Components.ToastAndAudioService.OnWaveChanged(ctx, wave.Value);
-                            ctx.DetectedWaveNumber = wave.Value;
-                            ctx.CurrentWaveNumber = wave.Value;
-
-                            ctx.UpdateStepByWaveNumber(ctx.CurrentMap, wave.Value);
+                            _pendingDetectedWave = wave.Value;
                         }
                     }
                     finally
                     {
-                        _isScanning = false;
+                        Interlocked.Exchange(ref _isScanning, 0);
                     }
                 });
             }
@@ -54,14 +67,18 @@ namespace TdsOverlayImGui.Views
 
         public static void RenderSelectionOverlay(OverlayContext ctx)
         {
+            var io = ImGui.GetIO();
+            Vector2 screenSize = io.DisplaySize.X > 0 && io.DisplaySize.Y > 0
+                ? io.DisplaySize
+                : new Vector2(3840, 2160);
+
             ImGui.SetNextWindowPos(Vector2.Zero);
-            ImGui.SetNextWindowSize(new Vector2(3840, 2160));
+            ImGui.SetNextWindowSize(screenSize);
             ImGui.Begin("OcrSelectorWindow", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoBackground);
 
             var drawList = ImGui.GetForegroundDrawList();
-            var io = ImGui.GetIO();
 
-            drawList.AddRectFilled(Vector2.Zero, new Vector2(3840, 2160), 0x99000000);
+            drawList.AddRectFilled(Vector2.Zero, screenSize, 0x99000000);
             drawList.AddText(new Vector2(30, 30), 0xFF00FFFF, Loc.Tr("OcrOverlayInstruction"));
 
             if (ctx.OcrSelectionState == 0)
