@@ -22,16 +22,11 @@
 ## Сборка из исходников
 Требуется **.NET 10 SDK** (Windows 10/11).
 ```bash
-<<<<<<< HEAD
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfContained=true -p:DebugType=None -p:DebugSymbols=false
 ```
 
 ## Благодарности
 Код полностью написан с помощью **Google Gemini**.
-=======
-dotnet publish -c Release -f net10.0-windows10.0.19041.0 -r win-x64 --self-contained true -p:PublishSingleFile=true
-```
 
 ## Благодарности
 Код полностью написан с помощью **Google Gemini**.
->>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
