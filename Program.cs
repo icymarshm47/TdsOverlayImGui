@@ -55,7 +55,6 @@ namespace TdsOverlayImGui
 
         public TdsImGuiOverlay() : base("TDS Strategy Overlay", true)
         {
-            // Синхронизация частоты кадров с герцовкой монитора (VSync)
             VSync = true;
 
             Loc.LoadLanguages();
@@ -84,6 +83,11 @@ namespace TdsOverlayImGui
             _ctx.Settings = StrategyService.LoadSettings();
             _ctx.Strategies = StrategyService.LoadStrategies();
             _ctx.CompletedTasks = StrategyService.LoadCompletedTasks();
+
+            if (_ctx.Strategies.Count > 0)
+            {
+                _ctx.SelectedMapIndex = 0;
+            }
 
             CheckForUpdatesInBackground(silent: true);
         }
@@ -139,6 +143,7 @@ namespace TdsOverlayImGui
                 {
                     if (StrategyService.ImportStrategy(filePath, out string msg))
                     {
+                        ImageViewer.ClearLoadedTextures(this);
                         _ctx.Strategies = StrategyService.LoadStrategies();
                         _ctx.SelectedMapIndex = _ctx.Strategies.Count - 1;
                         _ctx.CurrentStepIndex = 0;
@@ -154,7 +159,7 @@ namespace TdsOverlayImGui
                 }
                 else if (_ctx.IsEditing && _ctx.CurrentMap != null && (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".webp" || ext == ".bmp"))
                 {
-                    _ctx.CurrentMap.ImagePaths.Add(filePath);
+                    _ctx.EditImagePaths.Add(filePath);
                     _ctx.DropStatusMessage = $"{Loc.Tr("PhotoAddedToast")}: {Path.GetFileName(filePath)}";
                     _ctx.DropStatusTimer = 3.0f;
                 }
@@ -193,6 +198,7 @@ namespace TdsOverlayImGui
 
             if (!_ctx.IsOverlayOpen)
             {
+                ImageViewer.ClearLoadedTextures(this);
                 Close();
                 return;
             }
@@ -244,16 +250,16 @@ namespace TdsOverlayImGui
                 if (!_ctx.IsEditing)
                     StrategyView.Render(this, _ctx);
                 else
-                    StrategyEditorView.Render(_ctx);
+                    StrategyEditorView.Render(this, _ctx);
             }
 
             ImGui.End();
 
-            if (_ctx.Settings.SeparateImageWindow) ImageViewer.RenderSeparateImageWindow(this, _ctx);
+            if (_ctx.Settings.SeparateImageWindow && !_ctx.IsEditing) ImageViewer.RenderSeparateImageWindow(this, _ctx);
             if (_ctx.IsSelectingOcrRegion) OcrOverlayView.RenderSelectionOverlay(_ctx);
 
             ToastAndAudioService.RenderDjToast(_ctx);
-            ModalsView.RenderAll(_ctx);
+            ModalsView.RenderAll(this, _ctx);
         }
 
         private void RenderMenuBar()
