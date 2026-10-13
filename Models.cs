@@ -125,5 +125,10 @@ namespace TdsOverlayImGui
         public string DisplayName => string.IsNullOrWhiteSpace(StrategyName)
             ? $"{MapName} [{Difficulty}]"
             : $"{MapName} [{Difficulty}] - {StrategyName}";
+
+        [JsonIgnore]
+        public string TaskId => !string.IsNullOrEmpty(FilePath)
+            ? Path.GetFileNameWithoutExtension(FilePath)
+            : $"{MapName}_{Difficulty}_{StrategyName}";
     }
 }
