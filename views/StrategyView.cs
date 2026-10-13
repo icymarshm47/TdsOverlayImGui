@@ -37,6 +37,10 @@ namespace TdsOverlayImGui.Views
                         bool isSelected = (ctx.SelectedMapIndex == i);
                         if (ImGui.Selectable(displayName, isSelected))
                         {
+                            if (ctx.SelectedMapIndex != i)
+                            {
+                                ImageViewer.ClearLoadedTextures(overlay);
+                            }
                             ctx.SelectedMapIndex = i;
                             ctx.CurrentStepIndex = 0;
                             ctx.CurrentImageIndex = 0;
@@ -73,13 +77,13 @@ namespace TdsOverlayImGui.Views
                     string editBtnText = ctx.IsEditing ? Loc.Tr("ViewMode") : Loc.Tr("EditStrategy");
                     if (ImGui.Button(editBtnText, new Vector2(btnW, 0)))
                     {
-                        ctx.IsEditing = !ctx.IsEditing;
-                        if (ctx.IsEditing)
+                        if (!ctx.IsEditing)
                         {
-                            ctx.EditMapName = map.MapName;
-                            ctx.EditDifficulty = map.Difficulty;
-                            ctx.EditStrategyName = map.StrategyName;
-                            ctx.EditGeneralInfo = map.GeneralInfo;
+                            ctx.BeginEditing(map);
+                        }
+                        else
+                        {
+                            ctx.IsEditing = false;
                         }
                     }
 
@@ -112,13 +116,13 @@ namespace TdsOverlayImGui.Views
                 return;
             }
 
-            // Если Auto-OCR выключен, гарантированно сбрасываем распознанную волну
             if (!ctx.Settings.EnableOcr)
             {
                 ctx.DetectedWaveNumber = null;
             }
 
             var currentMap = ctx.CurrentMap;
+            string mapTaskId = currentMap.TaskId;
             int activeWave = (ctx.Settings.EnableOcr && ctx.DetectedWaveNumber.HasValue)
                 ? ctx.DetectedWaveNumber.Value
                 : ctx.CurrentWaveNumber;
@@ -293,7 +297,7 @@ namespace TdsOverlayImGui.Views
                     for (int lineIdx = 0; lineIdx < lines.Length; lineIdx++)
                     {
                         string rawLine = lines[lineIdx];
-                        string taskKey = $"gen_{ctx.SelectedMapIndex}_{lineIdx}";
+                        string taskKey = $"gen_{mapTaskId}_{lineIdx}";
                         InstructionRenderer.RenderInstructionLine(ctx, rawLine, activeWave, taskKey);
                     }
 
@@ -338,7 +342,7 @@ namespace TdsOverlayImGui.Views
 
                         if (ImGui.Button(clearText, new Vector2(clearW, 0)))
                         {
-                            ctx.CompletedTasks.Clear();
+                            ctx.CompletedTasks.RemoveWhere(k => k.StartsWith($"{mapTaskId}_") || k.StartsWith($"gen_{mapTaskId}_"));
                             ctx.TriggeredDjAlerts.Clear();
                             ctx.TriggeredOcrSounds.Clear();
                             StrategyService.SaveCompletedTasks(ctx.CompletedTasks);
@@ -366,7 +370,7 @@ namespace TdsOverlayImGui.Views
                         for (int lineIdx = 0; lineIdx < lines.Length; lineIdx++)
                         {
                             string rawLine = lines[lineIdx];
-                            string taskKey = $"{ctx.SelectedMapIndex}_{ctx.CurrentStepIndex}_{lineIdx}";
+                            string taskKey = $"{mapTaskId}_{ctx.CurrentStepIndex}_{lineIdx}";
 
                             InstructionRenderer.RenderInstructionLine(ctx, rawLine, activeWave, taskKey);
                         }
