@@ -6,9 +6,13 @@ namespace TdsOverlayImGui.Components
 {
     public static class InstructionRenderer
     {
+<<<<<<< HEAD
         private static readonly Regex OcrTagRegex = new Regex(
             @"<ocr\s+([\d\-]+)(?:\s+(red|green|purple))?\s*>(.*?)</ocr[^>]*>",
             RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+=======
+        private static readonly Regex OcrTagRegex = new Regex(@"<ocr\s+([\d\-]+)(?:\s+(red|green|purple))?\s*>(.*?)</ocr[^>]*>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 
         public static bool IsCheckbox(string line, out bool isCheckedInText, out string cleanText)
         {
@@ -92,7 +96,11 @@ namespace TdsOverlayImGui.Components
                         isTagActive = true;
 
                         string soundKey = $"{taskKey}_{activeWave}";
+<<<<<<< HEAD
                         if (ctx.TriggeredOcrSounds.Add(soundKey) && ctx.Settings.EnableOcrSound)
+=======
+                        if (ctx.TriggeredOcrSounds.Add(soundKey))
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                         {
                             ToastAndAudioService.PlayOcrBeep();
                         }
@@ -166,7 +174,11 @@ namespace TdsOverlayImGui.Components
 
             if (isDone)
             {
+<<<<<<< HEAD
                 SafeTextWrapped(new Vector4(0.3f, 1.0f, 0.4f, 0.75f), text);
+=======
+                SafeTextWrapped(new Vector4(0.3f, 1.0f, 0.4f, 0.85f), text);
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 return;
             }
 
@@ -190,4 +202,8 @@ namespace TdsOverlayImGui.Components
             ImGui.PopStyleColor();
         }
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5

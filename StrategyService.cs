@@ -20,9 +20,12 @@ namespace TdsOverlayImGui
 
         public bool CompactMode { get; set; } = false;
         public bool EnableOcr { get; set; } = false;
+<<<<<<< HEAD
         public bool EnableOcrSound { get; set; } = true;
         public bool OcrPreprocess { get; set; } = true;
 
+=======
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
         public int OcrX { get; set; } = 100;
         public int OcrY { get; set; } = 100;
         public int OcrW { get; set; } = 150;
@@ -49,6 +52,10 @@ namespace TdsOverlayImGui
                 string json = File.ReadAllText(SettingsFilePath);
                 var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
 
+<<<<<<< HEAD
+=======
+                // Совместимость со старыми значениями enum
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 if (settings.Language == "0" || settings.Language.Equals("English", StringComparison.OrdinalIgnoreCase))
                     settings.Language = "en";
                 else if (settings.Language == "1" || settings.Language.Equals("Russian", StringComparison.OrdinalIgnoreCase))
@@ -515,6 +522,7 @@ namespace TdsOverlayImGui
                 ImagePaths = new List<string>(),
                 Steps = new List<StrategyStep>
                 {
+<<<<<<< HEAD
                     new StrategyStep
                     {
                         StartWave = 1,
@@ -525,10 +533,26 @@ namespace TdsOverlayImGui
                     {
                         StartWave = 6,
                         EndWave = 30,
+=======
+                    new StrategyStep 
+                    { 
+                        StartWave = 1, 
+                        EndWave = 5, 
+                        Instruction = "- [ ] Place 2x Scouts at the first turn, upgrade to Lv 2."
+                    },
+                    new StrategyStep 
+                    { 
+                        StartWave = 6, 
+                        EndWave = 30, 
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                         Instruction = "- [ ] Place Lv 1 Farm in the corner, save money for Accelerator."
                     }
                 }
             };
         }
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5

@@ -3,7 +3,10 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+<<<<<<< HEAD
 using System.Runtime.InteropServices;
+=======
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Windows.Graphics.Imaging;
@@ -15,10 +18,17 @@ namespace TdsOverlayImGui
     public static class OcrService
     {
         private static OcrEngine? _ocrEngine;
+<<<<<<< HEAD
         private static readonly Regex WaveDigitsRegex = new Regex(@"\d+", RegexOptions.Compiled);
 
         public static async Task<int?> RecognizeWaveFromScreenAsync(int x, int y, int width, int height, bool preprocess = true)
         {
+=======
+
+        public static async Task<int?> RecognizeWaveFromScreenAsync(int x, int y, int width, int height)
+        {
+            // СНИЗИЛИ ОГРАНИЧЕНИЕ: теперь обрабатывает даже микро-зоны от 2х2 пикселей
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
             if (width <= 2 || height <= 2) return null;
 
             try
@@ -29,6 +39,7 @@ namespace TdsOverlayImGui
                     g.CopyFromScreen(x, y, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
                 }
 
+<<<<<<< HEAD
                 // Попытка 1: с повышением контраста и полями (лучше всего для шрифта Roblox)
                 int? result = await RunOcrOnBitmapAsync(rawBitmap, preprocess);
                 if (result.HasValue)
@@ -38,6 +49,47 @@ namespace TdsOverlayImGui
                 if (preprocess)
                 {
                     return await RunOcrOnBitmapAsync(rawBitmap, false);
+=======
+                int scale = 3;
+                using var processedBitmap = new Bitmap(width * scale, height * scale, PixelFormat.Format32bppArgb);
+                using (var gProc = Graphics.FromImage(processedBitmap))
+                {
+                    gProc.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    gProc.SmoothingMode = SmoothingMode.HighQuality;
+                    gProc.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    gProc.DrawImage(rawBitmap, 0, 0, width * scale, height * scale);
+                }
+
+                using var stream = new MemoryStream();
+                processedBitmap.Save(stream, ImageFormat.Png);
+                byte[] bytes = stream.ToArray();
+
+                using var randomAccessStream = new InMemoryRandomAccessStream();
+                using (var writer = new DataWriter(randomAccessStream.GetOutputStreamAt(0)))
+                {
+                    writer.WriteBytes(bytes);
+                    await writer.StoreAsync();
+                }
+
+                var decoder = await BitmapDecoder.CreateAsync(randomAccessStream);
+                using var softwareBitmap = await decoder.GetSoftwareBitmapAsync();
+
+                if (_ocrEngine == null)
+                {
+                    _ocrEngine = OcrEngine.TryCreateFromUserProfileLanguages() 
+                              ?? OcrEngine.TryCreateFromLanguage(new Windows.Globalization.Language("en-US"));
+                }
+
+                if (_ocrEngine == null) return null;
+
+                var ocrResult = await _ocrEngine.RecognizeAsync(softwareBitmap);
+                string text = ocrResult.Text;
+
+                var match = Regex.Match(text, @"\d+");
+                if (match.Success && int.TryParse(match.Value, out int waveNum))
+                {
+                    return waveNum;
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 }
             }
             catch (Exception ex)
@@ -47,6 +99,7 @@ namespace TdsOverlayImGui
 
             return null;
         }
+<<<<<<< HEAD
 
         private static async Task<int?> RunOcrOnBitmapAsync(Bitmap rawBitmap, bool applyThreshold)
         {
@@ -173,3 +226,7 @@ namespace TdsOverlayImGui
         }
     }
 }
+=======
+    }
+}
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5

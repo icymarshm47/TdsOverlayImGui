@@ -12,6 +12,7 @@ namespace TdsOverlayImGui.Views
         {
             if (!ctx.Settings.CompactMode)
             {
+<<<<<<< HEAD
                 ImGui.BeginChild("MapSelectorCard", new Vector2(0, 96), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
                 ImGui.TextDisabled(Loc.Tr("SelectStrategyHeader"));
@@ -54,6 +55,34 @@ namespace TdsOverlayImGui.Views
                     }
 
                     ImGui.EndCombo();
+=======
+                ImGui.BeginChild("MapSelectorCard", new Vector2(0, 92), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+
+                ImGui.TextDisabled(Loc.Tr("SelectStrategyHeader"));
+
+                string[] comboItems = new string[ctx.Strategies.Count + 1];
+                comboItems[0] = Loc.Tr("SelectStrategyCombo");
+                for (int i = 0; i < ctx.Strategies.Count; i++)
+                {
+                    comboItems[i + 1] = ctx.Strategies[i].DisplayName;
+                }
+
+                int currentComboIdx = (ctx.SelectedMapIndex >= 0 && ctx.SelectedMapIndex < ctx.Strategies.Count) 
+                    ? ctx.SelectedMapIndex + 1 
+                    : 0;
+
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                if (ImGui.Combo("##MapSelect", ref currentComboIdx, comboItems, comboItems.Length))
+                {
+                    ctx.SelectedMapIndex = (currentComboIdx > 0 && currentComboIdx <= ctx.Strategies.Count) ? currentComboIdx - 1 : -1;
+                    ctx.CurrentStepIndex = 0;
+                    ctx.CurrentImageIndex = 0;
+                    ctx.IsEditing = false;
+                    ctx.TriggeredDjAlerts.Clear();
+                    ctx.TriggeredOcrSounds.Clear();
+                    ctx.PreviousWaveNumber = 1;
+                    ctx.ResetImageTransform();
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 }
 
                 float availWCard = ImGui.GetContentRegionAvail().X;
@@ -84,13 +113,19 @@ namespace TdsOverlayImGui.Views
                     }
 
                     ImGui.SameLine();
+<<<<<<< HEAD
                     ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.65f, 0.20f, 0.22f, 1.0f));
                     ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.80f, 0.25f, 0.28f, 1.0f));
+=======
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                     if (ImGui.Button(Loc.Tr("DeleteStrategy"), new Vector2(btnW, 0)))
                     {
                         ctx.ShowDeleteConfirmModal = true;
                     }
+<<<<<<< HEAD
                     ImGui.PopStyleColor(2);
+=======
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 }
                 else
                 {
@@ -112,6 +147,7 @@ namespace TdsOverlayImGui.Views
                 return;
             }
 
+<<<<<<< HEAD
             // Если Auto-OCR выключен, гарантированно сбрасываем распознанную волну
             if (!ctx.Settings.EnableOcr)
             {
@@ -161,6 +197,35 @@ namespace TdsOverlayImGui.Views
                 else
                 {
                     ImGui.SameLine();
+=======
+            var currentMap = ctx.CurrentMap;
+            int activeWave = ctx.DetectedWaveNumber ?? ctx.CurrentWaveNumber;
+
+            if (!ctx.Settings.CompactMode)
+            {
+                string ocrText = Loc.Tr("AutoOcrHeader");
+                string ocrBtnText = Loc.Tr("SelectOcrRegionBtn");
+
+                float ocrTextW = ImGui.CalcTextSize(ocrText).X + 35.0f;
+                float ocrBtnW = ImGui.CalcTextSize(ocrBtnText).X + ImGui.GetStyle().FramePadding.X * 2 + 10.0f;
+                float availOcrW = ImGui.GetContentRegionAvail().X;
+
+                bool ocrFitsSameLine = availOcrW >= ocrTextW + ocrBtnW + ImGui.GetStyle().ItemSpacing.X * 2;
+                float cardH = ocrFitsSameLine ? 42.0f : 68.0f;
+
+                ImGui.BeginChild("OcrHeaderCard", new Vector2(0, cardH), true);
+                bool enableOcr = ctx.Settings.EnableOcr;
+                if (ImGui.Checkbox(ocrText, ref enableOcr))
+                {
+                    ctx.Settings.EnableOcr = enableOcr;
+                    StrategyService.SaveSettings(ctx.Settings);
+                }
+
+                if (ocrFitsSameLine)
+                {
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(ImGui.GetWindowWidth() - ocrBtnW - 12.0f);
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 }
 
                 if (ImGui.Button(ocrBtnText))
@@ -180,13 +245,20 @@ namespace TdsOverlayImGui.Views
                     ctx.CurrentStepIndex = Math.Clamp(ctx.CurrentStepIndex, 0, currentMap.Steps.Count - 1);
                     var step = currentMap.Steps[ctx.CurrentStepIndex];
 
+<<<<<<< HEAD
                     ImGui.BeginChild("StepProgressCard", new Vector2(0, 118), true, ImGuiWindowFlags.NoScrollbar);
 
                     InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("CurrentWaveHeader"));
+=======
+                    ImGui.BeginChild("StepProgressCard", new Vector2(0, 115), true);
+
+                    InstructionRenderer.SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("CurrentWaveHeader"));
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                     ImGui.SameLine();
 
                     InstructionRenderer.SafeTextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), $"[ {activeWave} ]");
 
+<<<<<<< HEAD
                     if (ctx.Settings.EnableOcr)
                     {
                         ImGui.SameLine();
@@ -206,6 +278,20 @@ namespace TdsOverlayImGui.Views
                     if (ImGui.InputInt("##ManualWaveInput", ref waveNum, 1, 5))
                     {
                         ctx.CurrentWaveNumber = Math.Clamp(waveNum, 1, 200);
+=======
+                    if (ctx.DetectedWaveNumber.HasValue)
+                    {
+                        ImGui.SameLine();
+                        InstructionRenderer.SafeTextColored(new Vector4(0.4f, 1.0f, 0.4f, 1.0f), Loc.Tr("AutoOcrTag"));
+                    }
+
+                    ImGui.SameLine();
+                    ImGui.SetNextItemWidth(90);
+                    int waveNum = ctx.CurrentWaveNumber;
+                    if (ImGui.InputInt("##ManualWaveInput", ref waveNum, 1, 5))
+                    {
+                        ctx.CurrentWaveNumber = Math.Clamp(waveNum, 1, 100);
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                         ctx.DetectedWaveNumber = null;
                         if (ctx.CurrentWaveNumber == 1)
                         {
@@ -224,7 +310,11 @@ namespace TdsOverlayImGui.Views
                     ImGui.SameLine();
 
                     bool isOcrMatched = activeWave >= step.StartWave && activeWave <= step.EndWave;
+<<<<<<< HEAD
                     Vector4 waveColor = isOcrMatched ? new Vector4(0.3f, 1.0f, 0.4f, 1.0f) : new Vector4(0.45f, 0.52f, 1.0f, 1.0f);
+=======
+                    Vector4 waveColor = isOcrMatched ? new Vector4(0.3f, 1.0f, 0.4f, 1.0f) : new Vector4(0.35f, 0.39f, 0.95f, 1.0f);
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                     InstructionRenderer.SafeTextColored(waveColor, $"{Loc.Tr("Waves")} {step.StartWave} - {step.EndWave}");
 
                     if (isOcrMatched)
@@ -246,7 +336,11 @@ namespace TdsOverlayImGui.Views
                         ctx.ResetImageTransform();
                     }
                     ImGui.SameLine();
+<<<<<<< HEAD
                     if (ImGui.Button(Loc.Tr("PrevStep"), new Vector2(navBtnW, 0)))
+=======
+                    if (ImGui.Button("<", new Vector2(navBtnW, 0)))
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                     {
                         if (ctx.CurrentStepIndex > 0)
                         {
@@ -258,7 +352,11 @@ namespace TdsOverlayImGui.Views
                         }
                     }
                     ImGui.SameLine();
+<<<<<<< HEAD
                     if (ImGui.Button(Loc.Tr("NextStep"), new Vector2(navBtnW, 0)))
+=======
+                    if (ImGui.Button(">", new Vector2(navBtnW, 0)))
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                     {
                         if (ctx.CurrentStepIndex < currentMap.Steps.Count - 1)
                         {
@@ -285,7 +383,11 @@ namespace TdsOverlayImGui.Views
 
                 if (!string.IsNullOrWhiteSpace(currentMap.GeneralInfo))
                 {
+<<<<<<< HEAD
                     InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("GeneralInfo"));
+=======
+                    InstructionRenderer.SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("GeneralInfo"));
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                     float infoH = ctx.Settings.GeneralInfoBoxHeight;
                     ImGui.BeginChild("GeneralInfoScroll", new Vector2(0, infoH), true);
 
@@ -309,7 +411,11 @@ namespace TdsOverlayImGui.Views
                     var step = currentMap.Steps[ctx.CurrentStepIndex];
 
                     string headerText = Loc.Tr("InstructionHeader");
+<<<<<<< HEAD
                     InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), headerText);
+=======
+                    ImGui.Text(headerText);
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 
                     if (!ctx.Settings.CompactMode)
                     {
@@ -323,9 +429,18 @@ namespace TdsOverlayImGui.Views
                         float availW = ImGui.GetContentRegionAvail().X;
                         float headerTextW = ImGui.CalcTextSize(headerText).X;
 
+<<<<<<< HEAD
                         if (availW >= headerTextW + totalBtnW + ImGui.GetStyle().ItemSpacing.X * 2)
                         {
                             ImGui.SameLine(ImGui.GetWindowWidth() - totalBtnW - 12.0f);
+=======
+                        bool headerFitsSameLine = availW >= headerTextW + totalBtnW + ImGui.GetStyle().ItemSpacing.X * 2;
+
+                        if (headerFitsSameLine)
+                        {
+                            ImGui.SameLine();
+                            ImGui.SetCursorPosX(ImGui.GetWindowWidth() - totalBtnW - 12.0f);
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                         }
 
                         if (ImGui.Button(copyText, new Vector2(copyW, 0)))
@@ -408,4 +523,8 @@ namespace TdsOverlayImGui.Views
             }
         }
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5

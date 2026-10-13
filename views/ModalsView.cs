@@ -20,6 +20,7 @@ namespace TdsOverlayImGui.Views
 
         private static void RenderAddMapModal(OverlayContext ctx)
         {
+<<<<<<< HEAD
             string popupId = $"{Loc.Tr("Create")}###AddMapModal";
             ImGui.OpenPopup(popupId);
             if (ImGui.BeginPopupModal(popupId, ref ctx.ShowAddMapModal, ImGuiWindowFlags.AlwaysAutoResize))
@@ -34,6 +35,21 @@ namespace TdsOverlayImGui.Views
                 ImGui.InputText("##NewMapDiff", ref ctx.NewMapDiff, 256);
 
                 if (ImGui.Button(Loc.Tr("Create"), new Vector2(120, 0)))
+=======
+            ImGui.OpenPopup(Loc.Tr("Create"));
+            if (ImGui.BeginPopupModal(Loc.Tr("Create"), ref ctx.ShowAddMapModal, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                ImGui.Text($"{Loc.Tr("StrategyVariant")}:");
+                ImGui.InputText("##NewMapStrat", ref ctx.NewMapStrat, 500000);
+
+                ImGui.Text($"{Loc.Tr("MapName")}:");
+                ImGui.InputText("##NewMapName", ref ctx.NewMapName, 500000);
+
+                ImGui.Text($"{Loc.Tr("Difficulty")}:");
+                ImGui.InputText("##NewMapDiff", ref ctx.NewMapDiff, 500000);
+
+                if (ImGui.Button(Loc.Tr("Create"), new Vector2(100, 0)))
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 {
                     var map = new MapStrategy
                     {
@@ -44,7 +60,11 @@ namespace TdsOverlayImGui.Views
                         ImagePaths = new(),
                         Steps = new()
                         {
+<<<<<<< HEAD
                             new StrategyStep { StartWave = 1, EndWave = 30, Instruction = "- [ ] First step instruction..." }
+=======
+                            new StrategyStep { StartWave = 1, EndWave = 30, Instruction = "First step instruction..." }
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                         }
                     };
 
@@ -57,7 +77,11 @@ namespace TdsOverlayImGui.Views
                 }
 
                 ImGui.SameLine();
+<<<<<<< HEAD
                 if (ImGui.Button(Loc.Tr("Cancel"), new Vector2(120, 0)))
+=======
+                if (ImGui.Button(Loc.Tr("Cancel"), new Vector2(100, 0)))
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 {
                     ctx.ShowAddMapModal = false;
                 }
@@ -68,11 +92,18 @@ namespace TdsOverlayImGui.Views
 
         private static void RenderImportExportModal(OverlayContext ctx)
         {
+<<<<<<< HEAD
             string popupId = $"{Loc.Tr("ImportExport")}###ImportExportModal";
             ImGui.OpenPopup(popupId);
             if (ImGui.BeginPopupModal(popupId, ref ctx.ShowImportExportModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("ExportSection"));
+=======
+            ImGui.OpenPopup(Loc.Tr("ImportExport"));
+            if (ImGui.BeginPopupModal(Loc.Tr("ImportExport"), ref ctx.ShowImportExportModal, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                InstructionRenderer.SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ExportSection"));
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 if (ctx.CurrentMap != null)
                 {
                     var currentMap = ctx.CurrentMap;
@@ -119,8 +150,12 @@ namespace TdsOverlayImGui.Views
                 ImGui.Separator();
                 ImGui.Spacing();
 
+<<<<<<< HEAD
                 InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("ImportSection"));
                 ImGui.TextDisabled(Loc.Tr("DragDropModalHint"));
+=======
+                InstructionRenderer.SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ImportSection"));
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 ImGui.Spacing();
 
                 if (ImGui.Button(Loc.Tr("ImportFileBtn"), new Vector2(220, 0)))
@@ -184,18 +219,29 @@ namespace TdsOverlayImGui.Views
 
         private static void RenderSettingsModal(OverlayContext ctx)
         {
+<<<<<<< HEAD
             string popupId = $"{Loc.Tr("Settings")}###SettingsModal";
             ImGui.OpenPopup(popupId);
             if (ImGui.BeginPopupModal(popupId, ref ctx.ShowSettingsModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("LanguageSetting"));
+=======
+            ImGui.OpenPopup(Loc.Tr("Settings"));
+            if (ImGui.BeginPopupModal(Loc.Tr("Settings"), ref ctx.ShowSettingsModal, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                InstructionRenderer.SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("LanguageSetting"));
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 ImGui.Spacing();
 
                 foreach (var langCode in Loc.GetAvailableLanguages())
                 {
                     string displayName = Loc.GetLanguageDisplayName(langCode);
+<<<<<<< HEAD
                     bool isSelected = Loc.CurrentLanguage.Equals(langCode, StringComparison.OrdinalIgnoreCase);
                     if (ImGui.RadioButton($"{displayName}##lang_{langCode}", isSelected))
+=======
+                    if (ImGui.RadioButton(displayName, Loc.CurrentLanguage.Equals(langCode, StringComparison.OrdinalIgnoreCase)))
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                     {
                         Loc.CurrentLanguage = langCode;
                         ctx.Settings.Language = langCode;
@@ -206,6 +252,7 @@ namespace TdsOverlayImGui.Views
                 ImGui.Spacing();
                 ImGui.Separator();
 
+<<<<<<< HEAD
                 InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("AudioAndOcrSetting"));
                 ImGui.Spacing();
 
@@ -227,6 +274,9 @@ namespace TdsOverlayImGui.Views
                 ImGui.Separator();
 
                 InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("ImageModeSetting"));
+=======
+                InstructionRenderer.SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("ImageModeSetting"));
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 ImGui.Spacing();
 
                 bool separate = ctx.Settings.SeparateImageWindow;
@@ -246,24 +296,38 @@ namespace TdsOverlayImGui.Views
                 ImGui.Spacing();
                 ImGui.Separator();
 
+<<<<<<< HEAD
                 InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("WindowOpacitySetting"));
+=======
+                InstructionRenderer.SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("WindowOpacitySetting"));
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 ImGui.Spacing();
 
                 float opacity = ctx.Settings.WindowOpacity;
                 ImGui.SetNextItemWidth(250);
+<<<<<<< HEAD
                 if (ImGui.SliderFloat("##OpacitySlider", ref opacity, 0.2f, 1.0f, "%.2f"))
                 {
                     ctx.Settings.WindowOpacity = opacity;
                 }
                 if (ImGui.IsItemDeactivatedAfterEdit())
                 {
+=======
+                if (ImGui.SliderFloat("##OpacitySlider", ref opacity, 0.1f, 1.0f, "%.2f"))
+                {
+                    ctx.Settings.WindowOpacity = opacity;
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                     StrategyService.SaveSettings(ctx.Settings);
                 }
 
                 ImGui.Spacing();
                 ImGui.Separator();
 
+<<<<<<< HEAD
                 if (ImGui.Button(Loc.Tr("Close"), new Vector2(120, 0)))
+=======
+                if (ImGui.Button(Loc.Tr("Close"), new Vector2(100, 0)))
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 {
                     ctx.ShowSettingsModal = false;
                 }
@@ -274,11 +338,18 @@ namespace TdsOverlayImGui.Views
 
         private static void RenderAboutModal(OverlayContext ctx)
         {
+<<<<<<< HEAD
             string popupId = $"{Loc.Tr("AboutTitle")}###AboutModal";
             ImGui.OpenPopup(popupId);
             if (ImGui.BeginPopupModal(popupId, ref ctx.ShowAboutModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), "TDS Strategy Overlay");
+=======
+            ImGui.OpenPopup(Loc.Tr("AboutTitle"));
+            if (ImGui.BeginPopupModal(Loc.Tr("AboutTitle"), ref ctx.ShowAboutModal, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                InstructionRenderer.SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), "TDS Strategy Overlay");
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 ImGui.Separator();
                 ImGui.Spacing();
 
@@ -300,11 +371,21 @@ namespace TdsOverlayImGui.Views
 
         private static void RenderHelpModal(OverlayContext ctx)
         {
+<<<<<<< HEAD
             string popupId = $"{Loc.Tr("HelpTitle")}###HelpModal";
             ImGui.OpenPopup(popupId);
             if (ImGui.BeginPopupModal(popupId, ref ctx.ShowHelpModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 ImGui.Spacing();
+=======
+            ImGui.OpenPopup(Loc.Tr("HelpTitle"));
+            if (ImGui.BeginPopupModal(Loc.Tr("HelpTitle"), ref ctx.ShowHelpModal, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                InstructionRenderer.SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("HelpTitle"));
+                ImGui.Separator();
+                ImGui.Spacing();
+
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 ImGui.Text(Loc.Tr("HelpLine1"));
                 ImGui.Text(Loc.Tr("HelpLine2"));
                 ImGui.Text(Loc.Tr("HelpLine3"));
@@ -326,14 +407,22 @@ namespace TdsOverlayImGui.Views
             if (ctx.CurrentMap == null) return;
             var currentMap = ctx.CurrentMap;
 
+<<<<<<< HEAD
             string popupId = $"{Loc.Tr("DeleteConfirmTitle")}###DeleteConfirmModal";
             ImGui.OpenPopup(popupId);
             if (ImGui.BeginPopupModal(popupId, ref ctx.ShowDeleteConfirmModal, ImGuiWindowFlags.AlwaysAutoResize))
+=======
+            ImGui.OpenPopup(Loc.Tr("DeleteConfirmTitle"));
+            if (ImGui.BeginPopupModal(Loc.Tr("DeleteConfirmTitle"), ref ctx.ShowDeleteConfirmModal, ImGuiWindowFlags.AlwaysAutoResize))
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
             {
                 ImGui.Text(string.Format(Loc.Tr("DeleteConfirmText"), currentMap.DisplayName));
                 ImGui.Spacing();
 
+<<<<<<< HEAD
                 ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.65f, 0.20f, 0.22f, 1.0f));
+=======
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 if (ImGui.Button(Loc.Tr("YesDelete"), new Vector2(120, 0)))
                 {
                     StrategyService.DeleteStrategy(currentMap);
@@ -344,7 +433,10 @@ namespace TdsOverlayImGui.Views
                     ctx.IsEditing = false;
                     ctx.ShowDeleteConfirmModal = false;
                 }
+<<<<<<< HEAD
                 ImGui.PopStyleColor();
+=======
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
 
                 ImGui.SameLine();
 
@@ -359,16 +451,27 @@ namespace TdsOverlayImGui.Views
 
         private static void RenderUpdateModal(OverlayContext ctx)
         {
+<<<<<<< HEAD
             string popupId = $"{Loc.Tr("UpdateModalTitle")}###UpdateModal";
             ImGui.OpenPopup(popupId);
             if (ImGui.BeginPopupModal(popupId, ref ctx.ShowUpdateModal, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("UpdateNotice"));
+=======
+            ImGui.OpenPopup(Loc.Tr("UpdateModalTitle"));
+            if (ImGui.BeginPopupModal(Loc.Tr("UpdateModalTitle"), ref ctx.ShowUpdateModal, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                InstructionRenderer.SafeTextColored(new Vector4(0.35f, 0.39f, 0.95f, 1.0f), Loc.Tr("UpdateNotice"));
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 ImGui.Spacing();
                 ImGui.Separator();
                 ImGui.Spacing();
 
+<<<<<<< HEAD
                 ImGui.Text($"{Loc.Tr("CurrentVersionLabel")} {TdsImGuiOverlay.CurrentAppVersion}");
+=======
+                ImGui.Text($"{Loc.Tr("CurrentVersionLabel")} 0.4");
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
                 InstructionRenderer.SafeTextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), $"{Loc.Tr("LatestVersionLabel")} {ctx.LatestVersionTag}");
 
                 ImGui.Spacing();
@@ -392,4 +495,8 @@ namespace TdsOverlayImGui.Views
             }
         }
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5

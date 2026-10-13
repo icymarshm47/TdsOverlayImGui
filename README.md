@@ -22,8 +22,16 @@ An ultra-lightweight, **Always-On-Top Overlay** for **Roblox Tower Defense Simul
 ## How to Build
 Requires **.NET 10 SDK** (Windows 10/11).
 ```bash
+<<<<<<< HEAD
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfContained=true -p:DebugType=None -p:DebugSymbols=false
 ```
 
 ## Credits
 Code fully written with **Google Gemini**.
+=======
+dotnet publish -c Release -f net10.0-windows10.0.19041.0 -r win-x64 --self-contained true -p:PublishSingleFile=true
+```
+
+## Credits
+Code fully written with **Google Gemini**.
+>>>>>>> b4a6a7b745000810b3bcafdfceec4f9a854bace5
