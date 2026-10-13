@@ -203,14 +203,15 @@ namespace TdsOverlayImGui
             }
         }
 
-        public static MapStrategy PrepareStrategyForExport(MapStrategy source, int mapIndex, HashSet<string> completedTasks)
+        public static MapStrategy PrepareStrategyForExport(MapStrategy source, HashSet<string> completedTasks)
         {
+            string mapId = source.TaskId;
             var exportMap = new MapStrategy
             {
                 MapName = source.MapName,
                 Difficulty = source.Difficulty,
                 StrategyName = source.StrategyName,
-                GeneralInfo = ApplyCheckboxStatesToText(source.GeneralInfo, $"gen_{mapIndex}", completedTasks),
+                GeneralInfo = ApplyCheckboxStatesToText(source.GeneralInfo, $"gen_{mapId}", completedTasks),
                 ImagePaths = new List<string>(source.ImagePaths),
                 Steps = new List<StrategyStep>()
             };
@@ -222,7 +223,7 @@ namespace TdsOverlayImGui
                 {
                     StartWave = step.StartWave,
                     EndWave = step.EndWave,
-                    Instruction = ApplyCheckboxStatesToText(step.Instruction, $"{mapIndex}_{i}", completedTasks),
+                    Instruction = ApplyCheckboxStatesToText(step.Instruction, $"{mapId}_{i}", completedTasks),
                     ImagePaths = new List<string>(step.ImagePaths)
                 });
             }
@@ -261,14 +262,14 @@ namespace TdsOverlayImGui
             return string.Join("\n", lines);
         }
 
-        public static bool ExportStrategyToZip(MapStrategy strategy, int mapIndex, HashSet<string> completedTasks, string zipPath)
+        public static bool ExportStrategyToZip(MapStrategy strategy, HashSet<string> completedTasks, string zipPath)
         {
             try
             {
                 if (File.Exists(zipPath))
                     File.Delete(zipPath);
 
-                var exportMap = PrepareStrategyForExport(strategy, mapIndex, completedTasks);
+                var exportMap = PrepareStrategyForExport(strategy, completedTasks);
                 exportMap.ImagePaths = new List<string>();
 
                 using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
@@ -311,9 +312,9 @@ namespace TdsOverlayImGui
             }
         }
 
-        public static string ExportStrategyToClipboardBase64(MapStrategy strategy, int mapIndex, HashSet<string> completedTasks)
+        public static string ExportStrategyToClipboardBase64(MapStrategy strategy, HashSet<string> completedTasks)
         {
-            var exportMap = PrepareStrategyForExport(strategy, mapIndex, completedTasks);
+            var exportMap = PrepareStrategyForExport(strategy, completedTasks);
             exportMap.ImagePaths = new List<string>();
 
             var options = new JsonSerializerOptions { WriteIndented = true };
