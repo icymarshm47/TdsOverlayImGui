@@ -48,12 +48,14 @@ namespace TdsOverlayImGui
         public Vector2 OcrDragStart = Vector2.Zero;
         public DateTime LastOcrScanTime = DateTime.MinValue;
 
-        // Editing State
+        // Editing State (временные копии для безопасного Cancel)
         public bool IsEditing = false;
         public string EditMapName = "";
         public string EditDifficulty = "";
         public string EditStrategyName = "";
         public string EditGeneralInfo = "";
+        public List<string> EditImagePaths = new();
+        public List<StrategyStep> EditSteps = new();
         public string EditorToastMessage = "";
         public float EditorToastTimer = 0.0f;
 
@@ -81,6 +83,27 @@ namespace TdsOverlayImGui
         public MapStrategy? CurrentMap => (SelectedMapIndex >= 0 && SelectedMapIndex < Strategies.Count)
             ? Strategies[SelectedMapIndex]
             : null;
+
+        public void BeginEditing(MapStrategy map)
+        {
+            EditMapName = map.MapName;
+            EditDifficulty = map.Difficulty;
+            EditStrategyName = map.StrategyName;
+            EditGeneralInfo = map.GeneralInfo;
+            EditImagePaths = new List<string>(map.ImagePaths);
+            EditSteps = new List<StrategyStep>();
+            foreach (var s in map.Steps)
+            {
+                EditSteps.Add(new StrategyStep
+                {
+                    StartWave = s.StartWave,
+                    EndWave = s.EndWave,
+                    Instruction = s.Instruction,
+                    ImagePaths = new List<string>(s.ImagePaths)
+                });
+            }
+            IsEditing = true;
+        }
 
         public void ResetImageTransform()
         {
