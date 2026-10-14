@@ -59,6 +59,7 @@ namespace TdsOverlayImGui.UI.Components
                 ImGui.Indent(indentPixels);
             }
 
+            float lineStartX = ImGui.GetCursorPosX();
             bool hasCheckbox = IsCheckbox(rawLine, out bool defaultCheckedInText, out string lineAfterCheck);
 
             if (hasCheckbox)
@@ -126,10 +127,13 @@ namespace TdsOverlayImGui.UI.Components
                 ImGui.EndGroup();
 
                 ImGui.PopID();
+
+                ImGui.SetCursorPosX(lineStartX);
             }
             else
             {
                 RenderHighlightedLine(lineAfterCheck, activeWave, false);
+                ImGui.SetCursorPosX(lineStartX);
             }
 
             if (indentPixels > 0)
@@ -155,8 +159,8 @@ namespace TdsOverlayImGui.UI.Components
                 return;
             }
 
-            float startX = ImGui.GetCursorPosX();
-            float rightLimit = Math.Max(startX + 40.0f, ImGui.GetWindowWidth() - ImGui.GetStyle().WindowPadding.X);
+            float startLocalX = ImGui.GetCursorPosX();
+            float rightLimitScreen = ImGui.GetWindowPos().X + ImGui.GetWindowWidth() - ImGui.GetStyle().WindowPadding.X;
             int lastIndex = 0;
             bool isFirstOnLine = true;
 
@@ -165,7 +169,7 @@ namespace TdsOverlayImGui.UI.Components
                 if (match.Index > lastIndex)
                 {
                     string beforeText = line.Substring(lastIndex, match.Index - lastIndex);
-                    RenderFragment(beforeText, isDone ? completedColor : normalColor, startX, rightLimit, ref isFirstOnLine);
+                    RenderFragment(beforeText, isDone ? completedColor : normalColor, startLocalX, rightLimitScreen, ref isFirstOnLine);
                 }
 
                 AudioService.ParseAlertMatch(match, out int startW, out int endW, out string alertType, out string innerText);
@@ -175,14 +179,14 @@ namespace TdsOverlayImGui.UI.Components
 
                 if (isWaveActive && !isDone)
                 {
-                    RenderFragment("[WAVE!]", new Vector4(0.3f, 1.0f, 0.4f, 1.0f), startX, rightLimit, ref isFirstOnLine);
+                    RenderFragment("[WAVE!]", new Vector4(0.3f, 1.0f, 0.4f, 1.0f), startLocalX, rightLimitScreen, ref isFirstOnLine);
                 }
 
                 string displayText = !string.IsNullOrWhiteSpace(innerText)
                     ? innerText
                     : GetFallbackBadge(alertType, startW, endW);
 
-                RenderFragment(displayText, alertColor, startX, rightLimit, ref isFirstOnLine);
+                RenderFragment(displayText, alertColor, startLocalX, rightLimitScreen, ref isFirstOnLine);
 
                 lastIndex = match.Index + match.Length;
             }
@@ -190,11 +194,11 @@ namespace TdsOverlayImGui.UI.Components
             if (lastIndex < line.Length)
             {
                 string afterText = line.Substring(lastIndex);
-                RenderFragment(afterText, isDone ? completedColor : normalColor, startX, rightLimit, ref isFirstOnLine);
+                RenderFragment(afterText, isDone ? completedColor : normalColor, startLocalX, rightLimitScreen, ref isFirstOnLine);
             }
         }
 
-        private static void RenderFragment(string text, Vector4 color, float startX, float rightLimit, ref bool isFirstOnLine)
+        private static void RenderFragment(string text, Vector4 color, float startLocalX, float rightLimitScreen, ref bool isFirstOnLine)
         {
             if (string.IsNullOrEmpty(text)) return;
 
@@ -209,9 +213,10 @@ namespace TdsOverlayImGui.UI.Components
 
                 if (!isFirstOnLine)
                 {
-                    if (ImGui.GetCursorPosX() + spaceW + wordW > rightLimit)
+                    float nextWordScreenRight = ImGui.GetItemRectMax().X + spaceW + wordW;
+                    if (nextWordScreenRight > rightLimitScreen)
                     {
-                        ImGui.SetCursorPosX(startX);
+                        ImGui.SetCursorPosX(startLocalX);
                     }
                     else
                     {
