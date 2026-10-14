@@ -17,6 +17,7 @@ namespace TdsOverlayImGui.UI
         public string StrategySearchFilter = "";
 
         public bool IsOverlayOpen = true;
+        public bool IsSeparateImageWindowOpen = true;
         public bool IsFirstFrame = true;
 
         public HashSet<string> CompletedTasks = new();

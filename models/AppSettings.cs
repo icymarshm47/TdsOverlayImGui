@@ -12,7 +12,6 @@ namespace TdsOverlayImGui.Models
         public float WindowOpacity { get; set; } = 0.96f;
         public string Language { get; set; } = "en";
 
-        public bool CompactMode { get; set; } = false;
         public bool EnableOcr { get; set; } = false;
         public bool EnableOcrSound { get; set; } = true;
         public bool OcrPreprocess { get; set; } = true;

@@ -74,6 +74,55 @@ namespace TdsOverlayImGui
         public const string CurrentAppVersion = "0.7";
 
         private readonly OverlayContext _ctx = new();
+        private readonly string _footerQuote = GetRandomQuote();
+
+        private static string GetRandomQuote()
+        {
+            string[] defaultQuotes = new[]
+            {
+                "icymarsh",
+                "gti-olen",
+                "gemini",
+                "skip wave?",
+                "hacking your pc...",
+                "privacy matters",
+                "your account will be banned",
+                "also try touching some grass!"
+            };
+
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "quotes.txt");
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    File.WriteAllLines(path, defaultQuotes);
+                    return defaultQuotes[Random.Shared.Next(defaultQuotes.Length)];
+                }
+
+                var lines = File.ReadAllLines(path);
+                var validQuotes = new List<string>();
+                foreach (var line in lines)
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var parts = line.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    foreach (var part in parts)
+                    {
+                        if (!string.IsNullOrWhiteSpace(part))
+                        {
+                            validQuotes.Add(part);
+                        }
+                    }
+                }
+
+                if (validQuotes.Count > 0)
+                {
+                    return validQuotes[Random.Shared.Next(validQuotes.Count)];
+                }
+            }
+            catch { }
+
+            return defaultQuotes[Random.Shared.Next(defaultQuotes.Length)];
+        }
 
         public TdsImGuiOverlay() : base("TDS Strategy Overlay", true)
         {
@@ -376,14 +425,14 @@ namespace TdsOverlayImGui
             ModalsView.RenderAll(this, _ctx);
         }
 
-        private void RenderCustomTitleBar()
+        public void RenderCustomTitleBar(string title = "TDS Overlay", bool isMainWindow = true, string popupSuffix = "")
         {
             float availW = ImGui.GetContentRegionAvail().X;
             float titleH = 34.0f;
 
             float buttonsTotalW = 65.0f;
             float dragW = Math.Max(0.0f, availW - buttonsTotalW);
-            ImGui.InvisibleButton("##CustomTitleDragArea", new Vector2(dragW, titleH));
+            ImGui.InvisibleButton("##CustomTitleDragArea" + popupSuffix, new Vector2(dragW, titleH));
             if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
             {
                 Vector2 delta = ImGui.GetIO().MouseDelta;
@@ -415,18 +464,21 @@ namespace TdsOverlayImGui
 
             float textY = winPos.Y + 9.0f;
             ImGui.SetCursorScreenPos(new Vector2(winPos.X + 8.0f, textY));
-            InstructionRenderer.SafeTextColored(new Vector4(1f, 1f, 1f, 1f), "TDS Overlay");
+            InstructionRenderer.SafeTextColored(new Vector4(1f, 1f, 1f, 1f), title);
 
-            ImGui.SameLine(0, 8.0f);
-            string verTag = $"v{CurrentAppVersion}";
-            Vector2 verSize = ImGui.CalcTextSize(verTag);
-            Vector2 badgePos = ImGui.GetCursorScreenPos();
-            drawList.AddRectFilled(
-                new Vector2(badgePos.X - 3.0f, textY - 1.0f),
-                new Vector2(badgePos.X + verSize.X + 3.0f, textY + verSize.Y + 2.0f),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f)),
-                4.0f);
-            InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), verTag);
+            if (isMainWindow)
+            {
+                ImGui.SameLine(0, 8.0f);
+                string verTag = $"v{CurrentAppVersion}";
+                Vector2 verSize = ImGui.CalcTextSize(verTag);
+                Vector2 badgePos = ImGui.GetCursorScreenPos();
+                drawList.AddRectFilled(
+                    new Vector2(badgePos.X - 3.0f, textY - 1.0f),
+                    new Vector2(badgePos.X + verSize.X + 3.0f, textY + verSize.Y + 2.0f),
+                    ImGui.ColorConvertFloat4ToU32(new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f)),
+                    4.0f);
+                InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), verTag);
+            }
 
             float rightX = winPos.X + availW;
             float btnSize = 20.0f;
@@ -434,9 +486,16 @@ namespace TdsOverlayImGui
 
             float closeBtnX = rightX - btnSize - 4.0f;
             ImGui.SetCursorScreenPos(new Vector2(closeBtnX, btnY));
-            if (ImGui.InvisibleButton("##CloseBtn", new Vector2(btnSize, btnSize)))
+            if (ImGui.InvisibleButton("##CloseBtn" + popupSuffix, new Vector2(btnSize, btnSize)))
             {
-                _ctx.IsOverlayOpen = false;
+                if (isMainWindow)
+                {
+                    _ctx.IsOverlayOpen = false;
+                }
+                else
+                {
+                    _ctx.IsSeparateImageWindowOpen = false;
+                }
             }
             bool isCloseHovered = ImGui.IsItemHovered();
             uint closeCircleCol = ImGui.ColorConvertFloat4ToU32(isCloseHovered
@@ -452,9 +511,9 @@ namespace TdsOverlayImGui
 
             float menuBtnX = closeBtnX - btnSize - 8.0f;
             ImGui.SetCursorScreenPos(new Vector2(menuBtnX, btnY));
-            if (ImGui.InvisibleButton("##MenuBtn", new Vector2(btnSize, btnSize)))
+            if (ImGui.InvisibleButton("##MenuBtn" + popupSuffix, new Vector2(btnSize, btnSize)))
             {
-                ImGui.OpenPopup("TitleMenuPopup");
+                ImGui.OpenPopup("TitleMenuPopup" + popupSuffix);
             }
             bool isMenuHovered = ImGui.IsItemHovered();
             uint menuLineCol = ImGui.ColorConvertFloat4ToU32(isMenuHovered ? new Vector4(1f, 1f, 1f, 1f) : new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1f));
@@ -462,7 +521,7 @@ namespace TdsOverlayImGui
             drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 10.0f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 10.0f), menuLineCol, 1.8f);
             drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 15.0f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 15.0f), menuLineCol, 1.8f);
 
-            if (ImGui.BeginPopup("TitleMenuPopup"))
+            if (ImGui.BeginPopup("TitleMenuPopup" + popupSuffix))
             {
                 if (ImGui.MenuItem(Loc.Tr("ImportExport")))
                 {
@@ -473,13 +532,6 @@ namespace TdsOverlayImGui
                 if (ImGui.MenuItem(Loc.Tr("Settings")))
                 {
                     _ctx.ShowSettingsModal = true;
-                }
-                ImGui.Separator();
-                bool isCompact = _ctx.Settings.CompactMode;
-                if (ImGui.MenuItem(Loc.Tr("CompactMode"), "", ref isCompact))
-                {
-                    _ctx.Settings.CompactMode = isCompact;
-                    StrategyService.SaveSettings(_ctx.Settings);
                 }
                 ImGui.Separator();
                 if (ImGui.MenuItem(Loc.Tr("Help")))
@@ -522,7 +574,7 @@ namespace TdsOverlayImGui
             drawList.AddRectFilled(fMin, fMax, ImGui.ColorConvertFloat4ToU32(new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f)), 8.0f, ImDrawFlags.RoundCornersBottom);
             drawList.AddLine(fMin, new Vector2(fMax.X, fMin.Y), ImGui.ColorConvertFloat4ToU32(new Vector4(43f / 255f, 45f / 255f, 55f / 255f, 0.7f)));
 
-            string authorText = "icymarsh";
+            string authorText = _footerQuote;
             Vector2 textSize = ImGui.CalcTextSize(authorText);
             Vector2 textPos = new Vector2(fMin.X + (winW - textSize.X) * 0.5f, fMin.Y + (footerH - textSize.Y) * 0.5f);
             drawList.AddText(textPos, ImGui.ColorConvertFloat4ToU32(new Vector4(92f / 255f, 95f / 255f, 102f / 255f, 1.0f)), authorText);

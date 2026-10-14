@@ -501,7 +501,17 @@ namespace TdsOverlayImGui.UI.Views
             if (currentMap.ImagePaths.Count > 0)
             {
                 ImGui.Spacing();
-                InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), $"{Loc.Tr("SeparateImageNotice")} ({currentMap.ImagePaths.Count})");
+                if (!ctx.IsSeparateImageWindowOpen)
+                {
+                    if (ImGui.SmallButton($"{Loc.Tr("SeparateImageNotice")} ({currentMap.ImagePaths.Count})"))
+                    {
+                        ctx.IsSeparateImageWindowOpen = true;
+                    }
+                }
+                else
+                {
+                    InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), $"{Loc.Tr("SeparateImageNotice")} ({currentMap.ImagePaths.Count})");
+                }
             }
 
             float measuredH = Math.Max(36.0f, ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y + ImGui.GetStyle().WindowPadding.Y + 2.0f);

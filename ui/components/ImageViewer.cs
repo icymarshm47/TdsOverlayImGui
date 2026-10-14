@@ -186,7 +186,7 @@ namespace TdsOverlayImGui.UI.Components
         public static void RenderSeparateImageWindow(TdsImGuiOverlay overlay, OverlayContext ctx)
         {
             var currentMap = ctx.CurrentMap;
-            if (currentMap == null || currentMap.ImagePaths.Count == 0) return;
+            if (currentMap == null || currentMap.ImagePaths.Count == 0 || !ctx.IsSeparateImageWindowOpen) return;
 
             string? activeImage = GetActiveImagePath(ctx, currentMap);
             if (string.IsNullOrWhiteSpace(activeImage) || !File.Exists(activeImage)) return;
@@ -199,7 +199,11 @@ namespace TdsOverlayImGui.UI.Components
             }
 
             ImGui.SetNextWindowSize(new Vector2(420, 340), ImGuiCond.FirstUseEver);
-            ImGui.Begin($"{Loc.Tr("SeparateImageTitle")}###SeparateImageWindow", ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollWithMouse);
+            bool isOpen = ctx.IsSeparateImageWindowOpen;
+            ImGui.Begin($"{Loc.Tr("SeparateImageTitle")}###SeparateImageWindow", ref isOpen, ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollWithMouse);
+            ctx.IsSeparateImageWindowOpen = isOpen;
+
+            overlay.RenderCustomTitleBar(Loc.Tr("SeparateImageTitle"), isMainWindow: false, popupSuffix: "_img");
 
             RenderImageSelector(ctx, currentMap);
             float availH = Math.Max(120, ImGui.GetContentRegionAvail().Y - 26);

@@ -273,7 +273,6 @@ namespace TdsOverlayImGui.UI.Views
                     TdsImGuiOverlay.SetHideFromCapture(hideFromCapture);
                     StrategyService.SaveSettings(ctx.Settings);
                 }
-                ImGui.TextDisabled(Loc.Tr("HideFromCaptureDesc"));
 
                 ImGui.Spacing();
                 ImGui.Separator();
@@ -287,7 +286,6 @@ namespace TdsOverlayImGui.UI.Views
                     ctx.Settings.CheckUpdatesOnStartup = checkUpdates;
                     StrategyService.SaveSettings(ctx.Settings);
                 }
-                ImGui.TextDisabled(Loc.Tr("CheckUpdatesOnStartupDesc"));
 
                 ImGui.Spacing();
                 ImGui.Separator();

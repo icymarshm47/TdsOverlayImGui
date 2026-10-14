@@ -8,6 +8,14 @@ All notable changes to this project will be documented in this file.
 ### Added
 - **Portable Base Directory**: All application paths (`strategies/`, `images/`, `settings.json`, `completed_tasks.json`) are now strictly anchored to the executable's directory (`AppDomain.CurrentDomain.BaseDirectory`), making the application fully portable regardless of working directory.
 - **Privacy & Network Toggle**: Added an option in Settings to enable/disable automatic update checks on startup to give users full control over outgoing network requests.
+- **Random Footer Splash Text**: Footer text is now randomly selected on startup from an external `quotes.txt` file (or falls back to default list).
+- **Persistent Header & Settings Menu on Image Tab**: Added custom title bar with hamburger settings menu and close button to `SeparateImageWindow`, allowing full menu and settings access even when docked as a tab.
+
+### Changed
+- **Removed Toggle Descriptions in Settings**: Removed redundant descriptive subtext under setting switches for a cleaner, compact dialog.
+
+### Removed
+- **Compact Mode**: Completely removed obsolete Compact Mode option.
 
 ### Fixed
 - **OCR Screen Clamping**: Clamped screen capture bounds against `SystemInformation.VirtualScreen` to prevent `Win32Exception` when coordinates exceed monitor borders.
