@@ -9,46 +9,50 @@ namespace TdsOverlayImGui
 {
     public static class UpdateService
     {
-        private static readonly HttpClient HttpClient = new();
+        private static readonly HttpClient HttpClient = new()
+        {
+            Timeout = TimeSpan.FromSeconds(10)
+        };
 
         /// <summary>
-        /// Сканирует страницу релизов GitHub и находит самую верхнюю (самую новую) версию
+        /// Проверяет наличие новых релизов через официальный GitHub REST API
         /// </summary>
         public static async Task<(bool isUpdateAvailable, string latestVersionTag, string releaseUrl, string errorMessage)> CheckForUpdatesAsync(
             string owner, string repo, string currentVersionStr)
         {
             try
             {
-                // Страница со списком всех релизов
-                string releasesPageUrl = $"https://github.com/{owner}/{repo}/releases";
+                string apiUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
 
-                var request = new HttpRequestMessage(HttpMethod.Get, releasesPageUrl);
-                request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                using var request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
+                request.Headers.UserAgent.ParseAdd("TdsOverlayImGui");
+                request.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
 
-                var response = await HttpClient.SendAsync(request);
+                using var response = await HttpClient.SendAsync(request);
 
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    return (false, "", "", "Репозиторий не найден или он приватный (Private)!");
+                    return (false, "", "", "Репозиторий не найден, приватный или не содержит релизов.");
                 }
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    return (false, "", "", $"Ошибка доступа к GitHub: {response.StatusCode}");
+                    return (false, "", "", $"Ошибка GitHub API: {(int)response.StatusCode} {response.ReasonPhrase}");
                 }
 
-                string html = await response.Content.ReadAsStringAsync();
+                string json = await response.Content.ReadAsStringAsync();
+                using var doc = System.Text.Json.JsonDocument.Parse(json);
+                var root = doc.RootElement;
 
-                // Ищем самый первый (самый свежий) тег релиза на странице через Regex
-                var match = Regex.Match(html, $@"/{Regex.Escape(owner)}/{Regex.Escape(repo)}/releases/tag/([^""\s?#]+)", RegexOptions.IgnoreCase);
-
-                if (!match.Success)
+                if (!root.TryGetProperty("tag_name", out var tagElem))
                 {
-                    return (false, "", "", "На странице не найдено опубликованных версий (проверьте, не сохранен ли релиз как 'Draft').");
+                    return (false, "", "", "Тег релиза не найден в ответе GitHub API.");
                 }
 
-                string tagName = System.Net.WebUtility.HtmlDecode(match.Groups[1].Value);
-                string releaseUrl = $"https://github.com/{owner}/{repo}/releases/tag/{tagName}";
+                string tagName = tagElem.GetString() ?? "";
+                string releaseUrl = root.TryGetProperty("html_url", out var urlElem)
+                    ? urlElem.GetString() ?? $"https://github.com/{owner}/{repo}/releases/tag/{tagName}"
+                    : $"https://github.com/{owner}/{repo}/releases/tag/{tagName}";
 
                 var latestVer = ParseCleanVersion(tagName);
                 var currentVer = ParseCleanVersion(currentVersionStr);
