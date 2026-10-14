@@ -158,10 +158,12 @@ namespace TdsOverlayImGui.UI.Views
 
                 string ocrBtnText = Loc.Tr("SelectOcrRegionBtn");
                 string testBtnText = Loc.Tr("TestOcrBtn");
+                string testToastBtnText = Loc.Tr("TestToastBtn");
 
                 float ocrBtnW = ImGui.CalcTextSize(ocrBtnText).X + ImGui.GetStyle().FramePadding.X * 2 + 8.0f;
                 float testBtnW = ImGui.CalcTextSize(testBtnText).X + ImGui.GetStyle().FramePadding.X * 2 + 8.0f;
-                float totalRightW = ocrBtnW + testBtnW + ImGui.GetStyle().ItemSpacing.X;
+                float testToastBtnW = ImGui.CalcTextSize(testToastBtnText).X + ImGui.GetStyle().FramePadding.X * 2 + 8.0f;
+                float totalRightW = ocrBtnW + testBtnW + testToastBtnW + ImGui.GetStyle().ItemSpacing.X * 2;
 
                 if (ImGui.GetContentRegionAvail().X > totalRightW)
                 {
@@ -182,6 +184,12 @@ namespace TdsOverlayImGui.UI.Views
                 if (ImGui.Button(testBtnText))
                 {
                     ctx.TriggerOneShotOcr = true;
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Button(testToastBtnText))
+                {
+                    AudioService.TriggerAlert(ctx, "chain_commander");
                 }
 
                 if (ctx.Settings.EnableOcr)

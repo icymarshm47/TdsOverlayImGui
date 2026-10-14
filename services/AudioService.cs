@@ -9,7 +9,7 @@ namespace TdsOverlayImGui.Services
     public static class AudioService
     {
         public static readonly Regex AlertTagRegex = new Regex(
-            @"[<\[](?:ocr|alert|wave)\s+([\d]+(?:-[\d]+)?)(?:[\s,:]+([a-zA-Z0-9_\-]+(?:\s+[a-zA-Z0-9_\-]+)*))?\s*(?:>(.*?)</(?:ocr|alert|wave)>|\](.*?)[\[]/(?:ocr|alert|wave)\]|/?>|\])",
+            @"[<\[](?:ocr|alert|wave)\s+([^>\]\r\n]+?)(?:>(.*?)</(?:ocr|alert|wave)>|\](.*?)[\[]/(?:ocr|alert|wave)\]|[>\]]|(?=[\r\n]|$))",
             RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
 
         public static void PlayOcrBeep()
@@ -95,6 +95,42 @@ namespace TdsOverlayImGui.Services
             });
         }
 
+        public static bool ParseAlertTagContent(string tagContent, int defaultStartWave, int defaultEndWave, out int startWave, out int endWave, out string alertType)
+        {
+            startWave = defaultStartWave;
+            endWave = defaultEndWave;
+            alertType = "";
+
+            string cleaned = tagContent.Trim();
+            if (string.IsNullOrEmpty(cleaned)) return false;
+
+            var numMatch = Regex.Match(cleaned, @"\b(\d+)(?:-(\d+))?\b");
+            if (numMatch.Success)
+            {
+                int.TryParse(numMatch.Groups[1].Value, out startWave);
+                if (numMatch.Groups[2].Success && int.TryParse(numMatch.Groups[2].Value, out int eW))
+                {
+                    endWave = eW;
+                }
+                else
+                {
+                    endWave = startWave;
+                }
+
+                cleaned = cleaned.Remove(numMatch.Index, numMatch.Length).Trim();
+            }
+
+            cleaned = cleaned.Trim(',', ':', ' ', '\t');
+            alertType = cleaned.ToLowerInvariant().Replace(' ', '_').Replace('-', '_');
+
+            if (string.IsNullOrEmpty(alertType))
+            {
+                alertType = "alert";
+            }
+
+            return true;
+        }
+
         public static void TriggerAlert(OverlayContext ctx, string alertType, string customTitle = "")
         {
             ctx.AlertToastMaxDuration = 4.0f;
@@ -168,47 +204,32 @@ namespace TdsOverlayImGui.Services
 
             ctx.UpdateStepByWaveNumber(map, activeWave);
 
-            ScanTextForAlerts(ctx, map.TaskId, map.GeneralInfo, activeWave);
+            ScanTextForAlerts(ctx, map.TaskId, map.GeneralInfo, activeWave, 1, 200);
 
             for (int i = 0; i < map.Steps.Count; i++)
             {
                 var s = map.Steps[i];
-                ScanTextForAlerts(ctx, map.TaskId, s.Instruction, activeWave);
+                ScanTextForAlerts(ctx, map.TaskId, s.Instruction, activeWave, s.StartWave, s.EndWave);
             }
         }
 
-        private static void ScanTextForAlerts(OverlayContext ctx, string mapTaskId, string? text, int activeWave)
+        private static void ScanTextForAlerts(OverlayContext ctx, string mapTaskId, string? text, int activeWave, int defaultStartWave, int defaultEndWave)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
 
             var matches = AlertTagRegex.Matches(text);
             foreach (Match match in matches)
             {
-                string waveSpec = match.Groups[1].Value.Trim();
-                int startW = 0, endW = 0;
-                if (waveSpec.Contains('-'))
+                string tagContent = match.Groups[1].Value;
+                if (!ParseAlertTagContent(tagContent, defaultStartWave, defaultEndWave, out int startW, out int endW, out string normType))
                 {
-                    var parts = waveSpec.Split('-');
-                    int.TryParse(parts[0], out startW);
-                    int.TryParse(parts[1], out endW);
-                }
-                else
-                {
-                    int.TryParse(waveSpec, out startW);
-                    endW = startW;
+                    continue;
                 }
 
                 if (activeWave >= startW && activeWave <= endW && startW > 0)
                 {
-                    string rawType = match.Groups[2].Success ? match.Groups[2].Value.Trim() : "";
-                    string customInside = match.Groups[3].Success ? match.Groups[3].Value.Trim() :
-                        (match.Groups[4].Success ? match.Groups[4].Value.Trim() : "");
-
-                    string normType = rawType.ToLowerInvariant().Replace(' ', '_').Replace('-', '_');
-                    if (string.IsNullOrEmpty(normType))
-                    {
-                        normType = "alert";
-                    }
+                    string customInside = match.Groups[2].Success ? match.Groups[2].Value.Trim() :
+                        (match.Groups[3].Success ? match.Groups[3].Value.Trim() : "");
 
                     string alertKey = $"{mapTaskId}|w:{activeWave}|a:{normType}";
                     if (ctx.TriggeredDjAlerts.Add(alertKey))

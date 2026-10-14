@@ -84,7 +84,7 @@
   "NoImageSelected": "[Файл не выбран]",
   "ClipboardNoImageToast": "[В буфере нет картинки!]",
   "StepsHeader": "Шаги и диапазоны волн:",
-  "MarkdownHint": "(Используйте - [ ] для чекбоксов, <ocr 10 red> для DJ, <ocr 25 chain_commander> для Командиров)",
+  "MarkdownHint": "(Используйте - [ ] для чекбоксов, <ocr red> для DJ, <ocr chain_commander> для Командиров, <ocr medic> для Медика)",
   "FromWave": "С волны",
   "ToWave": "По волну",
   "StepInstructionLabel": "Инструкция шага:",
@@ -120,10 +120,12 @@
   "MedicToastTitle": "ИСПОЛЬЗУЙТЕ СПОСОБНОСТЬ МЕДИКА!",
   "MedicToastSubtitle": "Снятие оглушения с ключевых башен",
   "TestOcrBtn": "Тест OCR",
+  "TestToastBtn": "Тест плашки",
   "OcrDisabledNotice": "OCR выключен. Номер волны переключается вручную.",
   "HelpTitle": "ШПАРГАЛКА ПО ФОРМАТИРОВАНИЮ",
   "HelpLine1": "- [ ] текст - создать чек-бокс.",
   "HelpLine2": "<ocr 15>текст</ocr> - подсветка строки на 15 волне.",
-  "HelpLine3": "<ocr 20 red>текст</ocr> - плашка смены трека DJ (red, green, purple).",
-  "HelpLine4": "<ocr 25 chain_commander> - оповещение о запуске цепочки Командиров (CTA)."
+  "HelpLine3": "<ocr red> или <ocr 20 red> - плашка смены трека DJ (red, green, purple).",
+  "HelpLine4": "<ocr chain_commander> - оповещение о запуске цепочки Командиров (CTA).",
+  "HelpLine5": "<ocr medic> или <ocr 30 medic> - оповещение о способности Медика."
 }

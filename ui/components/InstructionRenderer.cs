@@ -70,59 +70,49 @@ namespace TdsOverlayImGui.UI.Components
             {
                 foreach (Match match in matches)
                 {
-                    string waveSpec = match.Groups[1].Value.Trim();
-                    int startW = 0, endW = 0;
-                    if (waveSpec.Contains('-'))
+                    string tagContent = match.Groups[1].Value;
+                    if (AudioService.ParseAlertTagContent(tagContent, activeWave, activeWave, out int startW, out int endW, out string rawType))
                     {
-                        var parts = waveSpec.Split('-');
-                        int.TryParse(parts[0], out startW);
-                        int.TryParse(parts[1], out endW);
-                    }
-                    else
-                    {
-                        int.TryParse(waveSpec, out startW);
-                        endW = startW;
-                    }
+                        if (activeWave >= startW && activeWave <= endW && startW > 0)
+                        {
+                            isTagActive = true;
+                        }
 
-                    if (activeWave >= startW && activeWave <= endW && startW > 0)
-                    {
-                        isTagActive = true;
+                        if (rawType is "chain_commander" or "commander" or "chain" or "cta")
+                            tagBadgeColor = new Vector4(1.0f, 0.72f, 0.15f, 1.0f);
+                        else if (rawType == "red")
+                            tagBadgeColor = new Vector4(1.0f, 0.28f, 0.32f, 1.0f);
+                        else if (rawType == "green")
+                            tagBadgeColor = new Vector4(0.25f, 1.0f, 0.45f, 1.0f);
+                        else if (rawType == "purple")
+                            tagBadgeColor = new Vector4(0.85f, 0.38f, 1.0f, 1.0f);
+                        else if (rawType == "medic")
+                            tagBadgeColor = new Vector4(0.20f, 0.85f, 1.0f, 1.0f);
                     }
-
-                    string rawType = match.Groups[2].Success ? match.Groups[2].Value.Trim().ToLowerInvariant().Replace(' ', '_').Replace('-', '_') : "";
-                    if (rawType is "chain_commander" or "commander" or "chain" or "cta")
-                        tagBadgeColor = new Vector4(1.0f, 0.72f, 0.15f, 1.0f);
-                    else if (rawType == "red")
-                        tagBadgeColor = new Vector4(1.0f, 0.28f, 0.32f, 1.0f);
-                    else if (rawType == "green")
-                        tagBadgeColor = new Vector4(0.25f, 1.0f, 0.45f, 1.0f);
-                    else if (rawType == "purple")
-                        tagBadgeColor = new Vector4(0.85f, 0.38f, 1.0f, 1.0f);
-                    else if (rawType == "medic")
-                        tagBadgeColor = new Vector4(0.20f, 0.85f, 1.0f, 1.0f);
                 }
 
                 string stripped = AudioService.AlertTagRegex.Replace(lineAfterCheck, m =>
                 {
-                    string inside = m.Groups[3].Success ? m.Groups[3].Value :
-                        (m.Groups[4].Success ? m.Groups[4].Value : "");
+                    string inside = m.Groups[2].Success ? m.Groups[2].Value :
+                        (m.Groups[3].Success ? m.Groups[3].Value : "");
                     return inside;
                 }).Trim();
 
                 if (string.IsNullOrWhiteSpace(stripped))
                 {
                     Match first = matches[0];
-                    string waveSpec = first.Groups[1].Value.Trim();
-                    string rawType = first.Groups[2].Success ? first.Groups[2].Value.Trim().ToLowerInvariant().Replace(' ', '_').Replace('-', '_') : "";
+                    string tagContent = first.Groups[1].Value;
+                    AudioService.ParseAlertTagContent(tagContent, activeWave, activeWave, out int sW, out int _, out string rawType);
 
+                    string waveLabel = sW > 0 ? $" (W:{sW})" : "";
                     string label = rawType switch
                     {
-                        "chain_commander" or "commander" or "chain" or "cta" => $"[ ⚡ CHAIN COMMANDER (W:{waveSpec}) ]",
-                        "red" => $"[ 🎵 DJ RED TRACK (W:{waveSpec}) ]",
-                        "green" => $"[ 🎵 DJ GREEN TRACK (W:{waveSpec}) ]",
-                        "purple" => $"[ 🎵 DJ PURPLE TRACK (W:{waveSpec}) ]",
-                        "medic" => $"[ ➕ MEDIC CLEANSE (W:{waveSpec}) ]",
-                        _ => $"[ ⚠ ALERT (W:{waveSpec}) ]"
+                        "chain_commander" or "commander" or "chain" or "cta" => $"[ ⚡ CHAIN COMMANDER{waveLabel} ]",
+                        "red" => $"[ 🎵 DJ RED TRACK{waveLabel} ]",
+                        "green" => $"[ 🎵 DJ GREEN TRACK{waveLabel} ]",
+                        "purple" => $"[ 🎵 DJ PURPLE TRACK{waveLabel} ]",
+                        "medic" => $"[ ➕ MEDIC CLEANSE{waveLabel} ]",
+                        _ => $"[ ⚠ ALERT{waveLabel} ]"
                     };
 
                     displayText = label;

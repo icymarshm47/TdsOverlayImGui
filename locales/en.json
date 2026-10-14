@@ -84,7 +84,7 @@
   "NoImageSelected": "[No image selected]",
   "ClipboardNoImageToast": "[No image in clipboard!]",
   "StepsHeader": "Steps & Wave Ranges:",
-  "MarkdownHint": "(Use - [ ] for checkboxes, <ocr 10 red> for DJ, <ocr 25 chain_commander> for Commander)",
+  "MarkdownHint": "(Use - [ ] for checkboxes, <ocr red> for DJ, <ocr chain_commander> for Commander, <ocr medic> for Medic)",
   "FromWave": "From wave",
   "ToWave": "To wave",
   "StepInstructionLabel": "Step instruction:",
@@ -120,10 +120,12 @@
   "MedicToastTitle": "USE MEDIC ABILITY!",
   "MedicToastSubtitle": "Cleanse stun effects on key towers",
   "TestOcrBtn": "Test OCR",
+  "TestToastBtn": "Test Toast",
   "OcrDisabledNotice": "OCR is disabled. Wave number is controlled manually.",
   "HelpTitle": "FORMATTING CHEAT SHEET",
   "HelpLine1": "- [ ] text - create a checkbox.",
   "HelpLine2": "<ocr 15>text</ocr> - highlight line on wave 15.",
-  "HelpLine3": "<ocr 20 red>text</ocr> - DJ track switch toast (red, green, purple).",
-  "HelpLine4": "<ocr 25 chain_commander> - alert to start Commander Call to Arms chain."
+  "HelpLine3": "<ocr red> or <ocr 20 red> - DJ track switch toast (red, green, purple).",
+  "HelpLine4": "<ocr chain_commander> - alert to start Commander Call to Arms chain.",
+  "HelpLine5": "<ocr medic> or <ocr 30 medic> - alert to use Medic cleanse ability."
 }
