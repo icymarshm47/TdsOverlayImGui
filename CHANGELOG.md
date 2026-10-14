@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - **Portable Base Directory**: All application paths (`strategies/`, `images/`, `settings.json`, `completed_tasks.json`) are now strictly anchored to the executable's directory (`AppDomain.CurrentDomain.BaseDirectory`), making the application fully portable regardless of working directory.
 - **Privacy & Network Toggle**: Added an option in Settings to enable/disable automatic update checks on startup to give users full control over outgoing network requests.
 - **Random Footer Splash Text**: Footer text is now randomly selected on startup from an external `quotes.txt` file (or falls back to default list).
+- **Interactive Footer Quote Cycling**: Clicking on the footer splash quote immediately cycles to another random quote from `quotes.txt` with a pointer hand cursor and hover text highlight.
 - **Persistent Header & Settings Menu on Image Tab**: Added custom title bar with hamburger settings menu and close button to `SeparateImageWindow`, allowing full menu and settings access even when docked as a tab.
 
 ### Changed
@@ -18,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - **Compact Mode**: Completely removed obsolete Compact Mode option.
 
 ### Fixed
+- **Docked Tab Title Bar & Settings Menu**: Fixed custom title bar and hamburger settings menu `[≡]` disappearing/clipping behind tab bars when windows (`TDS Strategy Overlay (ImGui)` and `Placement Image`) are docked together into tabs, anchoring title bar rendering to the content cursor (`GetCursorScreenPos()`).
 - **OCR Screen Clamping**: Clamped screen capture bounds against `SystemInformation.VirtualScreen` to prevent `Win32Exception` when coordinates exceed monitor borders.
 - **Memory Safety in Docking**: Removed direct byte pointer offset writes into ImGui internal dock structures, switching to official DockBuilder APIs.
 - **JSON Null-Safety**: Sanitized all deserialized strategy collections and string fields across file, clipboard, and ZIP import handlers.
