@@ -458,7 +458,7 @@ namespace TdsOverlayImGui
             colors[(int)ImGuiCol.HeaderHovered] = new Vector4(45f / 255f, 47f / 255f, 54f / 255f, 1.0f);
             colors[(int)ImGuiCol.HeaderActive] = new Vector4(55f / 255f, 58f / 255f, 66f / 255f, 1.0f);
             colors[(int)ImGuiCol.Button] = new Vector4(88f / 255f, 101f / 255f, 242f / 255f, 1.0f);
-            colors[(int)ImGuiCol.ButtonHovered] = new Vector4(71f / 255f, 82f / 196f, 196f / 255f, 1.0f);
+            colors[(int)ImGuiCol.ButtonHovered] = new Vector4(71f / 255f, 82f / 255f, 196f / 255f, 1.0f);
             colors[(int)ImGuiCol.ButtonActive] = new Vector4(60f / 255f, 69f / 255f, 165f / 255f, 1.0f);
             colors[(int)ImGuiCol.FrameBg] = new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f);
             colors[(int)ImGuiCol.FrameBgHovered] = new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f);
