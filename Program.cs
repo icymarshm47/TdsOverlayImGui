@@ -292,7 +292,7 @@ namespace TdsOverlayImGui
             RenderFooter();
             ImGui.End();
 
-            if (_ctx.Settings.SeparateImageWindow && !_ctx.IsEditing) ImageViewer.RenderSeparateImageWindow(this, _ctx);
+            if (!_ctx.IsEditing) ImageViewer.RenderSeparateImageWindow(this, _ctx);
             if (_ctx.IsSelectingOcrRegion) OcrOverlayView.RenderSelectionOverlay(_ctx);
 
             DjToastOverlay.Render(_ctx);

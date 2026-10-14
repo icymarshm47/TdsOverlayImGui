@@ -227,25 +227,7 @@ namespace TdsOverlayImGui.UI.Views
                     StrategyService.SaveSettings(ctx.Settings);
                 }
 
-                ImGui.Spacing();
-                ImGui.Separator();
 
-                InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("ImageModeSetting"));
-                ImGui.Spacing();
-
-                bool separate = ctx.Settings.SeparateImageWindow;
-
-                if (ImGui.RadioButton(Loc.Tr("SeparateWindowMode"), separate))
-                {
-                    ctx.Settings.SeparateImageWindow = true;
-                    StrategyService.SaveSettings(ctx.Settings);
-                }
-
-                if (ImGui.RadioButton(Loc.Tr("EmbeddedMode"), !separate))
-                {
-                    ctx.Settings.SeparateImageWindow = false;
-                    StrategyService.SaveSettings(ctx.Settings);
-                }
 
                 ImGui.Spacing();
                 ImGui.Separator();
