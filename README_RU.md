@@ -24,10 +24,6 @@
 ```bash
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfContained=true -p:EnableCompressionInSingleFile=true -p:PublishReadyToRun=true -p:DebugType=None -p:DebugSymbols=false -o ./publish
 ```
-В выходной папке будут находиться:
-- `TdsOverlayImGui.exe`
-- `cimgui.dll`
-- Папка `locales/`
 
 ## Благодарности
 Код полностью написан с помощью **Google Gemini**.
