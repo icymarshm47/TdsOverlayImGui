@@ -61,78 +61,6 @@ namespace TdsOverlayImGui.UI.Components
 
             bool hasCheckbox = IsCheckbox(rawLine, out bool defaultCheckedInText, out string lineAfterCheck);
 
-            var matches = AudioService.AlertTagRegex.Matches(lineAfterCheck);
-            bool isTagActive = false;
-            string displayText = lineAfterCheck;
-            Vector4? tagBadgeColor = null;
-
-            if (matches.Count > 0)
-            {
-                foreach (Match match in matches)
-                {
-                    string tagContent = match.Groups[1].Value;
-                    if (AudioService.ParseAlertTagContent(tagContent, activeWave, activeWave, out int startW, out int endW, out string rawType))
-                    {
-                        if (activeWave >= startW && activeWave <= endW && startW > 0)
-                        {
-                            isTagActive = true;
-                        }
-
-                        if (rawType is "chain_commander" or "commander" or "chain" or "cta")
-                            tagBadgeColor = new Vector4(1.0f, 0.72f, 0.15f, 1.0f);
-                        else if (rawType == "red")
-                            tagBadgeColor = new Vector4(1.0f, 0.28f, 0.32f, 1.0f);
-                        else if (rawType == "green")
-                            tagBadgeColor = new Vector4(0.25f, 1.0f, 0.45f, 1.0f);
-                        else if (rawType == "purple")
-                            tagBadgeColor = new Vector4(0.85f, 0.38f, 1.0f, 1.0f);
-                        else if (rawType == "medic")
-                            tagBadgeColor = new Vector4(0.20f, 0.85f, 1.0f, 1.0f);
-                    }
-                }
-
-                string stripped = AudioService.AlertTagRegex.Replace(lineAfterCheck, m =>
-                {
-                    string inside = m.Groups[2].Success ? m.Groups[2].Value :
-                        (m.Groups[3].Success ? m.Groups[3].Value : "");
-                    return inside;
-                }).Trim();
-
-                if (string.IsNullOrWhiteSpace(stripped))
-                {
-                    Match first = matches[0];
-                    string tagContent = first.Groups[1].Value;
-                    AudioService.ParseAlertTagContent(tagContent, activeWave, activeWave, out int sW, out int _, out string rawType);
-
-                    string waveLabel = sW > 0 ? $" (W:{sW})" : "";
-                    string label = rawType switch
-                    {
-                        "chain_commander" or "commander" or "chain" or "cta" => $"[ ⚡ CHAIN COMMANDER{waveLabel} ]",
-                        "red" => $"[ 🎵 DJ RED TRACK{waveLabel} ]",
-                        "green" => $"[ 🎵 DJ GREEN TRACK{waveLabel} ]",
-                        "purple" => $"[ 🎵 DJ PURPLE TRACK{waveLabel} ]",
-                        "medic" => $"[ ➕ MEDIC CLEANSE{waveLabel} ]",
-                        _ => $"[ ⚠ ALERT{waveLabel} ]"
-                    };
-
-                    displayText = label;
-                }
-                else
-                {
-                    displayText = stripped;
-                }
-            }
-
-            if (!hasCheckbox)
-            {
-                if (IsCheckbox(displayText, out bool checkInside, out string textInside))
-                {
-                    hasCheckbox = true;
-                    defaultCheckedInText = checkInside;
-                    displayText = textInside;
-                }
-            }
-
             if (hasCheckbox)
             {
                 bool isDone = ctx.CompletedTasks.Contains(taskKey) || defaultCheckedInText;
@@ -151,13 +79,13 @@ namespace TdsOverlayImGui.UI.Components
 
                 ImGui.SameLine();
 
-                RenderLineText(displayText, isTagActive, isDone, tagBadgeColor);
+                RenderHighlightedLine(lineAfterCheck, activeWave, isDone);
 
                 ImGui.PopID();
             }
             else
             {
-                RenderLineText(displayText, isTagActive, false, tagBadgeColor);
+                RenderHighlightedLine(lineAfterCheck, activeWave, false);
             }
 
             if (indentPixels > 0)
@@ -166,28 +94,117 @@ namespace TdsOverlayImGui.UI.Components
             }
         }
 
-        public static void RenderLineText(string text, bool isTagActive, bool isDone, Vector4? customColor = null)
+        public static void RenderHighlightedLine(string line, int activeWave, bool isDone)
         {
-            if (string.IsNullOrWhiteSpace(text)) return;
+            if (string.IsNullOrWhiteSpace(line)) return;
 
-            if (isTagActive && !isDone)
-            {
-                Vector4 activeBadge = customColor ?? new Vector4(0.3f, 1.0f, 0.4f, 1.0f);
-                SafeTextColored(activeBadge, "[WAVE!] ");
-                ImGui.SameLine(0, 0);
-            }
+            Vector4 normalColor = new Vector4(0.92f, 0.92f, 0.96f, 1.0f);
+            Vector4 completedColor = new Vector4(0.30f, 1.0f, 0.40f, 0.75f);
 
-            if (isDone)
+            var matches = AudioService.AlertTagRegex.Matches(line);
+            if (matches.Count == 0)
             {
-                SafeTextWrapped(new Vector4(0.3f, 1.0f, 0.4f, 0.75f), text);
+                SafeTextWrapped(isDone ? completedColor : normalColor, line);
                 return;
             }
 
-            Vector4 textColor = isTagActive
-                ? (customColor ?? new Vector4(0.3f, 1.0f, 0.4f, 1.0f))
-                : (customColor.HasValue ? new Vector4(customColor.Value.X, customColor.Value.Y, customColor.Value.Z, 0.9f) : new Vector4(0.92f, 0.92f, 0.96f, 1.0f));
+            int lastIndex = 0;
+            bool isFirstOnLine = true;
 
-            SafeTextWrapped(textColor, text);
+            foreach (Match match in matches)
+            {
+                if (match.Index > lastIndex)
+                {
+                    string beforeText = line.Substring(lastIndex, match.Index - lastIndex);
+                    RenderFragment(beforeText, isDone ? completedColor : normalColor, ref isFirstOnLine);
+                }
+
+                AudioService.ParseAlertMatch(match, out int startW, out int endW, out string alertType, out string innerText);
+                bool isWaveActive = (activeWave >= startW && activeWave <= endW && startW > 0);
+
+                Vector4 alertColor = isDone ? completedColor : GetAlertColor(alertType, isWaveActive);
+
+                if (isWaveActive && !isDone)
+                {
+                    RenderFragment("[WAVE!]", new Vector4(0.3f, 1.0f, 0.4f, 1.0f), ref isFirstOnLine);
+                }
+
+                string displayText = !string.IsNullOrWhiteSpace(innerText)
+                    ? innerText
+                    : GetFallbackBadge(alertType, startW, endW);
+
+                RenderFragment(displayText, alertColor, ref isFirstOnLine);
+
+                lastIndex = match.Index + match.Length;
+            }
+
+            if (lastIndex < line.Length)
+            {
+                string afterText = line.Substring(lastIndex);
+                RenderFragment(afterText, isDone ? completedColor : normalColor, ref isFirstOnLine);
+            }
+        }
+
+        private static void RenderFragment(string text, Vector4 color, ref bool isFirstOnLine)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+
+            string[] words = text.Split(' ');
+            for (int i = 0; i < words.Length; i++)
+            {
+                string word = words[i];
+                if (string.IsNullOrEmpty(word)) continue;
+
+                float wordW = ImGui.CalcTextSize(word).X;
+                float spaceW = ImGui.CalcTextSize(" ").X;
+                float avail = ImGui.GetContentRegionAvail().X;
+
+                if (!isFirstOnLine)
+                {
+                    if (avail < wordW + spaceW && avail < ImGui.GetWindowWidth() * 0.85f)
+                    {
+                        ImGui.NewLine();
+                        isFirstOnLine = true;
+                    }
+                    else
+                    {
+                        ImGui.SameLine(0, spaceW);
+                    }
+                }
+
+                SafeTextColored(color, word);
+                isFirstOnLine = false;
+            }
+        }
+
+        private static Vector4 GetAlertColor(string alertType, bool isActive)
+        {
+            string norm = AudioService.NormalizeAlertType(alertType);
+            return norm switch
+            {
+                "red" => isActive ? new Vector4(1.0f, 0.28f, 0.32f, 1.0f) : new Vector4(0.92f, 0.40f, 0.42f, 0.85f),
+                "green" => isActive ? new Vector4(0.25f, 1.0f, 0.45f, 1.0f) : new Vector4(0.35f, 0.85f, 0.45f, 0.85f),
+                "purple" => isActive ? new Vector4(0.85f, 0.38f, 1.0f, 1.0f) : new Vector4(0.75f, 0.45f, 0.90f, 0.85f),
+                "chain_commander" => isActive ? new Vector4(1.0f, 0.72f, 0.15f, 1.0f) : new Vector4(0.92f, 0.72f, 0.30f, 0.85f),
+                "medic" => isActive ? new Vector4(0.20f, 0.85f, 1.0f, 1.0f) : new Vector4(0.35f, 0.75f, 0.90f, 0.85f),
+                _ => isActive ? new Vector4(0.40f, 0.75f, 1.0f, 1.0f) : new Vector4(0.50f, 0.70f, 0.90f, 0.85f)
+            };
+        }
+
+        private static string GetFallbackBadge(string alertType, int startW, int endW)
+        {
+            string norm = AudioService.NormalizeAlertType(alertType);
+            string waveLabel = startW == endW ? $"W:{startW}" : $"W:{startW}-{endW}";
+
+            return norm switch
+            {
+                "chain_commander" => $"[ ⚡ CHAIN COMMANDER ({waveLabel}) ]",
+                "red" => $"[ 🎵 DJ RED TRACK ({waveLabel}) ]",
+                "green" => $"[ 🎵 DJ GREEN TRACK ({waveLabel}) ]",
+                "purple" => $"[ 🎵 DJ PURPLE TRACK ({waveLabel}) ]",
+                "medic" => $"[ ➕ MEDIC CLEANSE ({waveLabel}) ]",
+                _ => $"[ ⚠ ALERT ({waveLabel}) ]"
+            };
         }
 
         public static void SafeTextColored(Vector4 color, string text)

@@ -32,6 +32,10 @@ namespace TdsOverlayImGui.UI
         public string AlertToastSubtitle = "";
         public Vector4 AlertToastColor = Vector4.One;
 
+        public DateTime LastCommanderAlertTime = DateTime.MinValue;
+        public DateTime LastMedicAlertTime = DateTime.MinValue;
+        public int CommanderRotationIndex = 0;
+
         public float DjToastTimer
         {
             get => AlertToastTimer;

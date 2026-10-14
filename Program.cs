@@ -227,6 +227,7 @@ namespace TdsOverlayImGui
             ProcessDroppedFiles();
             SetupStyle();
             OcrOverlayView.ProcessBackgroundOcr(_ctx);
+            AudioService.ProcessPeriodicAlerts(_ctx);
 
             ImGui.SetNextWindowSize(new Vector2(540, 640), ImGuiCond.FirstUseEver);
 
