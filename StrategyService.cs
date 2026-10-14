@@ -196,6 +196,21 @@ namespace TdsOverlayImGui
                 {
                     File.Delete(strategy.FilePath);
                 }
+
+                string fullImagesDir = Path.GetFullPath(ImagesFolder);
+                foreach (var imgPath in strategy.ImagePaths)
+                {
+                    if (string.IsNullOrWhiteSpace(imgPath)) continue;
+                    string fullPath = Path.GetFullPath(imgPath);
+                    if (File.Exists(fullPath) && fullPath.StartsWith(fullImagesDir, StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            File.Delete(fullPath);
+                        }
+                        catch { }
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -397,59 +412,65 @@ namespace TdsOverlayImGui
                 else if (ext == ".zip")
                 {
                     string tempDir = Path.Combine(Path.GetTempPath(), "tds_import_" + Guid.NewGuid().ToString("N"));
-                    ZipFile.ExtractToDirectory(importPath, tempDir);
-
-                    string jsonFile = Path.Combine(tempDir, "strategy.json");
-                    if (!File.Exists(jsonFile))
+                    try
                     {
-                        var jsonFiles = Directory.GetFiles(tempDir, "*.json", SearchOption.AllDirectories);
-                        if (jsonFiles.Length > 0) jsonFile = jsonFiles[0];
-                    }
+                        ZipFile.ExtractToDirectory(importPath, tempDir);
 
-                    if (!File.Exists(jsonFile))
-                    {
-                        statusMessage = "strategy.json not found in ZIP archive!";
-                        if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                        return false;
-                    }
-
-                    string jsonText = File.ReadAllText(jsonFile);
-                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    var strat = JsonSerializer.Deserialize<MapStrategy>(jsonText, options);
-
-                    if (strat == null)
-                    {
-                        statusMessage = "Failed to read strategy format!";
-                        if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                        return false;
-                    }
-
-                    var importedImages = new List<string>();
-                    for (int i = 0; i < strat.ImagePaths.Count; i++)
-                    {
-                        string zipImgRelPath = strat.ImagePaths[i];
-                        string tempImgFullPath = Path.Combine(tempDir, zipImgRelPath);
-
-                        if (File.Exists(tempImgFullPath))
+                        string jsonFile = Path.Combine(tempDir, "strategy.json");
+                        if (!File.Exists(jsonFile))
                         {
-                            if (!Directory.Exists(ImagesFolder)) Directory.CreateDirectory(ImagesFolder);
+                            var jsonFiles = Directory.GetFiles(tempDir, "*.json", SearchOption.AllDirectories);
+                            if (jsonFiles.Length > 0) jsonFile = jsonFiles[0];
+                        }
 
-                            string imgExt = Path.GetExtension(tempImgFullPath);
-                            string destImgName = $"{SanitizeFileName(strat.MapName)}_imported_{Guid.NewGuid().ToString("N")[..6]}{imgExt}";
-                            string destImgPath = Path.Combine(ImagesFolder, destImgName);
+                        if (!File.Exists(jsonFile))
+                        {
+                            statusMessage = "strategy.json not found in ZIP archive!";
+                            return false;
+                        }
 
-                            File.Copy(tempImgFullPath, destImgPath, overwrite: true);
-                            importedImages.Add(destImgPath);
+                        string jsonText = File.ReadAllText(jsonFile);
+                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                        var strat = JsonSerializer.Deserialize<MapStrategy>(jsonText, options);
+
+                        if (strat == null)
+                        {
+                            statusMessage = "Failed to read strategy format!";
+                            return false;
+                        }
+
+                        var importedImages = new List<string>();
+                        for (int i = 0; i < strat.ImagePaths.Count; i++)
+                        {
+                            string zipImgRelPath = strat.ImagePaths[i];
+                            string tempImgFullPath = Path.Combine(tempDir, zipImgRelPath);
+
+                            if (File.Exists(tempImgFullPath))
+                            {
+                                if (!Directory.Exists(ImagesFolder)) Directory.CreateDirectory(ImagesFolder);
+
+                                string imgExt = Path.GetExtension(tempImgFullPath);
+                                string destImgName = $"{SanitizeFileName(strat.MapName)}_imported_{Guid.NewGuid().ToString("N")[..6]}{imgExt}";
+                                string destImgPath = Path.Combine(ImagesFolder, destImgName);
+
+                                File.Copy(tempImgFullPath, destImgPath, overwrite: true);
+                                importedImages.Add(destImgPath);
+                            }
+                        }
+
+                        strat.ImagePaths = importedImages;
+                        SaveStrategy(strat);
+
+                        statusMessage = $"Strategy '{strat.DisplayName}' successfully imported!";
+                        return true;
+                    }
+                    finally
+                    {
+                        if (Directory.Exists(tempDir))
+                        {
+                            try { Directory.Delete(tempDir, true); } catch { }
                         }
                     }
-
-                    strat.ImagePaths = importedImages;
-                    SaveStrategy(strat);
-
-                    if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-
-                    statusMessage = $"Strategy '{strat.DisplayName}' successfully imported!";
-                    return true;
                 }
                 else
                 {

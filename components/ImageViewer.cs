@@ -67,7 +67,8 @@ namespace TdsOverlayImGui.Components
                 ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeNS);
             }
 
-            if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+            bool isDragging = ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left);
+            if (isDragging)
             {
                 float deltaY = ImGui.GetIO().MouseDelta.Y;
                 if (Math.Abs(deltaY) > 0.1f)
@@ -76,7 +77,7 @@ namespace TdsOverlayImGui.Components
                 }
             }
 
-            if (ImGui.IsItemDeactivatedAfterEdit() || (ImGui.IsItemHovered() && ImGui.IsMouseReleased(ImGuiMouseButton.Left)))
+            if (ImGui.IsItemDeactivated())
             {
                 StrategyService.SaveSettings(ctx.Settings);
             }
@@ -90,6 +91,12 @@ namespace TdsOverlayImGui.Components
 
         public static void RenderImageCanvas(TdsImGuiOverlay overlay, OverlayContext ctx, string imagePath, float height, string canvasId, bool enableResizeGrip = false)
         {
+            if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+            {
+                InstructionRenderer.SafeTextColored(new Vector4(1, 0.4f, 0.4f, 1), "[Image file not found]");
+                return;
+            }
+
             try
             {
                 overlay.AddOrGetImagePointer(imagePath, false, out nint handle, out uint imgW, out uint imgH);
