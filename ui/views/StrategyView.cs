@@ -189,9 +189,9 @@ namespace TdsOverlayImGui.UI.Views
             float btnX = contentX + availW - btnW;
             ImGui.SetCursorScreenPos(new Vector2(btnX, startY));
 
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(88f / 255f, 101f / 255f, 242f / 255f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(71f / 255f, 82f / 255f, 196f / 255f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(60f / 255f, 69f / 255f, 165f / 255f, 1.0f));
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(71f / 255f, 74f / 255f, 81f / 255f, 1.0f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
 
             if (ImGui.Button(Loc.Tr("SelectScreenAreaBtn"), new Vector2(btnW, 0)))
             {
@@ -457,8 +457,12 @@ namespace TdsOverlayImGui.UI.Views
             float availY = ImGui.GetContentRegionAvail().Y - (currentMap.ImagePaths.Count > 0 && !ctx.Settings.SeparateImageWindow ? 160.0f : 24.0f);
             float textH = Math.Clamp(contentH, 40.0f, Math.Max(80.0f, availY));
 
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f, 6.0f));
-            ImGui.BeginChild("WaveInstructionsScroll", new Vector2(availW, textH), false);
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f));
+            ImGui.PushStyleColor(ImGuiCol.Border, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
+            ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 4.0f);
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f, 8.0f));
+
+            ImGui.BeginChild("WaveInstructionsScroll", new Vector2(availW, textH), true);
 
             if (lines.Length == 0)
             {
@@ -481,7 +485,8 @@ namespace TdsOverlayImGui.UI.Views
             }
 
             ImGui.EndChild();
-            ImGui.PopStyleVar();
+            ImGui.PopStyleVar(2);
+            ImGui.PopStyleColor(2);
 
             if (!ctx.Settings.SeparateImageWindow && currentMap.ImagePaths.Count > 0)
             {
