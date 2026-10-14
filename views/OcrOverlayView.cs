@@ -9,15 +9,13 @@ namespace TdsOverlayImGui.Views
     public static class OcrOverlayView
     {
         private static int _isScanning = 0;
-        private static int? _pendingDetectedWave = null;
+        private static int _pendingDetectedWave = -1;
 
         public static void ProcessBackgroundOcr(OverlayContext ctx)
         {
-            if (_pendingDetectedWave.HasValue)
+            int waveVal = Interlocked.Exchange(ref _pendingDetectedWave, -1);
+            if (waveVal > 0)
             {
-                int waveVal = _pendingDetectedWave.Value;
-                _pendingDetectedWave = null;
-
                 if (ctx.Settings.EnableOcr && ctx.CurrentMap != null)
                 {
                     if (waveVal < ctx.CurrentWaveNumber && waveVal <= 2)
@@ -54,7 +52,7 @@ namespace TdsOverlayImGui.Views
                         int? wave = await OcrService.RecognizeWaveFromScreenAsync(x, y, w, h, preprocess);
                         if (wave.HasValue)
                         {
-                            _pendingDetectedWave = wave.Value;
+                            Interlocked.Exchange(ref _pendingDetectedWave, wave.Value);
                         }
                     }
                     finally

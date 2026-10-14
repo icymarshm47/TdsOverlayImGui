@@ -70,19 +70,30 @@ namespace TdsOverlayImGui
                 ApplyHighContrastPreprocess(processedBitmap);
             }
 
-            using var stream = new MemoryStream();
-            processedBitmap.Save(stream, ImageFormat.Png);
-            byte[] bytes = stream.ToArray();
-
-            using var randomAccessStream = new InMemoryRandomAccessStream();
-            using (var writer = new DataWriter(randomAccessStream.GetOutputStreamAt(0)))
+            var rect = new Rectangle(0, 0, processedBitmap.Width, processedBitmap.Height);
+            var bmpData = processedBitmap.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            byte[] pixels;
+            try
             {
-                writer.WriteBytes(bytes);
-                await writer.StoreAsync();
+                int byteCount = Math.Abs(bmpData.Stride) * processedBitmap.Height;
+                pixels = new byte[byteCount];
+                Marshal.Copy(bmpData.Scan0, pixels, 0, byteCount);
+            }
+            finally
+            {
+                processedBitmap.UnlockBits(bmpData);
             }
 
-            var decoder = await BitmapDecoder.CreateAsync(randomAccessStream);
-            using var softwareBitmap = await decoder.GetSoftwareBitmapAsync();
+            using var writer = new DataWriter();
+            writer.WriteBytes(pixels);
+            var buffer = writer.DetachBuffer();
+
+            using var softwareBitmap = SoftwareBitmap.CreateCopyFromBuffer(
+                buffer,
+                BitmapPixelFormat.Bgra8,
+                scaledW,
+                scaledH,
+                BitmapAlphaMode.Premultiplied);
 
             _ocrEngine ??= OcrEngine.TryCreateFromLanguage(new Windows.Globalization.Language("en-US"))
                         ?? OcrEngine.TryCreateFromUserProfileLanguages();
