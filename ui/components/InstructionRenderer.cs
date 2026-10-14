@@ -67,8 +67,14 @@ namespace TdsOverlayImGui.UI.Components
 
                 ImGui.PushID($"Task_{taskKey}");
 
-                if (ImGui.Checkbox("##TaskCheck", ref isDone))
+                Vector2 cPos = ImGui.GetCursorScreenPos();
+                float boxSize = 16.0f;
+                float lineH = ImGui.GetTextLineHeight();
+                float boxOffsetY = (lineH - boxSize) * 0.5f;
+
+                if (ImGui.InvisibleButton("##CustomTaskCheck", new Vector2(boxSize, lineH)))
                 {
+                    isDone = !isDone;
                     if (isDone)
                         ctx.CompletedTasks.Add(taskKey);
                     else
@@ -77,9 +83,43 @@ namespace TdsOverlayImGui.UI.Components
                     StrategyService.SaveCompletedTasks(ctx.CompletedTasks);
                 }
 
-                ImGui.SameLine();
+                bool isBoxHovered = ImGui.IsItemHovered();
+                var drawList = ImGui.GetWindowDrawList();
+                Vector2 bMin = new Vector2(cPos.X, cPos.Y + boxOffsetY);
+                Vector2 bMax = new Vector2(cPos.X + boxSize, cPos.Y + boxOffsetY + boxSize);
 
+                if (isDone)
+                {
+                    uint checkBg = ImGui.ColorConvertFloat4ToU32(new Vector4(88f / 255f, 101f / 255f, 242f / 255f, 1.0f));
+                    drawList.AddRectFilled(bMin, bMax, checkBg, 3.0f);
+
+                    Vector2 p1 = new Vector2(bMin.X + 3.5f, bMin.Y + 8.0f);
+                    Vector2 p2 = new Vector2(bMin.X + 6.5f, bMin.Y + 11.5f);
+                    Vector2 p3 = new Vector2(bMin.X + 12.5f, bMin.Y + 4.5f);
+                    drawList.AddLine(p1, p2, 0xFFFFFFFF, 2.0f);
+                    drawList.AddLine(p2, p3, 0xFFFFFFFF, 2.0f);
+                }
+                else
+                {
+                    uint borderCol = ImGui.ColorConvertFloat4ToU32(isBoxHovered
+                        ? new Vector4(120f / 255f, 124f / 255f, 133f / 255f, 1.0f)
+                        : new Vector4(78f / 255f, 80f / 255f, 88f / 255f, 1.0f));
+                    uint bgBoxCol = ImGui.ColorConvertFloat4ToU32(new Vector4(30f / 255f, 31f / 255f, 35f / 255f, 1.0f));
+                    drawList.AddRectFilled(bMin, bMax, bgBoxCol, 3.0f);
+                    drawList.AddRect(bMin, bMax, borderCol, 3.0f, ImDrawFlags.None, 1.5f);
+                }
+
+                ImGui.SameLine(0, 8.0f);
+
+                Vector2 textStartPos = ImGui.GetCursorScreenPos();
                 RenderHighlightedLine(lineAfterCheck, activeWave, isDone);
+
+                if (isDone)
+                {
+                    float textW = ImGui.CalcTextSize(lineAfterCheck).X;
+                    float uY = textStartPos.Y + lineH + 1.0f;
+                    drawList.AddLine(new Vector2(textStartPos.X, uY), new Vector2(textStartPos.X + textW, uY), 0xFFFFFFFF, 1.2f);
+                }
 
                 ImGui.PopID();
             }
@@ -98,8 +138,8 @@ namespace TdsOverlayImGui.UI.Components
         {
             if (string.IsNullOrWhiteSpace(line)) return;
 
-            Vector4 normalColor = new Vector4(0.92f, 0.92f, 0.96f, 1.0f);
-            Vector4 completedColor = new Vector4(0.30f, 1.0f, 0.40f, 0.75f);
+            Vector4 normalColor = new Vector4(220f / 255f, 222f / 255f, 225f / 255f, 1.0f);
+            Vector4 completedColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 
             var matches = AudioService.AlertTagRegex.Matches(line);
             if (matches.Count == 0)
