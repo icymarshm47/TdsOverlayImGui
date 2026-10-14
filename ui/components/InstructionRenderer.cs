@@ -117,8 +117,9 @@ namespace TdsOverlayImGui.UI.Components
                 if (isDone)
                 {
                     float textW = ImGui.CalcTextSize(lineAfterCheck).X;
-                    float uY = textStartPos.Y + lineH + 1.0f;
-                    drawList.AddLine(new Vector2(textStartPos.X, uY), new Vector2(textStartPos.X + textW, uY), 0xFFFFFFFF, 1.2f);
+                    float strikeY = textStartPos.Y + lineH * 0.5f;
+                    uint strikeCol = ImGui.ColorConvertFloat4ToU32(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 0.95f));
+                    drawList.AddLine(new Vector2(textStartPos.X, strikeY), new Vector2(textStartPos.X + textW, strikeY), strikeCol, 1.5f);
                 }
 
                 ImGui.PopID();
@@ -139,7 +140,7 @@ namespace TdsOverlayImGui.UI.Components
             if (string.IsNullOrWhiteSpace(line)) return;
 
             Vector4 normalColor = new Vector4(220f / 255f, 222f / 255f, 225f / 255f, 1.0f);
-            Vector4 completedColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+            Vector4 completedColor = new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f);
 
             var matches = AudioService.AlertTagRegex.Matches(line);
             if (matches.Count == 0)
