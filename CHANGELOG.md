@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [0.7] 2026-10-14
+## [0.7.0] 2026-10-14
 ### Added
 - **OBS / Screen Capture Protection**: Added an option in Settings to hide the overlay from OBS, Discord, and screen capture/recording tools (using Windows `SetWindowDisplayAffinity` API with `WDA_EXCLUDEFROMCAPTURE`).
 - **Dynamic Card Auto-Sizing**: Instruction and General Info cards now dynamically measure wrapped text content and auto-size their height with cache, eliminating inner scrollbars and text cutoff.
