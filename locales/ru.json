@@ -80,7 +80,7 @@
   "SelectOcrRegionBtn": "Выбрать область экрана",
   "InGameWave": "ВОЛНА В ИГРЕ:",
   "AutoOcrTag": "(Auto-OCR)",
-  "CurrentWaveHeader": "ТЕКУЩАЯ ВОЛНА:",
+  "InGameWaveText": "ТЕКУЩАЯ ВОЛНА",
   "ActiveInGame": "(АКТИВНО В ИГРЕ)",
   "ResizeHandleText": "[=== Зажмите ЛКМ и тяните для изменения высоты ===]",
   "EditingTitle": "РЕДАКТИРОВАНИЕ СТРАТЕГИИ",

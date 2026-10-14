@@ -80,7 +80,7 @@
   "SelectOcrRegionBtn": "Select Screen Region",
   "InGameWave": "IN-GAME WAVE:",
   "AutoOcrTag": "(Auto-OCR)",
-  "CurrentWaveHeader": "CURRENT WAVE:",
+  "InGameWaveText": "CURRENT WAVE",
   "ActiveInGame": "(ACTIVE IN-GAME)",
   "ResizeHandleText": "[=== Hold LMB and drag to resize height ===]",
   "EditingTitle": "EDITING STRATEGY",
