@@ -33,6 +33,18 @@ namespace TdsOverlayImGui
         [DllImport("user32.dll", EntryPoint = "CallWindowProcW")]
         private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
+        [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr igGetWindowDockNode();
+
+        [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr igDockNodeGetRootNode(IntPtr node);
+
+        [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void igDockBuilderSetNodePos(uint node_id, Vector2 pos);
+
+        [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
+        private static extern byte igIsWindowDocked();
+
         private delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
         private WndProcDelegate? _wndProcDelegate;
         private IntPtr _oldWndProc = IntPtr.Zero;
@@ -238,11 +250,29 @@ namespace TdsOverlayImGui
             OcrOverlayView.ProcessBackgroundOcr(_ctx);
             AudioService.ProcessPeriodicAlerts(_ctx);
 
+            var wc = new ImGuiWindowClass();
+            wc.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags.AutoHideTabBar;
+            unsafe
+            {
+                ImGui.SetNextWindowClass(new ImGuiWindowClassPtr(&wc));
+            }
             ImGui.SetNextWindowSize(new Vector2(430, 800), ImGuiCond.FirstUseEver);
 
             bool isOpen = _ctx.IsOverlayOpen;
             ImGui.Begin("TDS Strategy Overlay (ImGui)", ref isOpen, ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse);
             _ctx.IsOverlayOpen = isOpen;
+
+            if (igIsWindowDocked() != 0)
+            {
+                IntPtr dockNode = igGetWindowDockNode();
+                if (dockNode != IntPtr.Zero)
+                {
+                    unsafe
+                    {
+                        *(ImGuiDockNodeFlags*)((byte*)dockNode + 8) |= ImGuiDockNodeFlags.AutoHideTabBar;
+                    }
+                }
+            }
 
             RenderCustomTitleBar();
 

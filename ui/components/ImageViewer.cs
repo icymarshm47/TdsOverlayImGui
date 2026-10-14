@@ -178,6 +178,13 @@ namespace TdsOverlayImGui.UI.Components
             string? activeImage = GetActiveImagePath(ctx, currentMap);
             if (string.IsNullOrWhiteSpace(activeImage) || !File.Exists(activeImage)) return;
 
+            var wc = new ImGuiWindowClass();
+            wc.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags.AutoHideTabBar;
+            unsafe
+            {
+                ImGui.SetNextWindowClass(new ImGuiWindowClassPtr(&wc));
+            }
+
             ImGui.SetNextWindowSize(new Vector2(420, 340), ImGuiCond.FirstUseEver);
             ImGui.Begin($"{Loc.Tr("SeparateImageTitle")}###SeparateImageWindow", ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollWithMouse);
 
