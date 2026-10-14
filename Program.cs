@@ -259,7 +259,7 @@ namespace TdsOverlayImGui
             ImGui.SetNextWindowSize(new Vector2(430, 800), ImGuiCond.FirstUseEver);
 
             bool isOpen = _ctx.IsOverlayOpen;
-            ImGui.Begin("TDS Strategy Overlay (ImGui)", ref isOpen, ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse);
+            ImGui.Begin("TDS Strategy Overlay (ImGui)", ref isOpen, ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
             _ctx.IsOverlayOpen = isOpen;
 
             if (igIsWindowDocked() != 0)
@@ -331,7 +331,6 @@ namespace TdsOverlayImGui
 
         private void RenderCustomTitleBar()
         {
-            Vector2 startPos = ImGui.GetCursorScreenPos();
             float availW = ImGui.GetContentRegionAvail().X;
             float titleH = 34.0f;
 
@@ -340,13 +339,37 @@ namespace TdsOverlayImGui
             ImGui.InvisibleButton("##CustomTitleDragArea", new Vector2(dragW, titleH));
             if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
             {
-                ImGui.SetWindowPos(ImGui.GetWindowPos() + ImGui.GetIO().MouseDelta);
+                Vector2 delta = ImGui.GetIO().MouseDelta;
+                if (igIsWindowDocked() != 0)
+                {
+                    IntPtr dockNode = igGetWindowDockNode();
+                    if (dockNode != IntPtr.Zero)
+                    {
+                        IntPtr rootNode = igDockNodeGetRootNode(dockNode);
+                        if (rootNode != IntPtr.Zero)
+                        {
+                            unsafe
+                            {
+                                uint rootId = *(uint*)rootNode;
+                                Vector2* posPtr = (Vector2*)((byte*)rootNode + 72);
+                                Vector2 newPos = *posPtr + delta;
+                                *posPtr = newPos;
+                                igDockBuilderSetNodePos(rootId, newPos);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    ImGui.SetWindowPos(ImGui.GetWindowPos() + delta);
+                }
             }
 
+            Vector2 winPos = ImGui.GetWindowPos();
             var drawList = ImGui.GetWindowDrawList();
 
-            float textY = startPos.Y + 9.0f;
-            ImGui.SetCursorScreenPos(new Vector2(startPos.X + 8.0f, textY));
+            float textY = winPos.Y + 9.0f;
+            ImGui.SetCursorScreenPos(new Vector2(winPos.X + 8.0f, textY));
             InstructionRenderer.SafeTextColored(new Vector4(1f, 1f, 1f, 1f), "TDS Overlay");
 
             ImGui.SameLine(0, 8.0f);
@@ -360,9 +383,9 @@ namespace TdsOverlayImGui
                 4.0f);
             InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), verTag);
 
-            float rightX = startPos.X + availW;
+            float rightX = winPos.X + availW;
             float btnSize = 20.0f;
-            float btnY = startPos.Y + 8.5f;
+            float btnY = winPos.Y + 8.5f;
 
             float closeBtnX = rightX - btnSize - 4.0f;
             ImGui.SetCursorScreenPos(new Vector2(closeBtnX, btnY));
@@ -436,7 +459,7 @@ namespace TdsOverlayImGui
                 ImGui.EndPopup();
             }
 
-            ImGui.SetCursorScreenPos(new Vector2(startPos.X, startPos.Y + titleH));
+            ImGui.SetCursorScreenPos(new Vector2(winPos.X, winPos.Y + titleH));
             ImGui.Spacing();
         }
 
