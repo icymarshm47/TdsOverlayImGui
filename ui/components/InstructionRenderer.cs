@@ -111,16 +111,19 @@ namespace TdsOverlayImGui.UI.Components
 
                 ImGui.SameLine(0, 8.0f);
 
+                ImGui.BeginGroup();
                 Vector2 textStartPos = ImGui.GetCursorScreenPos();
                 RenderHighlightedLine(lineAfterCheck, activeWave, isDone);
 
                 if (isDone)
                 {
-                    float textW = ImGui.CalcTextSize(lineAfterCheck).X;
+                    float maxAllowedW = Math.Max(10.0f, ImGui.GetWindowPos().X + ImGui.GetWindowWidth() - textStartPos.X - ImGui.GetStyle().WindowPadding.X);
+                    float textW = Math.Min(ImGui.CalcTextSize(lineAfterCheck).X, maxAllowedW);
                     float strikeY = textStartPos.Y + lineH * 0.5f;
                     uint strikeCol = ImGui.ColorConvertFloat4ToU32(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 0.95f));
                     drawList.AddLine(new Vector2(textStartPos.X, strikeY), new Vector2(textStartPos.X + textW, strikeY), strikeCol, 1.5f);
                 }
+                ImGui.EndGroup();
 
                 ImGui.PopID();
             }
