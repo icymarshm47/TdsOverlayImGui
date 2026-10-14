@@ -357,23 +357,25 @@ namespace TdsOverlayImGui.UI.Views
                 ? Array.Empty<string>()
                 : currentMap.GeneralInfo.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
-            string cacheKey = $"gen_{mapTaskId}_{currentMap.GeneralInfo?.GetHashCode() ?? 0}_{(int)Math.Round(availW)}_{(int)Math.Round(ctx.TextScale * 100)}";
+            string cacheKey = $"gen_{mapTaskId}_{currentMap.GeneralInfo?.GetHashCode() ?? 0}_{(int)Math.Round(availW)}";
             if (!_cardHeightCache.TryGetValue(cacheKey, out float cardH))
             {
-                cardH = EstimateCardHeight(lines, availW, false, ctx.TextScale);
+                cardH = EstimateCardHeight(lines, availW, false);
             }
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.Border, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
             ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 4.0f);
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f * ctx.TextScale, 8.0f * ctx.TextScale));
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f, 8.0f));
 
             ImGui.BeginChild("SectionGeneralInfoBody", new Vector2(availW, cardH), true);
-            ImGui.SetWindowFontScale(ctx.TextScale);
 
             if (lines.Length == 0)
             {
+                float wrapX = Math.Max(ImGui.GetCursorPosX() + 40.0f, ImGui.GetWindowWidth() - ImGui.GetStyle().WindowPadding.X);
+                ImGui.PushTextWrapPos(wrapX);
                 InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 0.7f), "[No general notes for this strategy]");
+                ImGui.PopTextWrapPos();
             }
             else
             {
@@ -385,7 +387,7 @@ namespace TdsOverlayImGui.UI.Views
                 }
             }
 
-            float measuredH = Math.Max(32.0f * ctx.TextScale, ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y + ImGui.GetStyle().WindowPadding.Y + 2.0f);
+            float measuredH = Math.Max(32.0f, ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y + ImGui.GetStyle().WindowPadding.Y + 2.0f);
             if (Math.Abs(measuredH - cardH) > 1.0f)
             {
                 if (_cardHeightCache.Count > 500) _cardHeightCache.Clear();
@@ -440,7 +442,10 @@ namespace TdsOverlayImGui.UI.Views
                 ctx.ToastTimer = 2.0f;
             }
 
-            ImGui.SameLine(0, 6.0f);
+            if (availW >= copyW + 6.0f + clearW)
+            {
+                ImGui.SameLine(0, 6.0f);
+            }
             if (ImGui.Button(clearText, new Vector2(clearW, 0)))
             {
                 ctx.CompletedTasks.RemoveWhere(k => k.StartsWith($"{mapTaskId}_") || k.StartsWith($"gen_{mapTaskId}_"));
@@ -469,14 +474,16 @@ namespace TdsOverlayImGui.UI.Views
             ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.Border, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
             ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 4.0f);
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f * ctx.TextScale, 8.0f * ctx.TextScale));
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f, 8.0f));
 
             ImGui.BeginChild("WaveInstructionsScroll", new Vector2(availW, cardH), true);
-            ImGui.SetWindowFontScale(ctx.TextScale);
 
             if (lines.Length == 0)
             {
-                ImGui.TextWrapped("[...]");
+                float wrapX = Math.Max(ImGui.GetCursorPosX() + 40.0f, ImGui.GetWindowWidth() - ImGui.GetStyle().WindowPadding.X);
+                ImGui.PushTextWrapPos(wrapX);
+                ImGui.TextUnformatted("[...]");
+                ImGui.PopTextWrapPos();
             }
             else
             {
@@ -501,13 +508,13 @@ namespace TdsOverlayImGui.UI.Views
             ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 6.0f));
         }
 
-        private static float EstimateCardHeight(string[] lines, float availW, bool hasImageNotice, float textScale)
+        private static float EstimateCardHeight(string[] lines, float availW, bool hasImageNotice)
         {
-            if (lines.Length == 0) return Math.Max(32.0f, 32.0f * textScale);
+            if (lines.Length == 0) return 32.0f;
 
-            float padY = 8.0f * 2.0f * textScale;
-            float lineH = ImGui.GetTextLineHeightWithSpacing() * textScale;
-            float innerW = Math.Max(80.0f, availW - 20.0f * textScale);
+            float padY = 8.0f * 2.0f;
+            float lineH = ImGui.GetTextLineHeightWithSpacing();
+            float innerW = Math.Max(80.0f, availW - 20.0f);
             float totalH = padY;
 
             foreach (string line in lines)
@@ -518,17 +525,17 @@ namespace TdsOverlayImGui.UI.Views
                     continue;
                 }
 
-                float textW = ImGui.CalcTextSize(line).X * textScale;
+                float textW = ImGui.CalcTextSize(line).X;
                 int wrapped = Math.Max(1, (int)Math.Ceiling(textW / innerW));
                 totalH += wrapped * lineH;
             }
 
             if (hasImageNotice)
             {
-                totalH += lineH + 10.0f * textScale;
+                totalH += lineH + 10.0f;
             }
 
-            return Math.Max(36.0f * textScale, totalH);
+            return Math.Max(36.0f, totalH);
         }
 
         public static bool DrawSectionHeader(string id, string title, ref bool isOpen)

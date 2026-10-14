@@ -68,9 +68,8 @@ namespace TdsOverlayImGui.UI.Components
                 ImGui.PushID($"Task_{taskKey}");
 
                 Vector2 cPos = ImGui.GetCursorScreenPos();
+                float boxSize = 16.0f;
                 float lineH = ImGui.GetTextLineHeight();
-                float checkScale = Math.Max(0.7f, lineH / 18.0f);
-                float boxSize = (float)Math.Round(16.0f * checkScale);
                 float boxOffsetY = (lineH - boxSize) * 0.5f;
 
                 if (ImGui.InvisibleButton("##CustomTaskCheck", new Vector2(boxSize, lineH)))
@@ -92,13 +91,13 @@ namespace TdsOverlayImGui.UI.Components
                 if (isDone)
                 {
                     uint checkBg = ImGui.ColorConvertFloat4ToU32(new Vector4(88f / 255f, 101f / 255f, 242f / 255f, 1.0f));
-                    drawList.AddRectFilled(bMin, bMax, checkBg, 3.0f * checkScale);
+                    drawList.AddRectFilled(bMin, bMax, checkBg, 3.0f);
 
-                    Vector2 p1 = new Vector2(bMin.X + 3.5f * checkScale, bMin.Y + 8.0f * checkScale);
-                    Vector2 p2 = new Vector2(bMin.X + 6.5f * checkScale, bMin.Y + 11.5f * checkScale);
-                    Vector2 p3 = new Vector2(bMin.X + 12.5f * checkScale, bMin.Y + 4.5f * checkScale);
-                    drawList.AddLine(p1, p2, 0xFFFFFFFF, Math.Max(1.5f, 2.0f * checkScale));
-                    drawList.AddLine(p2, p3, 0xFFFFFFFF, Math.Max(1.5f, 2.0f * checkScale));
+                    Vector2 p1 = new Vector2(bMin.X + 3.5f, bMin.Y + 8.0f);
+                    Vector2 p2 = new Vector2(bMin.X + 6.5f, bMin.Y + 11.5f);
+                    Vector2 p3 = new Vector2(bMin.X + 12.5f, bMin.Y + 4.5f);
+                    drawList.AddLine(p1, p2, 0xFFFFFFFF, 2.0f);
+                    drawList.AddLine(p2, p3, 0xFFFFFFFF, 2.0f);
                 }
                 else
                 {
@@ -106,11 +105,11 @@ namespace TdsOverlayImGui.UI.Components
                         ? new Vector4(120f / 255f, 124f / 255f, 133f / 255f, 1.0f)
                         : new Vector4(78f / 255f, 80f / 255f, 88f / 255f, 1.0f));
                     uint bgBoxCol = ImGui.ColorConvertFloat4ToU32(new Vector4(30f / 255f, 31f / 255f, 35f / 255f, 1.0f));
-                    drawList.AddRectFilled(bMin, bMax, bgBoxCol, 3.0f * checkScale);
-                    drawList.AddRect(bMin, bMax, borderCol, 3.0f * checkScale, ImDrawFlags.None, Math.Max(1.0f, 1.5f * checkScale));
+                    drawList.AddRectFilled(bMin, bMax, bgBoxCol, 3.0f);
+                    drawList.AddRect(bMin, bMax, borderCol, 3.0f, ImDrawFlags.None, 1.5f);
                 }
 
-                ImGui.SameLine(0, 8.0f * checkScale);
+                ImGui.SameLine(0, 8.0f);
 
                 ImGui.BeginGroup();
                 Vector2 textStartPos = ImGui.GetCursorScreenPos();
@@ -122,7 +121,7 @@ namespace TdsOverlayImGui.UI.Components
                     float textW = Math.Min(ImGui.CalcTextSize(lineAfterCheck).X, maxAllowedW);
                     float strikeY = textStartPos.Y + lineH * 0.5f;
                     uint strikeCol = ImGui.ColorConvertFloat4ToU32(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 0.95f));
-                    drawList.AddLine(new Vector2(textStartPos.X, strikeY), new Vector2(textStartPos.X + textW, strikeY), strikeCol, Math.Max(1.0f, 1.5f * checkScale));
+                    drawList.AddLine(new Vector2(textStartPos.X, strikeY), new Vector2(textStartPos.X + textW, strikeY), strikeCol, 1.5f);
                 }
                 ImGui.EndGroup();
 
@@ -149,7 +148,10 @@ namespace TdsOverlayImGui.UI.Components
             var matches = AudioService.AlertTagRegex.Matches(line);
             if (matches.Count == 0)
             {
-                SafeTextWrapped(isDone ? completedColor : normalColor, line);
+                float wrapX = Math.Max(ImGui.GetCursorPosX() + 40.0f, ImGui.GetWindowWidth() - ImGui.GetStyle().WindowPadding.X);
+                ImGui.PushTextWrapPos(wrapX);
+                SafeTextColored(isDone ? completedColor : normalColor, line);
+                ImGui.PopTextWrapPos();
                 return;
             }
 
@@ -206,7 +208,7 @@ namespace TdsOverlayImGui.UI.Components
 
                 if (!isFirstOnLine)
                 {
-                    if (avail < wordW + spaceW && avail < ImGui.GetWindowWidth() * 0.85f)
+                    if (avail < wordW + spaceW)
                     {
                         ImGui.NewLine();
                         isFirstOnLine = true;

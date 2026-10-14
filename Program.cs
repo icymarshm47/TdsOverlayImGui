@@ -257,6 +257,7 @@ namespace TdsOverlayImGui
                 ImGui.SetNextWindowClass(new ImGuiWindowClassPtr(&wc));
             }
             ImGui.SetNextWindowSize(new Vector2(430, 800), ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowSizeConstraints(new Vector2(250.0f, 250.0f), new Vector2(2000.0f, 2000.0f));
 
             bool isOpen = _ctx.IsOverlayOpen;
             ImGui.Begin("TDS Strategy Overlay (ImGui)", ref isOpen, ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
@@ -264,7 +265,6 @@ namespace TdsOverlayImGui
 
             _ctx.MainWindowWidth = ImGui.GetWindowWidth();
             _ctx.MainWindowHeight = ImGui.GetWindowHeight();
-            _ctx.TextScale = Math.Clamp(((_ctx.MainWindowWidth / 430.0f) + (_ctx.MainWindowHeight / 800.0f)) * 0.5f, 0.75f, 2.0f);
 
             if (igIsWindowDocked() != 0)
             {
