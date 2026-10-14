@@ -74,9 +74,9 @@ namespace TdsOverlayImGui
         public const string CurrentAppVersion = "0.7";
 
         private readonly OverlayContext _ctx = new();
-        private readonly string _footerQuote = GetRandomQuote();
+        private string _footerQuote = GetRandomQuote();
 
-        private static string GetRandomQuote()
+        private static List<string> LoadQuotes()
         {
             string[] defaultQuotes = new[]
             {
@@ -96,7 +96,7 @@ namespace TdsOverlayImGui
                 if (!File.Exists(path))
                 {
                     File.WriteAllLines(path, defaultQuotes);
-                    return defaultQuotes[Random.Shared.Next(defaultQuotes.Length)];
+                    return new List<string>(defaultQuotes);
                 }
 
                 var lines = File.ReadAllLines(path);
@@ -116,12 +116,33 @@ namespace TdsOverlayImGui
 
                 if (validQuotes.Count > 0)
                 {
-                    return validQuotes[Random.Shared.Next(validQuotes.Count)];
+                    return validQuotes;
                 }
             }
             catch { }
 
-            return defaultQuotes[Random.Shared.Next(defaultQuotes.Length)];
+            return new List<string>(defaultQuotes);
+        }
+
+        private static string GetRandomQuote()
+        {
+            var quotes = LoadQuotes();
+            return quotes[Random.Shared.Next(quotes.Count)];
+        }
+
+        private void CycleNextQuote()
+        {
+            var quotes = LoadQuotes();
+            if (quotes.Count <= 1)
+            {
+                if (quotes.Count == 1) _footerQuote = quotes[0];
+                return;
+            }
+
+            var distinctQuotes = quotes.FindAll(q => q != _footerQuote);
+            if (distinctQuotes.Count == 0) return;
+
+            _footerQuote = distinctQuotes[Random.Shared.Next(distinctQuotes.Count)];
         }
 
         public TdsImGuiOverlay() : base("TDS Strategy Overlay", true)
@@ -427,11 +448,16 @@ namespace TdsOverlayImGui
 
         public void RenderCustomTitleBar(string title = "TDS Overlay", bool isMainWindow = true, string popupSuffix = "")
         {
+            Vector2 startPos = ImGui.GetCursorScreenPos();
             float availW = ImGui.GetContentRegionAvail().X;
-            float titleH = 34.0f;
+            float titleH = 28.0f;
 
-            float buttonsTotalW = 65.0f;
+            var drawList = ImGui.GetWindowDrawList();
+
+            float buttonsTotalW = 60.0f;
             float dragW = Math.Max(0.0f, availW - buttonsTotalW);
+
+            ImGui.SetCursorScreenPos(startPos);
             ImGui.InvisibleButton("##CustomTitleDragArea" + popupSuffix, new Vector2(dragW, titleH));
             if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
             {
@@ -459,11 +485,8 @@ namespace TdsOverlayImGui
                 }
             }
 
-            Vector2 winPos = ImGui.GetWindowPos();
-            var drawList = ImGui.GetWindowDrawList();
-
-            float textY = winPos.Y + 9.0f;
-            ImGui.SetCursorScreenPos(new Vector2(winPos.X + 8.0f, textY));
+            float textY = startPos.Y + (titleH - ImGui.GetFontSize()) * 0.5f;
+            ImGui.SetCursorScreenPos(new Vector2(startPos.X, textY));
             InstructionRenderer.SafeTextColored(new Vector4(1f, 1f, 1f, 1f), title);
 
             if (isMainWindow)
@@ -480,11 +503,11 @@ namespace TdsOverlayImGui
                 InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), verTag);
             }
 
-            float rightX = winPos.X + availW;
+            float rightX = startPos.X + availW;
             float btnSize = 20.0f;
-            float btnY = winPos.Y + 8.5f;
+            float btnY = startPos.Y + (titleH - btnSize) * 0.5f;
 
-            float closeBtnX = rightX - btnSize - 4.0f;
+            float closeBtnX = rightX - btnSize - 2.0f;
             ImGui.SetCursorScreenPos(new Vector2(closeBtnX, btnY));
             if (ImGui.InvisibleButton("##CloseBtn" + popupSuffix, new Vector2(btnSize, btnSize)))
             {
@@ -517,8 +540,8 @@ namespace TdsOverlayImGui
             }
             bool isMenuHovered = ImGui.IsItemHovered();
             uint menuLineCol = ImGui.ColorConvertFloat4ToU32(isMenuHovered ? new Vector4(1f, 1f, 1f, 1f) : new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1f));
-            drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 5.0f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 5.0f), menuLineCol, 1.8f);
-            drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 10.0f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 10.0f), menuLineCol, 1.8f);
+            drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 4.0f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 4.0f), menuLineCol, 1.8f);
+            drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 9.5f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 9.5f), menuLineCol, 1.8f);
             drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 15.0f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 15.0f), menuLineCol, 1.8f);
 
             if (ImGui.BeginPopup("TitleMenuPopup" + popupSuffix))
@@ -556,7 +579,7 @@ namespace TdsOverlayImGui
                 ImGui.EndPopup();
             }
 
-            ImGui.SetCursorScreenPos(new Vector2(winPos.X, winPos.Y + titleH));
+            ImGui.SetCursorScreenPos(new Vector2(startPos.X, startPos.Y + titleH));
             ImGui.Spacing();
         }
 
@@ -577,7 +600,25 @@ namespace TdsOverlayImGui
             string authorText = _footerQuote;
             Vector2 textSize = ImGui.CalcTextSize(authorText);
             Vector2 textPos = new Vector2(fMin.X + (winW - textSize.X) * 0.5f, fMin.Y + (footerH - textSize.Y) * 0.5f);
-            drawList.AddText(textPos, ImGui.ColorConvertFloat4ToU32(new Vector4(92f / 255f, 95f / 255f, 102f / 255f, 1.0f)), authorText);
+
+            Vector2 quoteBtnPos = new Vector2(textPos.X - 6.0f, fMin.Y);
+            Vector2 quoteBtnSize = new Vector2(textSize.X + 12.0f, footerH);
+            ImGui.SetCursorScreenPos(quoteBtnPos);
+            if (ImGui.InvisibleButton("##FooterQuoteBtn", quoteBtnSize))
+            {
+                CycleNextQuote();
+            }
+            bool isQuoteHovered = ImGui.IsItemHovered();
+            if (isQuoteHovered)
+            {
+                ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+            }
+
+            uint quoteCol = isQuoteHovered
+                ? ImGui.ColorConvertFloat4ToU32(new Vector4(180f / 255f, 185f / 255f, 195f / 255f, 1.0f))
+                : ImGui.ColorConvertFloat4ToU32(new Vector4(92f / 255f, 95f / 255f, 102f / 255f, 1.0f));
+
+            drawList.AddText(textPos, quoteCol, authorText);
 
             float gripX = winPos.X + winW - 5.0f;
             float gripY = winPos.Y + winH - 5.0f;
