@@ -22,8 +22,12 @@ An ultra-lightweight, **Always-On-Top Overlay** for **Roblox Tower Defense Simul
 ## How to Build
 Requires **.NET 10 SDK** (Windows 10/11).
 ```bash
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfContained=true -p:DebugType=None -p:DebugSymbols=false
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfContained=true -p:EnableCompressionInSingleFile=true -p:PublishReadyToRun=true -p:DebugType=None -p:DebugSymbols=false -o ./publish
 ```
+The output folder will contain:
+- `TdsOverlayImGui.exe`
+- `cimgui.dll`
+- `locales/` directory
 
 ## Credits
 Code fully written with **Google Gemini**.
