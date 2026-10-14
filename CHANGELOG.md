@@ -10,25 +10,29 @@ All notable changes to this project will be documented in this file.
 
 ## [0.7] 2026-10-14
 ### Added
-- Added screen capture protection setting to hide the overlay from OBS, Discord, and screen recordings (via Windows Display Affinity API).
-- Added dynamic auto-sizing and content measuring for instruction cards and general info cards based on wrapped text height.
-- Added current step indicator to the right of the active wave counter (`Step X/Y`).
-- Added support for dragging and repositioning both docked and floating windows directly via the custom title bar header.
+- **OBS / Screen Capture Protection**: Added an option in Settings to hide the overlay from OBS, Discord, and screen capture/recording tools (using Windows `SetWindowDisplayAffinity` API with `WDA_EXCLUDEFROMCAPTURE`).
+- **Dynamic Card Auto-Sizing**: Instruction and General Info cards now dynamically measure wrapped text content and auto-size their height with cache, eliminating inner scrollbars and text cutoff.
+- **Current Step Indicator**: Display current step number next to the active wave counter (`Step X/Y`).
+- **Custom Title Bar & Header Dragging**: Added custom title bar supporting window dragging for both docked and floating windows without scrolling inner content.
+- **Commander & Medic Ability Alerts**: Periodic audio reminders and popups for Chain Commander and Medic abilities across configured wave ranges.
+- **Custom Blurple Checkboxes**: Discord-style custom interactive task checkboxes with strikethrough for completed instructions.
+- **High-Visibility Resize Handle**: Dedicated bottom-right corner resize grip with smooth window resizing.
 
 ### Changed
-- Standardized UI button styling with unified Discord-gray color scheme across all regular action buttons.
-- Display strategy placement images exclusively in a separate movable window and removed obsolete embedded image mode from settings.
-- Made tab bar always auto-hide across all docking nodes and overlay windows.
-- Hid default ImGui blue resize grip in favor of dedicated bottom-right high-visibility resize handle.
-- Removed bracket decoration `[...]` from Copy/Clear instruction buttons and trailing ellipsis `...` from Browse Photo buttons.
-- Removed markdown cheat-sheet prompt below Steps & Wave Ranges in Strategy Editor, reserving red highlight colors strictly for destructive actions.
-- Renamed Russian language option to "Russian" in settings.
+- **Unified UI Theme**: Redesigned color palette with modern dark Discord-gray action buttons and compact block spacing.
+- **Dedicated Image Window**: Strategy placement images now always open in a separate movable window (removed obsolete embedded image mode).
+- **Tab Bar Behavior**: Tab bar is now hidden by default on all windows and docking nodes for a cleaner overlay look.
+- **Cleaned Button Labels**: Removed bracket wrappers `[...]` from Copy/Clear buttons and trailing ellipses `...` from Browse Photo buttons.
+- **Editor Cleanup**: Removed markdown syntax prompt below Steps in Strategy Editor and reserved red accent colors strictly for destructive delete actions.
+- **Settings & Translations**: Renamed Russian language option to "Russian" in settings.
+- **Typography**: Prioritized JetBrains Mono font loading with native Cyrillic glyph support.
 
 ### Fixed
-- Fixed text wrapping and horizontal cursor drift in Wave Instructions so lines wrap smoothly without clipping or disappearing when resizing the window.
-- Fixed screen-boundary token wrapping for lines containing `<ocr>` alert tags and custom badges.
-- Fixed window close button `X` cross alignment to be centered.
-- Fixed content overlapping with the bottom user block when resizing overlay height.
+- **Wave Instructions Text Wrapping**: Fixed horizontal cursor drift and stair-stepping layout so instruction lines and checkboxes wrap smoothly without clipping or disappearing when resizing the window.
+- **Tag & Badge Wrapping**: Fixed boundary calculation for instruction lines containing `<ocr>` alert tags and badges to wrap cleanly at window edges.
+- **Title Bar Alignments**: Centered the close button cross (`X`) and aligned navigation buttons.
+- **Footer Overlap**: Fixed vertical layout to prevent instruction cards from overlapping the bottom footer when scaling window height.
+- **Audio & Alert Reliability**: Switched audio alert beeps to `SystemSounds` for reliable playback.
 
 ---
 
