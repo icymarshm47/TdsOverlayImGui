@@ -65,24 +65,78 @@ namespace TdsOverlayImGui.Services
             });
         }
 
+        public static void PlayCommanderTone()
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    System.Media.SystemSounds.Exclamation.Play();
+                }
+                catch
+                {
+                    try
+                    {
+                        Console.Beep(587, 100);
+                        Console.Beep(880, 200);
+                    }
+                    catch { }
+                }
+            });
+        }
+
+        public static void TriggerAlert(OverlayContext ctx, string alertType)
+        {
+            ctx.AlertToastMaxDuration = 4.0f;
+            ctx.AlertToastTimer = ctx.AlertToastMaxDuration;
+
+            string type = alertType.Trim().ToLowerInvariant();
+            switch (type)
+            {
+                case "red":
+                    ctx.AlertToastBadge = Loc.Tr("DjBadge");
+                    ctx.AlertToastTitle = Loc.Tr("DjToastRed");
+                    ctx.AlertToastSubtitle = Loc.Tr("DjToastRedSub");
+                    ctx.AlertToastColor = new Vector4(1.0f, 0.28f, 0.32f, 1.0f);
+                    break;
+
+                case "green":
+                    ctx.AlertToastBadge = Loc.Tr("DjBadge");
+                    ctx.AlertToastTitle = Loc.Tr("DjToastGreen");
+                    ctx.AlertToastSubtitle = Loc.Tr("DjToastGreenSub");
+                    ctx.AlertToastColor = new Vector4(0.25f, 1.0f, 0.45f, 1.0f);
+                    break;
+
+                case "purple":
+                    ctx.AlertToastBadge = Loc.Tr("DjBadge");
+                    ctx.AlertToastTitle = Loc.Tr("DjToastPurple");
+                    ctx.AlertToastSubtitle = Loc.Tr("DjToastPurpleSub");
+                    ctx.AlertToastColor = new Vector4(0.85f, 0.38f, 1.0f, 1.0f);
+                    break;
+
+                case "chain_commander":
+                case "commander":
+                case "chain":
+                case "cta":
+                    ctx.AlertToastBadge = Loc.Tr("CommanderBadge");
+                    ctx.AlertToastTitle = Loc.Tr("CommanderToastTitle");
+                    ctx.AlertToastSubtitle = Loc.Tr("CommanderToastSubtitle");
+                    ctx.AlertToastColor = new Vector4(1.0f, 0.72f, 0.15f, 1.0f);
+                    PlayCommanderTone();
+                    break;
+
+                default:
+                    ctx.AlertToastBadge = "ALERT";
+                    ctx.AlertToastTitle = alertType.ToUpperInvariant();
+                    ctx.AlertToastSubtitle = "";
+                    ctx.AlertToastColor = new Vector4(0.40f, 0.75f, 1.0f, 1.0f);
+                    break;
+            }
+        }
+
         public static void TriggerDjToast(OverlayContext ctx, string color)
         {
-            ctx.DjToastTimer = 3.0f;
-            if (color == "red")
-            {
-                ctx.DjToastMessage = Loc.Tr("DjToastRed");
-                ctx.DjToastColor = new Vector4(1.0f, 0.2f, 0.2f, 1.0f);
-            }
-            else if (color == "green")
-            {
-                ctx.DjToastMessage = Loc.Tr("DjToastGreen");
-                ctx.DjToastColor = new Vector4(0.2f, 1.0f, 0.2f, 1.0f);
-            }
-            else if (color == "purple")
-            {
-                ctx.DjToastMessage = Loc.Tr("DjToastPurple");
-                ctx.DjToastColor = new Vector4(0.7f, 0.2f, 1.0f, 1.0f);
-            }
+            TriggerAlert(ctx, color);
         }
     }
 }

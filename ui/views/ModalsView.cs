@@ -326,6 +326,7 @@ namespace TdsOverlayImGui.UI.Views
                 ImGui.Text(Loc.Tr("HelpLine1"));
                 ImGui.Text(Loc.Tr("HelpLine2"));
                 ImGui.Text(Loc.Tr("HelpLine3"));
+                ImGui.Text(Loc.Tr("HelpLine4"));
 
                 ImGui.Spacing();
                 ImGui.Separator();

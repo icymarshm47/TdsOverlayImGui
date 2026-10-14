@@ -7,7 +7,7 @@ namespace TdsOverlayImGui.UI.Components
     public static class InstructionRenderer
     {
         private static readonly Regex OcrTagRegex = new Regex(
-            @"<ocr\s+([\d\-]+)(?:\s+(red|green|purple))?\s*>(.*?)</ocr[^>]*>",
+            @"<ocr\s+([\d\-]+)(?:\s+([\w\-]+))?\s*(?:>(.*?)</ocr[^>]*>|/?>)",
             RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public static bool IsCheckbox(string line, out bool isCheckedInText, out string cleanText)
@@ -72,7 +72,7 @@ namespace TdsOverlayImGui.UI.Components
                 foreach (Match ocrMatch in ocrMatches)
                 {
                     string waveSpec = ocrMatch.Groups[1].Value.Trim();
-                    string djColor = ocrMatch.Groups[2].Value.Trim().ToLower();
+                    string alertType = ocrMatch.Groups[2].Success ? ocrMatch.Groups[2].Value.Trim().ToLowerInvariant() : "";
 
                     int startW = 0, endW = 0;
                     if (waveSpec.Contains('-'))
@@ -97,18 +97,18 @@ namespace TdsOverlayImGui.UI.Components
                             AudioService.PlayOcrBeep();
                         }
 
-                        if (!string.IsNullOrEmpty(djColor))
+                        if (!string.IsNullOrEmpty(alertType))
                         {
-                            string alertKey = $"{taskKey}|w:{activeWave}|c:{djColor}";
+                            string alertKey = $"{taskKey}|w:{activeWave}|a:{alertType}";
                             if (ctx.TriggeredDjAlerts.Add(alertKey))
                             {
-                                AudioService.TriggerDjToast(ctx, djColor);
+                                AudioService.TriggerAlert(ctx, alertType);
                             }
                         }
                     }
                 }
 
-                displayText = OcrTagRegex.Replace(lineAfterCheck, "$3");
+                displayText = OcrTagRegex.Replace(lineAfterCheck, m => m.Groups[3].Success ? m.Groups[3].Value : "");
             }
 
             if (!hasCheckbox)

@@ -23,12 +23,30 @@ namespace TdsOverlayImGui.UI
         public int CurrentWaveNumber = 1;
         public int PreviousWaveNumber = 1;
 
-        // DJ Toast & Audio
         public HashSet<string> TriggeredDjAlerts = new();
         public HashSet<string> TriggeredOcrSounds = new();
-        public float DjToastTimer = 0.0f;
-        public string DjToastMessage = "";
-        public Vector4 DjToastColor = Vector4.One;
+        public float AlertToastTimer = 0.0f;
+        public float AlertToastMaxDuration = 4.0f;
+        public string AlertToastBadge = "";
+        public string AlertToastTitle = "";
+        public string AlertToastSubtitle = "";
+        public Vector4 AlertToastColor = Vector4.One;
+
+        public float DjToastTimer
+        {
+            get => AlertToastTimer;
+            set => AlertToastTimer = value;
+        }
+        public string DjToastMessage
+        {
+            get => AlertToastTitle;
+            set => AlertToastTitle = value;
+        }
+        public Vector4 DjToastColor
+        {
+            get => AlertToastColor;
+            set => AlertToastColor = value;
+        }
 
         public float ToastTimer = 0.0f;
         public string DropStatusMessage = "";
