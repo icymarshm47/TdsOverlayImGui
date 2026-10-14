@@ -16,6 +16,10 @@ namespace TdsOverlayImGui
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
         [DllImport("user32.dll", SetLastError = true)]
@@ -112,12 +116,27 @@ namespace TdsOverlayImGui
                 _ctx.SelectedMapIndex = 0;
             }
 
-            CheckForUpdatesInBackground(silent: true);
+            if (_ctx.Settings.CheckUpdatesOnStartup)
+            {
+                CheckForUpdatesInBackground(silent: true);
+            }
+        }
+
+        private static IntPtr _cachedHWnd = IntPtr.Zero;
+
+        public static IntPtr GetOverlayHWnd()
+        {
+            if (_cachedHWnd != IntPtr.Zero && IsWindow(_cachedHWnd))
+            {
+                return _cachedHWnd;
+            }
+            _cachedHWnd = FindWindow(null, "TDS Strategy Overlay");
+            return _cachedHWnd;
         }
 
         public static void SetAlwaysOnTop(bool enable)
         {
-            IntPtr hWnd = FindWindow(null, "TDS Strategy Overlay");
+            IntPtr hWnd = GetOverlayHWnd();
             if (hWnd != IntPtr.Zero)
             {
                 IntPtr insertAfter = enable ? HWND_TOPMOST : HWND_NOTOPMOST;
@@ -127,7 +146,7 @@ namespace TdsOverlayImGui
 
         public static void SetHideFromCapture(bool enable)
         {
-            IntPtr hWnd = FindWindow(null, "TDS Strategy Overlay");
+            IntPtr hWnd = GetOverlayHWnd();
             if (hWnd != IntPtr.Zero)
             {
                 if (enable)
@@ -150,7 +169,7 @@ namespace TdsOverlayImGui
         private bool HookDragAndDrop()
         {
             if (_isDragDropHooked) return true;
-            IntPtr hWnd = FindWindow(null, "TDS Strategy Overlay");
+            IntPtr hWnd = GetOverlayHWnd();
             if (hWnd == IntPtr.Zero) return false;
 
             DragAcceptFiles(hWnd, true);
@@ -158,6 +177,7 @@ namespace TdsOverlayImGui
             IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_wndProcDelegate);
             _oldWndProc = SetWindowLongPtr(hWnd, GWLP_WNDPROC, fnPtr);
             _hookedHWnd = hWnd;
+            _cachedHWnd = hWnd;
             _isDragDropHooked = true;
             if (_ctx.Settings.HideFromCapture)
             {
@@ -301,18 +321,6 @@ namespace TdsOverlayImGui
             _ctx.MainWindowWidth = ImGui.GetWindowWidth();
             _ctx.MainWindowHeight = ImGui.GetWindowHeight();
 
-            if (igIsWindowDocked() != 0)
-            {
-                IntPtr dockNode = igGetWindowDockNode();
-                if (dockNode != IntPtr.Zero)
-                {
-                    unsafe
-                    {
-                        *(ImGuiDockNodeFlags*)((byte*)dockNode + 8) |= ImGuiDockNodeFlags.AutoHideTabBar;
-                    }
-                }
-            }
-
             RenderCustomTitleBar();
 
             float footerH = 24.0f;
@@ -390,9 +398,7 @@ namespace TdsOverlayImGui
                             unsafe
                             {
                                 uint rootId = *(uint*)rootNode;
-                                Vector2* posPtr = (Vector2*)((byte*)rootNode + 72);
-                                Vector2 newPos = *posPtr + delta;
-                                *posPtr = newPos;
+                                Vector2 newPos = ImGui.GetWindowPos() + delta;
                                 igDockBuilderSetNodePos(rootId, newPos);
                             }
                         }

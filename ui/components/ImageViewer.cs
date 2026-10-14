@@ -23,6 +23,19 @@ namespace TdsOverlayImGui.UI.Components
             LoadedTextures.Clear();
         }
 
+        public static void RemoveTexture(TdsImGuiOverlay overlay, string imagePath)
+        {
+            if (string.IsNullOrWhiteSpace(imagePath)) return;
+            if (LoadedTextures.Remove(imagePath))
+            {
+                try
+                {
+                    overlay.RemoveImage(imagePath);
+                }
+                catch { }
+            }
+        }
+
         public static string? GetActiveImagePath(OverlayContext ctx, MapStrategy map)
         {
             if (map.ImagePaths.Count == 0) return null;

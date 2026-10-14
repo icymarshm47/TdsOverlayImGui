@@ -11,10 +11,11 @@ namespace TdsOverlayImGui.Services
 
     public static class StrategyService
     {
-        private const string FolderPath = "strategies";
-        private const string ImagesFolder = "images";
-        private const string SettingsFilePath = "settings.json";
-        private const string TasksFilePath = "completed_tasks.json";
+        private static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;
+        private static readonly string FolderPath = Path.Combine(BaseDir, "strategies");
+        private static readonly string ImagesFolder = Path.Combine(BaseDir, "images");
+        private static readonly string SettingsFilePath = Path.Combine(BaseDir, "settings.json");
+        private static readonly string TasksFilePath = Path.Combine(BaseDir, "completed_tasks.json");
 
         private static readonly Regex UncheckedBoxRegex = new Regex(@"^(\s*[\-*]\s*)\[\s*\]", RegexOptions.Compiled);
         private static readonly Regex CheckedBoxRegex = new Regex(@"^(\s*[\-*]\s*)\[[xX]\]", RegexOptions.Compiled);
@@ -114,6 +115,17 @@ namespace TdsOverlayImGui.Services
                     if (strat != null)
                     {
                         strat.FilePath = file;
+                        strat.Steps ??= new();
+                        strat.ImagePaths ??= new();
+                        strat.MapName ??= "";
+                        strat.Difficulty ??= "";
+                        strat.StrategyName ??= "Main";
+                        strat.GeneralInfo ??= "";
+                        foreach (var s in strat.Steps)
+                        {
+                            s.Instruction ??= "";
+                            s.ImagePaths ??= new();
+                        }
                         list.Add(strat);
                     }
                 }
@@ -358,7 +370,17 @@ namespace TdsOverlayImGui.Services
                     return false;
                 }
 
+                strat.Steps ??= new();
                 strat.ImagePaths = new List<string>();
+                strat.MapName ??= "";
+                strat.Difficulty ??= "";
+                strat.StrategyName ??= "Main";
+                strat.GeneralInfo ??= "";
+                foreach (var s in strat.Steps)
+                {
+                    s.Instruction ??= "";
+                    s.ImagePaths ??= new();
+                }
                 SaveStrategy(strat);
 
                 statusMessage = $"{Loc.Tr("ClipboardImportSuccess")}\n({strat.DisplayName})";
@@ -419,11 +441,27 @@ namespace TdsOverlayImGui.Services
                             return false;
                         }
 
+                        strat.Steps ??= new();
+                        strat.ImagePaths ??= new();
+                        strat.MapName ??= "";
+                        strat.Difficulty ??= "";
+                        strat.StrategyName ??= "Main";
+                        strat.GeneralInfo ??= "";
+                        foreach (var s in strat.Steps)
+                        {
+                            s.Instruction ??= "";
+                            s.ImagePaths ??= new();
+                        }
+
+                        string fullTempDir = Path.GetFullPath(tempDir);
                         var importedImages = new List<string>();
                         for (int i = 0; i < strat.ImagePaths.Count; i++)
                         {
                             string zipImgRelPath = strat.ImagePaths[i];
-                            string tempImgFullPath = Path.Combine(tempDir, zipImgRelPath);
+                            if (string.IsNullOrWhiteSpace(zipImgRelPath)) continue;
+
+                            string tempImgFullPath = Path.GetFullPath(Path.Combine(tempDir, zipImgRelPath));
+                            if (!tempImgFullPath.StartsWith(fullTempDir, StringComparison.OrdinalIgnoreCase)) continue;
 
                             if (File.Exists(tempImgFullPath))
                             {

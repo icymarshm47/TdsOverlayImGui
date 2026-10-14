@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 ---
 
 ## Unreleased
+### Added
+- **Portable Base Directory**: All application paths (`strategies/`, `images/`, `settings.json`, `completed_tasks.json`) are now strictly anchored to the executable's directory (`AppDomain.CurrentDomain.BaseDirectory`), making the application fully portable regardless of working directory.
+- **Privacy & Network Toggle**: Added an option in Settings to enable/disable automatic update checks on startup to give users full control over outgoing network requests.
+
+### Fixed
+- **OCR Screen Clamping**: Clamped screen capture bounds against `SystemInformation.VirtualScreen` to prevent `Win32Exception` when coordinates exceed monitor borders.
+- **Memory Safety in Docking**: Removed direct byte pointer offset writes into ImGui internal dock structures, switching to official DockBuilder APIs.
+- **JSON Null-Safety**: Sanitized all deserialized strategy collections and string fields across file, clipboard, and ZIP import handlers.
+- **VRAM Texture Cleanup**: Added individual texture unloading when images are removed or replaced in the Strategy Editor, and on editor cancel.
+- **OCR Concurrency & Noise Filtering**: Made OCR pending raw text thread-safe via `Interlocked` and added debounce filtering for transient wave rollbacks.
+- **Whitespace Preservation**: Fixed regex tokenization in instruction fragment rendering so that multiple spaces and indentation are never stripped.
 
 ---
 

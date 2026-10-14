@@ -4,6 +4,7 @@ namespace TdsOverlayImGui.Models
     {
         public bool AlwaysOnTop { get; set; } = true;
         public bool HideFromCapture { get; set; } = false;
+        public bool CheckUpdatesOnStartup { get; set; } = true;
         public bool SeparateImageWindow { get; set; } = true;
         public float GeneralInfoBoxHeight { get; set; } = 60.0f;
         public float InstructionBoxHeight { get; set; } = 160.0f;

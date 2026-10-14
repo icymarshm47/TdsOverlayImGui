@@ -12,13 +12,15 @@ namespace TdsOverlayImGui.UI.Views
         private static int _isScanning = 0;
         private static int _pendingDetectedWave = -1;
         private static string? _pendingRawText = null;
+        private static int _pendingRollbackWave = -1;
+        private static int _rollbackConfirmCount = 0;
 
         public static void ProcessBackgroundOcr(OverlayContext ctx)
         {
-            if (_pendingRawText != null)
+            string? pendingText = Interlocked.Exchange(ref _pendingRawText, null);
+            if (pendingText != null)
             {
-                ctx.LastOcrRawText = _pendingRawText;
-                _pendingRawText = null;
+                ctx.LastOcrRawText = pendingText;
 
                 if (string.IsNullOrWhiteSpace(ctx.LastOcrRawText))
                 {
@@ -35,14 +37,42 @@ namespace TdsOverlayImGui.UI.Views
             {
                 if (ctx.Settings.EnableOcr && ctx.CurrentMap != null)
                 {
-                    ctx.LastOcrSuccessTime = DateTime.Now;
-                    ctx.LastOcrStatus = $"{Loc.Tr("Wave")} {waveVal}";
+                    if (waveVal < ctx.CurrentWaveNumber && ctx.CurrentWaveNumber > 3)
+                    {
+                        if (_pendingRollbackWave != waveVal)
+                        {
+                            _pendingRollbackWave = waveVal;
+                            _rollbackConfirmCount = 1;
+                            waveVal = -1;
+                        }
+                        else
+                        {
+                            _rollbackConfirmCount++;
+                            if (_rollbackConfirmCount < 2)
+                            {
+                                waveVal = -1;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _pendingRollbackWave = -1;
+                        _rollbackConfirmCount = 0;
+                    }
 
-                    AudioService.OnWaveChanged(ctx, waveVal);
-                    ctx.DetectedWaveNumber = waveVal;
-                    ctx.CurrentWaveNumber = waveVal;
+                    if (waveVal > 0)
+                    {
+                        _pendingRollbackWave = -1;
+                        _rollbackConfirmCount = 0;
+                        ctx.LastOcrSuccessTime = DateTime.Now;
+                        ctx.LastOcrStatus = $"{Loc.Tr("Wave")} {waveVal}";
 
-                    AudioService.CheckAndTriggerAlertsForWave(ctx, waveVal);
+                        AudioService.OnWaveChanged(ctx, waveVal);
+                        ctx.DetectedWaveNumber = waveVal;
+                        ctx.CurrentWaveNumber = waveVal;
+
+                        AudioService.CheckAndTriggerAlertsForWave(ctx, waveVal);
+                    }
                 }
             }
 
@@ -70,7 +100,7 @@ namespace TdsOverlayImGui.UI.Views
                     try
                     {
                         var (wave, rawText) = await OcrService.RecognizeWaveFromScreenAsync(x, y, w, h, preprocess);
-                        _pendingRawText = rawText;
+                        Interlocked.Exchange(ref _pendingRawText, rawText);
                         if (wave.HasValue)
                         {
                             Interlocked.Exchange(ref _pendingDetectedWave, wave.Value);

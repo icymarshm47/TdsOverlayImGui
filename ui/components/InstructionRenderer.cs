@@ -8,6 +8,8 @@ namespace TdsOverlayImGui.UI.Components
 {
     public static class InstructionRenderer
     {
+        private static readonly Regex FragmentTokenRegex = new Regex(@"\S+|\s+", RegexOptions.Compiled);
+
         public static bool IsCheckbox(string line, out bool isCheckedInText, out string cleanText)
         {
             isCheckedInText = false;
@@ -202,30 +204,39 @@ namespace TdsOverlayImGui.UI.Components
         {
             if (string.IsNullOrEmpty(text)) return;
 
-            string[] words = text.Split(' ');
-            for (int i = 0; i < words.Length; i++)
+            var matches = FragmentTokenRegex.Matches(text);
+            foreach (Match match in matches)
             {
-                string word = words[i];
-                if (string.IsNullOrEmpty(word)) continue;
+                string token = match.Value;
+                if (string.IsNullOrEmpty(token)) continue;
 
-                float wordW = ImGui.CalcTextSize(word).X;
-                float spaceW = ImGui.CalcTextSize(" ").X;
-
-                if (!isFirstOnLine)
+                if (char.IsWhiteSpace(token[0]))
                 {
-                    float nextWordScreenRight = ImGui.GetItemRectMax().X + spaceW + wordW;
-                    if (nextWordScreenRight > rightLimitScreen)
-                    {
-                        ImGui.SetCursorPosX(startLocalX);
-                    }
-                    else
+                    float spaceW = ImGui.CalcTextSize(token).X;
+                    if (!isFirstOnLine)
                     {
                         ImGui.SameLine(0, spaceW);
                     }
+                    else
+                    {
+                        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + spaceW);
+                    }
                 }
+                else
+                {
+                    float wordW = ImGui.CalcTextSize(token).X;
+                    if (!isFirstOnLine)
+                    {
+                        float nextWordScreenRight = ImGui.GetItemRectMax().X + wordW;
+                        if (nextWordScreenRight > rightLimitScreen)
+                        {
+                            ImGui.SetCursorPosX(startLocalX);
+                        }
+                    }
 
-                SafeTextColored(color, word);
-                isFirstOnLine = false;
+                    SafeTextColored(color, token);
+                    isFirstOnLine = false;
+                }
             }
         }
 

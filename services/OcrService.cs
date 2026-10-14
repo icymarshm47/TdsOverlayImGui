@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using Windows.Graphics.Imaging;
 using Windows.Media.Ocr;
 using Windows.Storage.Streams;
@@ -15,7 +16,7 @@ namespace TdsOverlayImGui.Services
     {
         private static OcrEngine? _ocrEngine;
 
-        private static readonly Regex WaveWordRegex = new Regex(@"(?:wave|волна|w)[\s:.]*(\d{1,3})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex WaveWordRegex = new Regex(@"(?:wave|волна|w)[\s:.]*(\d{1,3})", RegexOptions.Compiled);
         private static readonly Regex WaveFractionRegex = new Regex(@"(\d{1,3})\s*[\/|\\]\s*\d{1,3}", RegexOptions.Compiled);
         private static readonly Regex WaveStandaloneRegex = new Regex(@"\b(\d{1,3})\b", RegexOptions.Compiled);
 
@@ -25,10 +26,20 @@ namespace TdsOverlayImGui.Services
 
             try
             {
-                using var rawBitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+                var vScreen = SystemInformation.VirtualScreen;
+                int clampedX = Math.Max(vScreen.Left, x);
+                int clampedY = Math.Max(vScreen.Top, y);
+                int clampedRight = Math.Min(vScreen.Right, x + width);
+                int clampedBottom = Math.Min(vScreen.Bottom, y + height);
+                int clampedW = clampedRight - clampedX;
+                int clampedH = clampedBottom - clampedY;
+
+                if (clampedW <= 2 || clampedH <= 2) return (null, "");
+
+                using var rawBitmap = new Bitmap(clampedW, clampedH, PixelFormat.Format32bppArgb);
                 using (var g = Graphics.FromImage(rawBitmap))
                 {
-                    g.CopyFromScreen(x, y, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
+                    g.CopyFromScreen(clampedX, clampedY, 0, 0, new Size(clampedW, clampedH), CopyPixelOperation.SourceCopy);
                 }
 
                 var cleanResult = await RunOcrOnBitmapAsync(rawBitmap, false);

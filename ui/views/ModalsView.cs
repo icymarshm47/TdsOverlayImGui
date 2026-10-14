@@ -278,6 +278,20 @@ namespace TdsOverlayImGui.UI.Views
                 ImGui.Spacing();
                 ImGui.Separator();
 
+                InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("PrivacySettingsHeader"));
+                ImGui.Spacing();
+
+                bool checkUpdates = ctx.Settings.CheckUpdatesOnStartup;
+                if (ImGui.Checkbox($"{Loc.Tr("CheckUpdatesOnStartup")}##CheckUpdatesCheck", ref checkUpdates))
+                {
+                    ctx.Settings.CheckUpdatesOnStartup = checkUpdates;
+                    StrategyService.SaveSettings(ctx.Settings);
+                }
+                ImGui.TextDisabled(Loc.Tr("CheckUpdatesOnStartupDesc"));
+
+                ImGui.Spacing();
+                ImGui.Separator();
+
                 if (ImGui.Button(Loc.Tr("Close"), new Vector2(120, 0)))
                 {
                     ctx.ShowSettingsModal = false;

@@ -51,6 +51,11 @@ namespace TdsOverlayImGui.UI.Views
                     string? picked = ImagePickerHelper.OpenImageFileDialog(ctx.Settings.AlwaysOnTop);
                     if (!string.IsNullOrEmpty(picked))
                     {
+                        string oldPath = ctx.EditImagePaths[imgIdx];
+                        if (!string.IsNullOrEmpty(oldPath))
+                        {
+                            ImageViewer.RemoveTexture(overlay, oldPath);
+                        }
                         ctx.EditImagePaths[imgIdx] = picked;
                     }
                 }
@@ -58,7 +63,12 @@ namespace TdsOverlayImGui.UI.Views
                 ImGui.SameLine();
                 if (ImGui.Button("X"))
                 {
+                    string oldPath = ctx.EditImagePaths[imgIdx];
                     ctx.EditImagePaths.RemoveAt(imgIdx);
+                    if (!string.IsNullOrEmpty(oldPath))
+                    {
+                        ImageViewer.RemoveTexture(overlay, oldPath);
+                    }
                     ImGui.PopID();
                     break;
                 }
@@ -201,6 +211,7 @@ namespace TdsOverlayImGui.UI.Views
 
             if (ImGui.Button(Loc.Tr("Cancel"), new Vector2(editBtnW, 0)))
             {
+                ImageViewer.ClearLoadedTextures(overlay);
                 ctx.IsEditing = false;
             }
 
