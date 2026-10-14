@@ -91,7 +91,7 @@ namespace TdsOverlayImGui.Components
                     {
                         isTagActive = true;
 
-                        string soundKey = $"{taskKey}_{activeWave}";
+                        string soundKey = $"{taskKey}|w:{activeWave}";
                         if (ctx.TriggeredOcrSounds.Add(soundKey) && ctx.Settings.EnableOcrSound)
                         {
                             ToastAndAudioService.PlayOcrBeep();
@@ -99,7 +99,7 @@ namespace TdsOverlayImGui.Components
 
                         if (!string.IsNullOrEmpty(djColor))
                         {
-                            string alertKey = $"{taskKey}_{activeWave}_{djColor}";
+                            string alertKey = $"{taskKey}|w:{activeWave}|c:{djColor}";
                             if (ctx.TriggeredDjAlerts.Add(alertKey))
                             {
                                 ToastAndAudioService.TriggerDjToast(ctx, djColor);

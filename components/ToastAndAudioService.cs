@@ -14,10 +14,17 @@ namespace TdsOverlayImGui.Components
             {
                 try
                 {
-                    Console.Beep(880, 100);  // A5
-                    Console.Beep(1175, 180); // D6
+                    System.Media.SystemSounds.Asterisk.Play();
                 }
-                catch { }
+                catch
+                {
+                    try
+                    {
+                        Console.Beep(880, 100);
+                        Console.Beep(1175, 180);
+                    }
+                    catch { }
+                }
             });
         }
 
@@ -35,6 +42,18 @@ namespace TdsOverlayImGui.Components
         {
             set.RemoveWhere(key =>
             {
+                int wIndex = key.IndexOf("|w:", StringComparison.Ordinal);
+                if (wIndex >= 0)
+                {
+                    int start = wIndex + 3;
+                    int end = key.IndexOf('|', start);
+                    string waveStr = end >= 0 ? key[start..end] : key[start..];
+                    if (int.TryParse(waveStr, out int w))
+                    {
+                        return w >= targetWave;
+                    }
+                }
+
                 var parts = key.Split('_');
                 for (int i = parts.Length - 1; i >= 0; i--)
                 {
