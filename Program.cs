@@ -300,7 +300,7 @@ namespace TdsOverlayImGui
             float availW = ImGui.GetContentRegionAvail().X;
             float titleH = 34.0f;
 
-            float buttonsTotalW = 90.0f;
+            float buttonsTotalW = 65.0f;
             float dragW = Math.Max(0.0f, availW - buttonsTotalW);
             ImGui.InvisibleButton("##CustomTitleDragArea", new Vector2(dragW, titleH));
             if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
@@ -310,7 +310,8 @@ namespace TdsOverlayImGui
 
             var drawList = ImGui.GetWindowDrawList();
 
-            ImGui.SetCursorScreenPos(new Vector2(startPos.X + 8.0f, startPos.Y + 6.0f));
+            float textY = startPos.Y + 9.0f;
+            ImGui.SetCursorScreenPos(new Vector2(startPos.X + 8.0f, textY));
             InstructionRenderer.SafeTextColored(new Vector4(1f, 1f, 1f, 1f), "TDS Overlay");
 
             ImGui.SameLine(0, 8.0f);
@@ -318,17 +319,17 @@ namespace TdsOverlayImGui
             Vector2 verSize = ImGui.CalcTextSize(verTag);
             Vector2 badgePos = ImGui.GetCursorScreenPos();
             drawList.AddRectFilled(
-                new Vector2(badgePos.X - 3.0f, badgePos.Y - 1.0f),
-                new Vector2(badgePos.X + verSize.X + 3.0f, badgePos.Y + verSize.Y + 2.0f),
+                new Vector2(badgePos.X - 3.0f, textY - 1.0f),
+                new Vector2(badgePos.X + verSize.X + 3.0f, textY + verSize.Y + 2.0f),
                 ImGui.ColorConvertFloat4ToU32(new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f)),
                 4.0f);
             InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), verTag);
 
             float rightX = startPos.X + availW;
-            float btnSize = 22.0f;
-            float btnY = startPos.Y + (titleH - btnSize) * 0.5f;
+            float btnSize = 20.0f;
+            float btnY = startPos.Y + 8.5f;
 
-            float closeBtnX = rightX - btnSize - 2.0f;
+            float closeBtnX = rightX - btnSize - 4.0f;
             ImGui.SetCursorScreenPos(new Vector2(closeBtnX, btnY));
             if (ImGui.InvisibleButton("##CloseBtn", new Vector2(btnSize, btnSize)))
             {
@@ -338,22 +339,11 @@ namespace TdsOverlayImGui
             uint closeCircleCol = ImGui.ColorConvertFloat4ToU32(isCloseHovered
                 ? new Vector4(218f / 255f, 55f / 255f, 60f / 255f, 1.0f)
                 : new Vector4(242f / 255f, 63f / 255f, 67f / 255f, 1.0f));
-            drawList.AddCircleFilled(new Vector2(closeBtnX + btnSize * 0.5f, btnY + btnSize * 0.5f), 8.5f, closeCircleCol);
-            drawList.AddLine(new Vector2(closeBtnX + 7.0f, btnY + 7.0f), new Vector2(closeBtnX + 15.0f, btnY + 15.0f), 0xFFFFFFFF, 1.8f);
-            drawList.AddLine(new Vector2(closeBtnX + 15.0f, btnY + 7.0f), new Vector2(closeBtnX + 7.0f, btnY + 15.0f), 0xFFFFFFFF, 1.8f);
+            drawList.AddCircleFilled(new Vector2(closeBtnX + btnSize * 0.5f, btnY + btnSize * 0.5f), 8.0f, closeCircleCol);
+            drawList.AddLine(new Vector2(closeBtnX + 6.5f, btnY + 6.5f), new Vector2(closeBtnX + 13.5f, btnY + 13.5f), 0xFFFFFFFF, 1.8f);
+            drawList.AddLine(new Vector2(closeBtnX + 13.5f, btnY + 6.5f), new Vector2(closeBtnX + 6.5f, btnY + 13.5f), 0xFFFFFFFF, 1.8f);
 
-            float minBtnX = closeBtnX - btnSize - 6.0f;
-            ImGui.SetCursorScreenPos(new Vector2(minBtnX, btnY));
-            if (ImGui.InvisibleButton("##MinBtn", new Vector2(btnSize, btnSize)))
-            {
-                _ctx.Settings.CompactMode = !_ctx.Settings.CompactMode;
-                StrategyService.SaveSettings(_ctx.Settings);
-            }
-            bool isMinHovered = ImGui.IsItemHovered();
-            uint minLineCol = ImGui.ColorConvertFloat4ToU32(isMinHovered ? new Vector4(1f, 1f, 1f, 1f) : new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1f));
-            drawList.AddLine(new Vector2(minBtnX + 4.0f, btnY + btnSize * 0.5f), new Vector2(minBtnX + btnSize - 4.0f, btnY + btnSize * 0.5f), minLineCol, 2.0f);
-
-            float menuBtnX = minBtnX - btnSize - 6.0f;
+            float menuBtnX = closeBtnX - btnSize - 8.0f;
             ImGui.SetCursorScreenPos(new Vector2(menuBtnX, btnY));
             if (ImGui.InvisibleButton("##MenuBtn", new Vector2(btnSize, btnSize)))
             {
@@ -361,9 +351,9 @@ namespace TdsOverlayImGui
             }
             bool isMenuHovered = ImGui.IsItemHovered();
             uint menuLineCol = ImGui.ColorConvertFloat4ToU32(isMenuHovered ? new Vector4(1f, 1f, 1f, 1f) : new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1f));
-            drawList.AddLine(new Vector2(menuBtnX + 4.0f, btnY + 6.0f), new Vector2(menuBtnX + btnSize - 4.0f, btnY + 6.0f), menuLineCol, 1.8f);
-            drawList.AddLine(new Vector2(menuBtnX + 4.0f, btnY + 11.0f), new Vector2(menuBtnX + btnSize - 4.0f, btnY + 11.0f), menuLineCol, 1.8f);
-            drawList.AddLine(new Vector2(menuBtnX + 4.0f, btnY + 16.0f), new Vector2(menuBtnX + btnSize - 4.0f, btnY + 16.0f), menuLineCol, 1.8f);
+            drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 5.0f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 5.0f), menuLineCol, 1.8f);
+            drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 10.0f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 10.0f), menuLineCol, 1.8f);
+            drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 15.0f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 15.0f), menuLineCol, 1.8f);
 
             if (ImGui.BeginPopup("TitleMenuPopup"))
             {
