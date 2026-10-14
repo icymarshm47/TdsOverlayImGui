@@ -2,7 +2,7 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 using ImGuiNET;
 
-namespace TdsOverlayImGui.Components
+namespace TdsOverlayImGui.UI.Components
 {
     public static class InstructionRenderer
     {

@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 
-namespace TdsOverlayImGui
+namespace TdsOverlayImGui.UI
 {
     public class OverlayContext
     {

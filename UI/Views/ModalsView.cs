@@ -1,9 +1,7 @@
-using System;
 using System.Numerics;
 using ImGuiNET;
-using TdsOverlayImGui.Components;
 
-namespace TdsOverlayImGui.Views
+namespace TdsOverlayImGui.UI.Views
 {
     public static class ModalsView
     {

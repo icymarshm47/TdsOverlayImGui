@@ -6,8 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using ClickableTransparentOverlay;
 using ImGuiNET;
-using TdsOverlayImGui.Components;
-using TdsOverlayImGui.Views;
 
 namespace TdsOverlayImGui
 {

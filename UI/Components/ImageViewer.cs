@@ -4,7 +4,7 @@ using System.IO;
 using System.Numerics;
 using ImGuiNET;
 
-namespace TdsOverlayImGui.Components
+namespace TdsOverlayImGui.UI.Components
 {
     public static class ImageViewer
     {

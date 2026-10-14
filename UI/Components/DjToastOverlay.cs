@@ -1,7 +1,7 @@
 using System.Numerics;
 using ImGuiNET;
 
-namespace TdsOverlayImGui.Components
+namespace TdsOverlayImGui.UI.Components
 {
     public static class DjToastOverlay
     {
