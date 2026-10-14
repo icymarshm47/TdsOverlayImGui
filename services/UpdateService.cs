@@ -14,9 +14,6 @@ namespace TdsOverlayImGui.Services
             Timeout = TimeSpan.FromSeconds(10)
         };
 
-        /// <summary>
-        /// Проверяет наличие новых релизов через официальный GitHub REST API
-        /// </summary>
         public static async Task<(bool isUpdateAvailable, string latestVersionTag, string releaseUrl, string errorMessage)> CheckForUpdatesAsync(
             string owner, string repo, string currentVersionStr)
         {

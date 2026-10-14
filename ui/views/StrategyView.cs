@@ -127,7 +127,7 @@ namespace TdsOverlayImGui.UI.Views
 
             if (!ctx.Settings.CompactMode)
             {
-                ImGui.BeginChild("OcrHeaderCard", new Vector2(0, 44), true, ImGuiWindowFlags.NoScrollbar);
+                ImGui.BeginChild("OcrHeaderCard", new Vector2(0, 58), true, ImGuiWindowFlags.NoScrollbar);
 
                 bool enableOcr = ctx.Settings.EnableOcr;
                 if (ImGui.Checkbox(Loc.Tr("AutoOcrHeader"), ref enableOcr))
@@ -136,10 +136,12 @@ namespace TdsOverlayImGui.UI.Views
                     if (!enableOcr)
                     {
                         ctx.DetectedWaveNumber = null;
+                        ctx.LastOcrStatus = "";
                     }
                     else
                     {
                         ctx.LastOcrScanTime = DateTime.MinValue;
+                        ctx.TriggerOneShotOcr = true;
                     }
                     StrategyService.SaveSettings(ctx.Settings);
                 }
@@ -155,10 +157,15 @@ namespace TdsOverlayImGui.UI.Views
                 }
 
                 string ocrBtnText = Loc.Tr("SelectOcrRegionBtn");
+                string testBtnText = Loc.Tr("TestOcrBtn");
+
                 float ocrBtnW = ImGui.CalcTextSize(ocrBtnText).X + ImGui.GetStyle().FramePadding.X * 2 + 8.0f;
-                if (ImGui.GetContentRegionAvail().X > ocrBtnW)
+                float testBtnW = ImGui.CalcTextSize(testBtnText).X + ImGui.GetStyle().FramePadding.X * 2 + 8.0f;
+                float totalRightW = ocrBtnW + testBtnW + ImGui.GetStyle().ItemSpacing.X;
+
+                if (ImGui.GetContentRegionAvail().X > totalRightW)
                 {
-                    ImGui.SameLine(ImGui.GetWindowWidth() - ocrBtnW - 10.0f);
+                    ImGui.SameLine(ImGui.GetWindowWidth() - totalRightW - 12.0f);
                 }
                 else
                 {
@@ -169,6 +176,29 @@ namespace TdsOverlayImGui.UI.Views
                 {
                     ctx.IsSelectingOcrRegion = true;
                     ctx.OcrSelectionState = 0;
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Button(testBtnText))
+                {
+                    ctx.TriggerOneShotOcr = true;
+                }
+
+                if (ctx.Settings.EnableOcr)
+                {
+                    string infoText = string.IsNullOrWhiteSpace(ctx.LastOcrStatus)
+                        ? $"[{ctx.Settings.OcrW}x{ctx.Settings.OcrH} px] {Loc.Tr("OcrScanningTag")}"
+                        : $"[{ctx.Settings.OcrW}x{ctx.Settings.OcrH} px] OCR: {ctx.LastOcrStatus}";
+
+                    Vector4 statusColor = ctx.DetectedWaveNumber.HasValue
+                        ? new Vector4(0.3f, 1.0f, 0.4f, 1.0f)
+                        : new Vector4(0.7f, 0.75f, 0.85f, 0.85f);
+
+                    InstructionRenderer.SafeTextColored(statusColor, infoText);
+                }
+                else
+                {
+                    ImGui.TextDisabled(Loc.Tr("OcrDisabledNotice"));
                 }
 
                 ImGui.EndChild();
@@ -209,14 +239,9 @@ namespace TdsOverlayImGui.UI.Views
                     {
                         ctx.CurrentWaveNumber = Math.Clamp(waveNum, 1, 200);
                         ctx.DetectedWaveNumber = null;
-                        if (ctx.CurrentWaveNumber == 1)
-                        {
-                            ctx.TriggeredDjAlerts.Clear();
-                            ctx.TriggeredOcrSounds.Clear();
-                        }
                         AudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
                         activeWave = ctx.CurrentWaveNumber;
-                        ctx.UpdateStepByWaveNumber(currentMap, ctx.CurrentWaveNumber);
+                        AudioService.CheckAndTriggerAlertsForWave(ctx, ctx.CurrentWaveNumber);
                     }
 
                     float progress = (float)(ctx.CurrentStepIndex + 1) / currentMap.Steps.Count;
@@ -245,6 +270,7 @@ namespace TdsOverlayImGui.UI.Views
                         ctx.CurrentWaveNumber = currentMap.Steps[0].StartWave;
                         ctx.DetectedWaveNumber = null;
                         AudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
+                        AudioService.CheckAndTriggerAlertsForWave(ctx, ctx.CurrentWaveNumber);
                         ctx.ResetImageTransform();
                     }
                     ImGui.SameLine();
@@ -256,6 +282,7 @@ namespace TdsOverlayImGui.UI.Views
                             ctx.CurrentWaveNumber = currentMap.Steps[ctx.CurrentStepIndex].StartWave;
                             ctx.DetectedWaveNumber = null;
                             AudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
+                            AudioService.CheckAndTriggerAlertsForWave(ctx, ctx.CurrentWaveNumber);
                             ctx.ResetImageTransform();
                         }
                     }
@@ -268,6 +295,7 @@ namespace TdsOverlayImGui.UI.Views
                             ctx.CurrentWaveNumber = currentMap.Steps[ctx.CurrentStepIndex].StartWave;
                             ctx.DetectedWaveNumber = null;
                             AudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
+                            AudioService.CheckAndTriggerAlertsForWave(ctx, ctx.CurrentWaveNumber);
                             ctx.ResetImageTransform();
                         }
                     }
@@ -278,6 +306,7 @@ namespace TdsOverlayImGui.UI.Views
                         ctx.CurrentWaveNumber = currentMap.Steps[^1].StartWave;
                         ctx.DetectedWaveNumber = null;
                         AudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
+                        AudioService.CheckAndTriggerAlertsForWave(ctx, ctx.CurrentWaveNumber);
                         ctx.ResetImageTransform();
                     }
 

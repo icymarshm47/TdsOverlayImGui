@@ -52,21 +52,21 @@ namespace TdsOverlayImGui.UI
         public string DropStatusMessage = "";
         public float DropStatusTimer = 0.0f;
 
-        // Очередь файлов, сброшенных через Drag-and-Drop
         public ConcurrentQueue<string> DroppedFilesQueue = new();
 
-        // Image Canvas Transform
         public float ImageScale = 1.0f;
         public Vector2 ImageOffset = Vector2.Zero;
 
-        // OCR State
         public int? DetectedWaveNumber = null;
+        public string LastOcrRawText = "";
+        public string LastOcrStatus = "";
+        public DateTime LastOcrSuccessTime = DateTime.MinValue;
         public bool IsSelectingOcrRegion = false;
         public int OcrSelectionState = 0;
         public Vector2 OcrDragStart = Vector2.Zero;
         public DateTime LastOcrScanTime = DateTime.MinValue;
+        public bool TriggerOneShotOcr = false;
 
-        // Editing State (временные копии для безопасного Cancel)
         public bool IsEditing = false;
         public string EditMapName = "";
         public string EditDifficulty = "";
@@ -77,7 +77,6 @@ namespace TdsOverlayImGui.UI
         public string EditorToastMessage = "";
         public float EditorToastTimer = 0.0f;
 
-        // Modals
         public bool ShowAddMapModal = false;
         public string NewMapName = "";
         public string NewMapDiff = "Fallen";

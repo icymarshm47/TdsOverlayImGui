@@ -1,15 +1,13 @@
+using System;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using ImGuiNET;
+using TdsOverlayImGui.Services;
 
 namespace TdsOverlayImGui.UI.Components
 {
     public static class InstructionRenderer
     {
-        private static readonly Regex OcrTagRegex = new Regex(
-            @"<ocr\s+([\d\-]+)(?:\s+([\w\-]+))?\s*(?:>(.*?)</ocr[^>]*>|/?>)",
-            RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
         public static bool IsCheckbox(string line, out bool isCheckedInText, out string cleanText)
         {
             isCheckedInText = false;
@@ -63,17 +61,16 @@ namespace TdsOverlayImGui.UI.Components
 
             bool hasCheckbox = IsCheckbox(rawLine, out bool defaultCheckedInText, out string lineAfterCheck);
 
-            var ocrMatches = OcrTagRegex.Matches(lineAfterCheck);
+            var matches = AudioService.AlertTagRegex.Matches(lineAfterCheck);
             bool isTagActive = false;
             string displayText = lineAfterCheck;
+            Vector4? tagBadgeColor = null;
 
-            if (ocrMatches.Count > 0)
+            if (matches.Count > 0)
             {
-                foreach (Match ocrMatch in ocrMatches)
+                foreach (Match match in matches)
                 {
-                    string waveSpec = ocrMatch.Groups[1].Value.Trim();
-                    string alertType = ocrMatch.Groups[2].Success ? ocrMatch.Groups[2].Value.Trim().ToLowerInvariant() : "";
-
+                    string waveSpec = match.Groups[1].Value.Trim();
                     int startW = 0, endW = 0;
                     if (waveSpec.Contains('-'))
                     {
@@ -90,25 +87,50 @@ namespace TdsOverlayImGui.UI.Components
                     if (activeWave >= startW && activeWave <= endW && startW > 0)
                     {
                         isTagActive = true;
-
-                        string soundKey = $"{taskKey}|w:{activeWave}";
-                        if (ctx.TriggeredOcrSounds.Add(soundKey) && ctx.Settings.EnableOcrSound)
-                        {
-                            AudioService.PlayOcrBeep();
-                        }
-
-                        if (!string.IsNullOrEmpty(alertType))
-                        {
-                            string alertKey = $"{taskKey}|w:{activeWave}|a:{alertType}";
-                            if (ctx.TriggeredDjAlerts.Add(alertKey))
-                            {
-                                AudioService.TriggerAlert(ctx, alertType);
-                            }
-                        }
                     }
+
+                    string rawType = match.Groups[2].Success ? match.Groups[2].Value.Trim().ToLowerInvariant().Replace(' ', '_').Replace('-', '_') : "";
+                    if (rawType is "chain_commander" or "commander" or "chain" or "cta")
+                        tagBadgeColor = new Vector4(1.0f, 0.72f, 0.15f, 1.0f);
+                    else if (rawType == "red")
+                        tagBadgeColor = new Vector4(1.0f, 0.28f, 0.32f, 1.0f);
+                    else if (rawType == "green")
+                        tagBadgeColor = new Vector4(0.25f, 1.0f, 0.45f, 1.0f);
+                    else if (rawType == "purple")
+                        tagBadgeColor = new Vector4(0.85f, 0.38f, 1.0f, 1.0f);
+                    else if (rawType == "medic")
+                        tagBadgeColor = new Vector4(0.20f, 0.85f, 1.0f, 1.0f);
                 }
 
-                displayText = OcrTagRegex.Replace(lineAfterCheck, m => m.Groups[3].Success ? m.Groups[3].Value : "");
+                string stripped = AudioService.AlertTagRegex.Replace(lineAfterCheck, m =>
+                {
+                    string inside = m.Groups[3].Success ? m.Groups[3].Value :
+                        (m.Groups[4].Success ? m.Groups[4].Value : "");
+                    return inside;
+                }).Trim();
+
+                if (string.IsNullOrWhiteSpace(stripped))
+                {
+                    Match first = matches[0];
+                    string waveSpec = first.Groups[1].Value.Trim();
+                    string rawType = first.Groups[2].Success ? first.Groups[2].Value.Trim().ToLowerInvariant().Replace(' ', '_').Replace('-', '_') : "";
+
+                    string label = rawType switch
+                    {
+                        "chain_commander" or "commander" or "chain" or "cta" => $"[ ⚡ CHAIN COMMANDER (W:{waveSpec}) ]",
+                        "red" => $"[ 🎵 DJ RED TRACK (W:{waveSpec}) ]",
+                        "green" => $"[ 🎵 DJ GREEN TRACK (W:{waveSpec}) ]",
+                        "purple" => $"[ 🎵 DJ PURPLE TRACK (W:{waveSpec}) ]",
+                        "medic" => $"[ ➕ MEDIC CLEANSE (W:{waveSpec}) ]",
+                        _ => $"[ ⚠ ALERT (W:{waveSpec}) ]"
+                    };
+
+                    displayText = label;
+                }
+                else
+                {
+                    displayText = stripped;
+                }
             }
 
             if (!hasCheckbox)
@@ -139,13 +161,13 @@ namespace TdsOverlayImGui.UI.Components
 
                 ImGui.SameLine();
 
-                RenderLineText(displayText, isTagActive, isDone);
+                RenderLineText(displayText, isTagActive, isDone, tagBadgeColor);
 
                 ImGui.PopID();
             }
             else
             {
-                RenderLineText(displayText, isTagActive, false);
+                RenderLineText(displayText, isTagActive, false, tagBadgeColor);
             }
 
             if (indentPixels > 0)
@@ -154,13 +176,14 @@ namespace TdsOverlayImGui.UI.Components
             }
         }
 
-        public static void RenderLineText(string text, bool isTagActive, bool isDone)
+        public static void RenderLineText(string text, bool isTagActive, bool isDone, Vector4? customColor = null)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
 
             if (isTagActive && !isDone)
             {
-                SafeTextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), "[WAVE!] ");
+                Vector4 activeBadge = customColor ?? new Vector4(0.3f, 1.0f, 0.4f, 1.0f);
+                SafeTextColored(activeBadge, "[WAVE!] ");
                 ImGui.SameLine(0, 0);
             }
 
@@ -170,8 +193,11 @@ namespace TdsOverlayImGui.UI.Components
                 return;
             }
 
-            Vector4 plainColor = isTagActive ? new Vector4(0.3f, 1.0f, 0.4f, 1.0f) : new Vector4(0.92f, 0.92f, 0.96f, 1.0f);
-            SafeTextWrapped(plainColor, text);
+            Vector4 textColor = isTagActive
+                ? (customColor ?? new Vector4(0.3f, 1.0f, 0.4f, 1.0f))
+                : (customColor.HasValue ? new Vector4(customColor.Value.X, customColor.Value.Y, customColor.Value.Z, 0.9f) : new Vector4(0.92f, 0.92f, 0.96f, 1.0f));
+
+            SafeTextWrapped(textColor, text);
         }
 
         public static void SafeTextColored(Vector4 color, string text)

@@ -1,12 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace TdsOverlayImGui.Services
 {
     public static class AudioService
     {
+        public static readonly Regex AlertTagRegex = new Regex(
+            @"[<\[](?:ocr|alert|wave)\s+([\d]+(?:-[\d]+)?)(?:[\s,:]+([a-zA-Z0-9_\-]+(?:\s+[a-zA-Z0-9_\-]+)*))?\s*(?:>(.*?)</(?:ocr|alert|wave)>|\](.*?)[\[]/(?:ocr|alert|wave)\]|/?>|\])",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+
         public static void PlayOcrBeep()
         {
             Task.Run(() =>
@@ -27,12 +32,37 @@ namespace TdsOverlayImGui.Services
             });
         }
 
+        public static void PlayCommanderTone()
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    System.Media.SystemSounds.Exclamation.Play();
+                }
+                catch
+                {
+                    try
+                    {
+                        Console.Beep(587, 100);
+                        Console.Beep(880, 200);
+                    }
+                    catch { }
+                }
+            });
+        }
+
         public static void OnWaveChanged(OverlayContext ctx, int newWave)
         {
             if (newWave < ctx.PreviousWaveNumber)
             {
                 RemoveTriggersForWaveOrHigher(ctx.TriggeredOcrSounds, newWave);
                 RemoveTriggersForWaveOrHigher(ctx.TriggeredDjAlerts, newWave);
+            }
+            if (newWave <= 1)
+            {
+                ctx.TriggeredDjAlerts.Clear();
+                ctx.TriggeredOcrSounds.Clear();
             }
             ctx.PreviousWaveNumber = newWave;
         }
@@ -65,32 +95,12 @@ namespace TdsOverlayImGui.Services
             });
         }
 
-        public static void PlayCommanderTone()
-        {
-            Task.Run(() =>
-            {
-                try
-                {
-                    System.Media.SystemSounds.Exclamation.Play();
-                }
-                catch
-                {
-                    try
-                    {
-                        Console.Beep(587, 100);
-                        Console.Beep(880, 200);
-                    }
-                    catch { }
-                }
-            });
-        }
-
-        public static void TriggerAlert(OverlayContext ctx, string alertType)
+        public static void TriggerAlert(OverlayContext ctx, string alertType, string customTitle = "")
         {
             ctx.AlertToastMaxDuration = 4.0f;
             ctx.AlertToastTimer = ctx.AlertToastMaxDuration;
 
-            string type = alertType.Trim().ToLowerInvariant();
+            string type = alertType.Trim().ToLowerInvariant().Replace(' ', '_').Replace('-', '_');
             switch (type)
             {
                 case "red":
@@ -98,6 +108,7 @@ namespace TdsOverlayImGui.Services
                     ctx.AlertToastTitle = Loc.Tr("DjToastRed");
                     ctx.AlertToastSubtitle = Loc.Tr("DjToastRedSub");
                     ctx.AlertToastColor = new Vector4(1.0f, 0.28f, 0.32f, 1.0f);
+                    PlayOcrBeep();
                     break;
 
                 case "green":
@@ -105,6 +116,7 @@ namespace TdsOverlayImGui.Services
                     ctx.AlertToastTitle = Loc.Tr("DjToastGreen");
                     ctx.AlertToastSubtitle = Loc.Tr("DjToastGreenSub");
                     ctx.AlertToastColor = new Vector4(0.25f, 1.0f, 0.45f, 1.0f);
+                    PlayOcrBeep();
                     break;
 
                 case "purple":
@@ -112,6 +124,7 @@ namespace TdsOverlayImGui.Services
                     ctx.AlertToastTitle = Loc.Tr("DjToastPurple");
                     ctx.AlertToastSubtitle = Loc.Tr("DjToastPurpleSub");
                     ctx.AlertToastColor = new Vector4(0.85f, 0.38f, 1.0f, 1.0f);
+                    PlayOcrBeep();
                     break;
 
                 case "chain_commander":
@@ -125,11 +138,20 @@ namespace TdsOverlayImGui.Services
                     PlayCommanderTone();
                     break;
 
+                case "medic":
+                    ctx.AlertToastBadge = "MEDIC ABILITY";
+                    ctx.AlertToastTitle = Loc.Tr("MedicToastTitle");
+                    ctx.AlertToastSubtitle = Loc.Tr("MedicToastSubtitle");
+                    ctx.AlertToastColor = new Vector4(0.20f, 0.85f, 1.0f, 1.0f);
+                    PlayCommanderTone();
+                    break;
+
                 default:
                     ctx.AlertToastBadge = "ALERT";
-                    ctx.AlertToastTitle = alertType.ToUpperInvariant();
+                    ctx.AlertToastTitle = string.IsNullOrWhiteSpace(customTitle) ? alertType.ToUpperInvariant() : customTitle;
                     ctx.AlertToastSubtitle = "";
                     ctx.AlertToastColor = new Vector4(0.40f, 0.75f, 1.0f, 1.0f);
+                    PlayCommanderTone();
                     break;
             }
         }
@@ -137,6 +159,64 @@ namespace TdsOverlayImGui.Services
         public static void TriggerDjToast(OverlayContext ctx, string color)
         {
             TriggerAlert(ctx, color);
+        }
+
+        public static void CheckAndTriggerAlertsForWave(OverlayContext ctx, int activeWave)
+        {
+            var map = ctx.CurrentMap;
+            if (map == null) return;
+
+            ctx.UpdateStepByWaveNumber(map, activeWave);
+
+            ScanTextForAlerts(ctx, map.TaskId, map.GeneralInfo, activeWave);
+
+            for (int i = 0; i < map.Steps.Count; i++)
+            {
+                var s = map.Steps[i];
+                ScanTextForAlerts(ctx, map.TaskId, s.Instruction, activeWave);
+            }
+        }
+
+        private static void ScanTextForAlerts(OverlayContext ctx, string mapTaskId, string? text, int activeWave)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            var matches = AlertTagRegex.Matches(text);
+            foreach (Match match in matches)
+            {
+                string waveSpec = match.Groups[1].Value.Trim();
+                int startW = 0, endW = 0;
+                if (waveSpec.Contains('-'))
+                {
+                    var parts = waveSpec.Split('-');
+                    int.TryParse(parts[0], out startW);
+                    int.TryParse(parts[1], out endW);
+                }
+                else
+                {
+                    int.TryParse(waveSpec, out startW);
+                    endW = startW;
+                }
+
+                if (activeWave >= startW && activeWave <= endW && startW > 0)
+                {
+                    string rawType = match.Groups[2].Success ? match.Groups[2].Value.Trim() : "";
+                    string customInside = match.Groups[3].Success ? match.Groups[3].Value.Trim() :
+                        (match.Groups[4].Success ? match.Groups[4].Value.Trim() : "");
+
+                    string normType = rawType.ToLowerInvariant().Replace(' ', '_').Replace('-', '_');
+                    if (string.IsNullOrEmpty(normType))
+                    {
+                        normType = "alert";
+                    }
+
+                    string alertKey = $"{mapTaskId}|w:{activeWave}|a:{normType}";
+                    if (ctx.TriggeredDjAlerts.Add(alertKey))
+                    {
+                        TriggerAlert(ctx, normType, customInside);
+                    }
+                }
+            }
         }
     }
 }

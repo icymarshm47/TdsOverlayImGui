@@ -2,7 +2,6 @@ using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -15,11 +14,14 @@ namespace TdsOverlayImGui.Services
     public static class OcrService
     {
         private static OcrEngine? _ocrEngine;
-        private static readonly Regex WaveDigitsRegex = new Regex(@"\d+", RegexOptions.Compiled);
 
-        public static async Task<int?> RecognizeWaveFromScreenAsync(int x, int y, int width, int height, bool preprocess = true)
+        private static readonly Regex WaveWordRegex = new Regex(@"(?:wave|волна|w)[\s:.]*(\d{1,3})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex WaveFractionRegex = new Regex(@"(\d{1,3})\s*[\/|\\]\s*\d{1,3}", RegexOptions.Compiled);
+        private static readonly Regex WaveStandaloneRegex = new Regex(@"\b(\d{1,3})\b", RegexOptions.Compiled);
+
+        public static async Task<(int? wave, string rawText)> RecognizeWaveFromScreenAsync(int x, int y, int width, int height, bool preprocess = true)
         {
-            if (width <= 2 || height <= 2) return null;
+            if (width <= 2 || height <= 2) return (null, "");
 
             try
             {
@@ -29,29 +31,40 @@ namespace TdsOverlayImGui.Services
                     g.CopyFromScreen(x, y, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
                 }
 
-                // Попытка 1: с повышением контраста и полями (лучше всего для шрифта Roblox)
-                int? result = await RunOcrOnBitmapAsync(rawBitmap, preprocess);
-                if (result.HasValue)
-                    return result;
+                var cleanResult = await RunOcrOnBitmapAsync(rawBitmap, false);
+                if (cleanResult.wave.HasValue)
+                {
+                    return cleanResult;
+                }
 
-                // Попытка 2 (фолбэк): если бинаризация съела цветной текст, пробуем чистый апскейл
                 if (preprocess)
                 {
-                    return await RunOcrOnBitmapAsync(rawBitmap, false);
+                    var boostedResult = await RunOcrOnBitmapAsync(rawBitmap, true);
+                    if (boostedResult.wave.HasValue)
+                    {
+                        return boostedResult;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(boostedResult.rawText))
+                    {
+                        return boostedResult;
+                    }
                 }
+
+                return cleanResult;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Windows OCR Error: {ex.Message}");
             }
 
-            return null;
+            return (null, "");
         }
 
-        private static async Task<int?> RunOcrOnBitmapAsync(Bitmap rawBitmap, bool applyThreshold)
+        private static async Task<(int? wave, string rawText)> RunOcrOnBitmapAsync(Bitmap rawBitmap, bool applyContrast)
         {
             int scale = 4;
-            int pad = 16;
+            int pad = 14;
             int scaledW = rawBitmap.Width * scale + pad * 2;
             int scaledH = rawBitmap.Height * scale + pad * 2;
 
@@ -65,9 +78,9 @@ namespace TdsOverlayImGui.Services
                 gProc.DrawImage(rawBitmap, pad, pad, rawBitmap.Width * scale, rawBitmap.Height * scale);
             }
 
-            if (applyThreshold)
+            if (applyContrast)
             {
-                ApplyHighContrastPreprocess(processedBitmap);
+                ApplyContrastBoost(processedBitmap);
             }
 
             var rect = new Rectangle(0, 0, processedBitmap.Width, processedBitmap.Height);
@@ -98,16 +111,15 @@ namespace TdsOverlayImGui.Services
             _ocrEngine ??= OcrEngine.TryCreateFromLanguage(new Windows.Globalization.Language("en-US"))
                         ?? OcrEngine.TryCreateFromUserProfileLanguages();
 
-            if (_ocrEngine == null) return null;
+            if (_ocrEngine == null) return (null, "");
 
             var ocrResult = await _ocrEngine.RecognizeAsync(softwareBitmap);
-            return ExtractWaveNumber(ocrResult.Text);
+            string rawText = (ocrResult.Text ?? "").Trim();
+            int? wave = ExtractWaveNumber(rawText);
+            return (wave, rawText);
         }
 
-        /// <summary>
-        /// Делает светлый текст волны черным на белом фоне (идеально для Windows OCR)
-        /// </summary>
-        private static void ApplyHighContrastPreprocess(Bitmap bmp)
+        private static void ApplyContrastBoost(Bitmap bmp)
         {
             var rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
             var data = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
@@ -117,10 +129,8 @@ namespace TdsOverlayImGui.Services
                 byte[] pixels = new byte[byteCount];
                 Marshal.Copy(data.Scan0, pixels, 0, byteCount);
 
-                // Находим среднюю и максимальную яркость для адаптивного порога
+                int minLum = 255;
                 int maxLum = 0;
-                long sumLum = 0;
-                int totalPixels = bmp.Width * bmp.Height;
 
                 for (int i = 0; i < byteCount; i += 4)
                 {
@@ -128,29 +138,30 @@ namespace TdsOverlayImGui.Services
                     int g = pixels[i + 1];
                     int r = pixels[i + 2];
                     int lum = (r * 299 + g * 587 + b * 114) / 1000;
-                    sumLum += lum;
+                    if (lum < minLum) minLum = lum;
                     if (lum > maxLum) maxLum = lum;
                 }
 
-                int avgLum = (int)(sumLum / Math.Max(1, totalPixels));
-                int threshold = Math.Clamp((avgLum + maxLum) / 2, 115, 200);
-
-                for (int i = 0; i < byteCount; i += 4)
+                int range = maxLum - minLum;
+                if (range > 20)
                 {
-                    int b = pixels[i];
-                    int g = pixels[i + 1];
-                    int r = pixels[i + 2];
-                    int lum = (r * 299 + g * 587 + b * 114) / 1000;
+                    for (int i = 0; i < byteCount; i += 4)
+                    {
+                        int b = pixels[i];
+                        int g = pixels[i + 1];
+                        int r = pixels[i + 2];
 
-                    // Инвертируем: яркий текст делаем черным (0), а темный фон — белым (255)
-                    byte val = lum >= threshold ? (byte)0 : (byte)255;
-                    pixels[i] = val;
-                    pixels[i + 1] = val;
-                    pixels[i + 2] = val;
-                    pixels[i + 3] = 255;
+                        int lum = (r * 299 + g * 587 + b * 114) / 1000;
+                        int stretched = Math.Clamp((lum - minLum) * 255 / range, 0, 255);
+
+                        pixels[i] = (byte)stretched;
+                        pixels[i + 1] = (byte)stretched;
+                        pixels[i + 2] = (byte)stretched;
+                        pixels[i + 3] = 255;
+                    }
+
+                    Marshal.Copy(pixels, 0, data.Scan0, byteCount);
                 }
-
-                Marshal.Copy(pixels, 0, data.Scan0, byteCount);
             }
             finally
             {
@@ -158,11 +169,10 @@ namespace TdsOverlayImGui.Services
             }
         }
 
-        private static int? ExtractWaveNumber(string rawText)
+        public static int? ExtractWaveNumber(string rawText)
         {
             if (string.IsNullOrWhiteSpace(rawText)) return null;
 
-            // Исправляем типичные промахи OCR на игровых шрифтах
             string cleaned = rawText
                 .Replace('O', '0').Replace('o', '0')
                 .Replace('I', '1').Replace('l', '1').Replace('|', '1')
@@ -170,8 +180,19 @@ namespace TdsOverlayImGui.Services
                 .Replace('B', '8')
                 .Replace('Z', '2');
 
-            // Если в строке формат вроде "14/40" или "Wave 14", берем первое адекватное число
-            var matches = WaveDigitsRegex.Matches(cleaned);
+            var matchWord = WaveWordRegex.Match(cleaned);
+            if (matchWord.Success && int.TryParse(matchWord.Groups[1].Value, out int waveFromWord) && waveFromWord >= 1 && waveFromWord <= 200)
+            {
+                return waveFromWord;
+            }
+
+            var matchFraction = WaveFractionRegex.Match(cleaned);
+            if (matchFraction.Success && int.TryParse(matchFraction.Groups[1].Value, out int waveFromFraction) && waveFromFraction >= 1 && waveFromFraction <= 200)
+            {
+                return waveFromFraction;
+            }
+
+            var matches = WaveStandaloneRegex.Matches(cleaned);
             foreach (Match m in matches)
             {
                 if (int.TryParse(m.Value, out int waveNum) && waveNum >= 1 && waveNum <= 200)

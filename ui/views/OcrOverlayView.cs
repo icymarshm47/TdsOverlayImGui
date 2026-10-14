@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using ImGuiNET;
+using TdsOverlayImGui.Services;
 
 namespace TdsOverlayImGui.UI.Views
 {
@@ -10,31 +11,50 @@ namespace TdsOverlayImGui.UI.Views
     {
         private static int _isScanning = 0;
         private static int _pendingDetectedWave = -1;
+        private static string? _pendingRawText = null;
 
         public static void ProcessBackgroundOcr(OverlayContext ctx)
         {
+            if (_pendingRawText != null)
+            {
+                ctx.LastOcrRawText = _pendingRawText;
+                _pendingRawText = null;
+
+                if (string.IsNullOrWhiteSpace(ctx.LastOcrRawText))
+                {
+                    ctx.LastOcrStatus = Loc.Tr("OcrScanningTag");
+                }
+                else
+                {
+                    ctx.LastOcrStatus = $"\"{ctx.LastOcrRawText}\"";
+                }
+            }
+
             int waveVal = Interlocked.Exchange(ref _pendingDetectedWave, -1);
             if (waveVal > 0)
             {
                 if (ctx.Settings.EnableOcr && ctx.CurrentMap != null)
                 {
-                    if (waveVal < ctx.CurrentWaveNumber && waveVal <= 2)
-                    {
-                        ctx.TriggeredDjAlerts.Clear();
-                        ctx.TriggeredOcrSounds.Clear();
-                    }
+                    ctx.LastOcrSuccessTime = DateTime.Now;
+                    ctx.LastOcrStatus = $"Волна {waveVal}";
 
                     AudioService.OnWaveChanged(ctx, waveVal);
                     ctx.DetectedWaveNumber = waveVal;
                     ctx.CurrentWaveNumber = waveVal;
 
-                    ctx.UpdateStepByWaveNumber(ctx.CurrentMap, waveVal);
+                    AudioService.CheckAndTriggerAlertsForWave(ctx, waveVal);
                 }
             }
 
-            if (!ctx.Settings.EnableOcr || ctx.CurrentMap == null || _isScanning == 1) return;
+            bool shouldOneShot = ctx.TriggerOneShotOcr;
+            if (shouldOneShot)
+            {
+                ctx.TriggerOneShotOcr = false;
+            }
 
-            if ((DateTime.Now - ctx.LastOcrScanTime).TotalSeconds >= 1.2)
+            if ((!ctx.Settings.EnableOcr && !shouldOneShot) || ctx.CurrentMap == null || _isScanning == 1) return;
+
+            if (shouldOneShot || (DateTime.Now - ctx.LastOcrScanTime).TotalSeconds >= 1.0)
             {
                 ctx.LastOcrScanTime = DateTime.Now;
                 Interlocked.Exchange(ref _isScanning, 1);
@@ -49,7 +69,8 @@ namespace TdsOverlayImGui.UI.Views
                 {
                     try
                     {
-                        int? wave = await OcrService.RecognizeWaveFromScreenAsync(x, y, w, h, preprocess);
+                        var (wave, rawText) = await OcrService.RecognizeWaveFromScreenAsync(x, y, w, h, preprocess);
+                        _pendingRawText = rawText;
                         if (wave.HasValue)
                         {
                             Interlocked.Exchange(ref _pendingDetectedWave, wave.Value);
@@ -68,7 +89,7 @@ namespace TdsOverlayImGui.UI.Views
             var io = ImGui.GetIO();
             Vector2 screenSize = io.DisplaySize.X > 0 && io.DisplaySize.Y > 0
                 ? io.DisplaySize
-                : new Vector2(3840, 2160);
+                : new Vector2(1920, 1080);
 
             ImGui.SetNextWindowPos(Vector2.Zero);
             ImGui.SetNextWindowSize(screenSize);
@@ -76,11 +97,14 @@ namespace TdsOverlayImGui.UI.Views
 
             var drawList = ImGui.GetForegroundDrawList();
 
-            drawList.AddRectFilled(Vector2.Zero, screenSize, 0x99000000);
-            drawList.AddText(new Vector2(30, 30), 0xFF00FFFF, Loc.Tr("OcrOverlayInstruction"));
+            drawList.AddRectFilled(Vector2.Zero, screenSize, 0x88000000);
+            drawList.AddText(new Vector2(40, 40), 0xFF00FFFF, Loc.Tr("OcrOverlayInstruction"));
 
             if (ctx.OcrSelectionState == 0)
             {
+                drawList.AddLine(new Vector2(io.MousePos.X - 15, io.MousePos.Y), new Vector2(io.MousePos.X + 15, io.MousePos.Y), 0xFF00FFFF, 1.5f);
+                drawList.AddLine(new Vector2(io.MousePos.X, io.MousePos.Y - 15), new Vector2(io.MousePos.X, io.MousePos.Y + 15), 0xFF00FFFF, 1.5f);
+
                 if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
                     ctx.OcrDragStart = io.MousePos;
@@ -101,7 +125,7 @@ namespace TdsOverlayImGui.UI.Views
 
                 if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
                 {
-                    if (w > 2 && h > 2)
+                    if (w > 4 && h > 4)
                     {
                         ctx.Settings.OcrX = (int)min.X;
                         ctx.Settings.OcrY = (int)min.Y;
@@ -113,6 +137,7 @@ namespace TdsOverlayImGui.UI.Views
 
                         ctx.LastOcrScanTime = DateTime.MinValue;
                         ctx.DetectedWaveNumber = null;
+                        ctx.TriggerOneShotOcr = true;
                     }
 
                     ctx.IsSelectingOcrRegion = false;
