@@ -117,10 +117,6 @@ namespace TdsOverlayImGui.UI.Views
             float spacing = 6.0f;
             float btnW = (availW - spacing * 2.0f) / 3.0f;
 
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(71f / 255f, 74f / 255f, 81f / 255f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
-
             if (ImGui.Button(Loc.Tr("CreateBtn"), new Vector2(btnW, 0)))
             {
                 ctx.ShowAddMapModal = true;
@@ -138,7 +134,6 @@ namespace TdsOverlayImGui.UI.Views
                 ctx.ShowDeleteConfirmModal = true;
             }
 
-            ImGui.PopStyleColor(3);
             ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 5.0f));
         }
 
@@ -189,17 +184,11 @@ namespace TdsOverlayImGui.UI.Views
             float btnX = contentX + availW - btnW;
             ImGui.SetCursorScreenPos(new Vector2(btnX, startY));
 
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(71f / 255f, 74f / 255f, 81f / 255f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
-
             if (ImGui.Button(Loc.Tr("SelectScreenAreaBtn"), new Vector2(btnW, 0)))
             {
                 ctx.IsSelectingOcrRegion = true;
                 ctx.OcrSelectionState = 0;
             }
-
-            ImGui.PopStyleColor(3);
 
             if (ctx.Settings.EnableOcr && !string.IsNullOrWhiteSpace(ctx.LastOcrStatus))
             {
@@ -321,6 +310,21 @@ namespace TdsOverlayImGui.UI.Views
                 new Vector2(nextBtnX + btnSize - 18.0f, rowStart.Y + btnSize * 0.5f + 5.0f),
                 0xFFFFFFFF);
 
+            if (currentMap.Steps.Count > 0)
+            {
+                string stepLabel = $"{Loc.Tr("Step")} {ctx.CurrentStepIndex + 1}";
+                string stepTotal = $"/ {currentMap.Steps.Count}";
+                float stepLabelW = ImGui.CalcTextSize(stepLabel).X;
+                float stepTotalW = ImGui.CalcTextSize(stepTotal).X;
+                float stepBlockW = stepLabelW + 6.0f + stepTotalW;
+                float stepStartX = Math.Max(nextBtnX + btnSize + 10.0f, contentX + availW - stepBlockW);
+
+                ImGui.SetCursorScreenPos(new Vector2(stepStartX, baselineY));
+                InstructionRenderer.SafeTextColored(new Vector4(1f, 1f, 1f, 1f), stepLabel);
+                ImGui.SetCursorScreenPos(new Vector2(stepStartX + stepLabelW + 6.0f, baselineY));
+                InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), stepTotal);
+            }
+
             float progressY = rowStart.Y + btnSize + 6.0f;
             ImGui.SetCursorScreenPos(new Vector2(contentX, progressY));
             float progress = Math.Clamp((float)activeWave / maxWave, 0.0f, 1.0f);
@@ -418,10 +422,6 @@ namespace TdsOverlayImGui.UI.Views
             float copyW = ImGui.CalcTextSize(copyText).X + ImGui.GetStyle().FramePadding.X * 2.0f + 6.0f;
             float clearW = ImGui.CalcTextSize(clearText).X + ImGui.GetStyle().FramePadding.X * 2.0f + 6.0f;
 
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(71f / 255f, 74f / 255f, 81f / 255f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
-
             if (ImGui.Button(copyText, new Vector2(copyW, 0)))
             {
                 ImagePickerHelper.SetClipboardText(step.Instruction);
@@ -436,8 +436,6 @@ namespace TdsOverlayImGui.UI.Views
                 ctx.TriggeredOcrSounds.Clear();
                 StrategyService.SaveCompletedTasks(ctx.CompletedTasks);
             }
-
-            ImGui.PopStyleColor(3);
 
             if (ctx.ToastTimer > 0)
             {
@@ -454,7 +452,7 @@ namespace TdsOverlayImGui.UI.Views
 
             float lineH = ImGui.GetTextLineHeightWithSpacing() + 4.0f;
             float contentH = Math.Max(1, lines.Length) * lineH + 16.0f;
-            float availY = ImGui.GetContentRegionAvail().Y - (currentMap.ImagePaths.Count > 0 && !ctx.Settings.SeparateImageWindow ? 160.0f : 24.0f);
+            float availY = ImGui.GetContentRegionAvail().Y - 24.0f;
             float textH = Math.Clamp(contentH, 40.0f, Math.Max(80.0f, availY));
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f));
@@ -478,7 +476,7 @@ namespace TdsOverlayImGui.UI.Views
                 }
             }
 
-            if (ctx.Settings.SeparateImageWindow && currentMap.ImagePaths.Count > 0)
+            if (currentMap.ImagePaths.Count > 0)
             {
                 ImGui.Spacing();
                 ImGui.TextDisabled($"{Loc.Tr("SeparateImageNotice")} ({currentMap.ImagePaths.Count})");
@@ -487,20 +485,6 @@ namespace TdsOverlayImGui.UI.Views
             ImGui.EndChild();
             ImGui.PopStyleVar(2);
             ImGui.PopStyleColor(2);
-
-            if (!ctx.Settings.SeparateImageWindow && currentMap.ImagePaths.Count > 0)
-            {
-                ImGui.Spacing();
-                ImGui.Separator();
-
-                ImageViewer.RenderImageSelector(ctx, currentMap);
-
-                string? currentImg = ImageViewer.GetActiveImagePath(ctx, currentMap);
-                if (!string.IsNullOrEmpty(currentImg) && File.Exists(currentImg))
-                {
-                    ImageViewer.RenderImageCanvas(overlay, ctx, currentImg, ctx.Settings.EmbeddedImageBoxHeight, $"EmbeddedCanvas_{ctx.CurrentImageIndex}", enableResizeGrip: true);
-                }
-            }
 
             ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 5.0f));
         }
