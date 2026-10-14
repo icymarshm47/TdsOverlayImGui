@@ -2,24 +2,32 @@ bin/
 obj/
 [Dd]ebug/
 [Rr]elease/
+publish/
 x64/
 x86/
 
 .vs/
 .idea/
+.vscode/
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
+*.DotSettings.user
 
+imgui.ini
+settings.json
+completed_tasks.json
+images/
 exports/
 strategies/
+
+*.zip
+*.7z
+*.tar.gz
 
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-
-*.png
-imgui.ini
-settings.json
-completed_tasks.json
+*.log
+*.tmp
