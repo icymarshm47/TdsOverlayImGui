@@ -216,7 +216,7 @@ namespace TdsOverlayImGui.Views
                             ctx.TriggeredDjAlerts.Clear();
                             ctx.TriggeredOcrSounds.Clear();
                         }
-                        ToastAndAudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
+                        AudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
                         activeWave = ctx.CurrentWaveNumber;
                         ctx.UpdateStepByWaveNumber(currentMap, ctx.CurrentWaveNumber);
                     }
@@ -246,7 +246,7 @@ namespace TdsOverlayImGui.Views
                         ctx.CurrentStepIndex = 0;
                         ctx.CurrentWaveNumber = currentMap.Steps[0].StartWave;
                         ctx.DetectedWaveNumber = null;
-                        ToastAndAudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
+                        AudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
                         ctx.ResetImageTransform();
                     }
                     ImGui.SameLine();
@@ -257,7 +257,7 @@ namespace TdsOverlayImGui.Views
                             ctx.CurrentStepIndex--;
                             ctx.CurrentWaveNumber = currentMap.Steps[ctx.CurrentStepIndex].StartWave;
                             ctx.DetectedWaveNumber = null;
-                            ToastAndAudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
+                            AudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
                             ctx.ResetImageTransform();
                         }
                     }
@@ -269,7 +269,7 @@ namespace TdsOverlayImGui.Views
                             ctx.CurrentStepIndex++;
                             ctx.CurrentWaveNumber = currentMap.Steps[ctx.CurrentStepIndex].StartWave;
                             ctx.DetectedWaveNumber = null;
-                            ToastAndAudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
+                            AudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
                             ctx.ResetImageTransform();
                         }
                     }
@@ -279,7 +279,7 @@ namespace TdsOverlayImGui.Views
                         ctx.CurrentStepIndex = currentMap.Steps.Count - 1;
                         ctx.CurrentWaveNumber = currentMap.Steps[^1].StartWave;
                         ctx.DetectedWaveNumber = null;
-                        ToastAndAudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
+                        AudioService.OnWaveChanged(ctx, ctx.CurrentWaveNumber);
                         ctx.ResetImageTransform();
                     }
 

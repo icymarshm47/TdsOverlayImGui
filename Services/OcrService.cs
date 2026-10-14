@@ -10,7 +10,7 @@ using Windows.Graphics.Imaging;
 using Windows.Media.Ocr;
 using Windows.Storage.Streams;
 
-namespace TdsOverlayImGui
+namespace TdsOverlayImGui.Services
 {
     public static class OcrService
     {

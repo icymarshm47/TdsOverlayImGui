@@ -24,7 +24,7 @@ namespace TdsOverlayImGui.Views
                         ctx.TriggeredOcrSounds.Clear();
                     }
 
-                    Components.ToastAndAudioService.OnWaveChanged(ctx, waveVal);
+                    AudioService.OnWaveChanged(ctx, waveVal);
                     ctx.DetectedWaveNumber = waveVal;
                     ctx.CurrentWaveNumber = waveVal;
 

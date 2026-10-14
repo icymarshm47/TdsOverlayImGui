@@ -94,7 +94,7 @@ namespace TdsOverlayImGui.Components
                         string soundKey = $"{taskKey}|w:{activeWave}";
                         if (ctx.TriggeredOcrSounds.Add(soundKey) && ctx.Settings.EnableOcrSound)
                         {
-                            ToastAndAudioService.PlayOcrBeep();
+                            AudioService.PlayOcrBeep();
                         }
 
                         if (!string.IsNullOrEmpty(djColor))
@@ -102,7 +102,7 @@ namespace TdsOverlayImGui.Components
                             string alertKey = $"{taskKey}|w:{activeWave}|c:{djColor}";
                             if (ctx.TriggeredDjAlerts.Add(alertKey))
                             {
-                                ToastAndAudioService.TriggerDjToast(ctx, djColor);
+                                AudioService.TriggerDjToast(ctx, djColor);
                             }
                         }
                     }

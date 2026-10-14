@@ -5,7 +5,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace TdsOverlayImGui
+namespace TdsOverlayImGui.Services
 {
     public static class UpdateService
     {

@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace TdsOverlayImGui
+namespace TdsOverlayImGui.Services
 {
 
     public static class StrategyService
