@@ -65,17 +65,52 @@ namespace TdsOverlayImGui.Services
                 ctx.TriggeredOcrSounds.Clear();
             }
             ctx.PreviousWaveNumber = newWave;
-            ctx.LastCommanderAlertTime = DateTime.MinValue;
-            ctx.LastMedicAlertTime = DateTime.MinValue;
-            ctx.CommanderRotationIndex = 0;
-            ctx.IsCommanderChainStopped = false;
-            ctx.IsMedicChainStopped = false;
+
+            bool isCommanderActive = false;
+            bool isMedicActive = false;
+            var map = ctx.CurrentMap;
+            if (map != null)
+            {
+                ScanActiveAlerts(map.GeneralInfo, newWave, ref isCommanderActive, ref isMedicActive);
+                for (int i = 0; i < map.Steps.Count; i++)
+                {
+                    ScanActiveAlerts(map.Steps[i].Instruction, newWave, ref isCommanderActive, ref isMedicActive);
+                }
+            }
+
+            if (!isCommanderActive)
+            {
+                ctx.LastCommanderAlertTime = DateTime.MinValue;
+                ctx.CommanderRotationIndex = 0;
+                ctx.IsCommanderChainStopped = false;
+            }
+
+            if (!isMedicActive)
+            {
+                ctx.LastMedicAlertTime = DateTime.MinValue;
+                ctx.IsMedicChainStopped = false;
+            }
         }
 
         private static void RemoveTriggersForWaveOrHigher(HashSet<string> set, int targetWave)
         {
             set.RemoveWhere(key =>
             {
+                int rIndex = key.IndexOf("|range:", StringComparison.Ordinal);
+                if (rIndex >= 0)
+                {
+                    int start = rIndex + 7;
+                    int dash = key.IndexOf('-', start);
+                    if (dash >= 0)
+                    {
+                        string startWStr = key[start..dash];
+                        if (int.TryParse(startWStr, out int startW))
+                        {
+                            return startW > targetWave;
+                        }
+                    }
+                }
+
                 int wIndex = key.IndexOf("|w:", StringComparison.Ordinal);
                 if (wIndex >= 0)
                 {
@@ -262,7 +297,9 @@ namespace TdsOverlayImGui.Services
 
                 if (activeWave >= startW && activeWave <= endW && startW > 0)
                 {
-                    string alertKey = $"{mapTaskId}|w:{activeWave}|a:{normType}";
+                    string alertKey = (startW < endW)
+                        ? $"{mapTaskId}|range:{startW}-{endW}|a:{normType}"
+                        : $"{mapTaskId}|w:{activeWave}|a:{normType}";
                     if (ctx.TriggeredDjAlerts.Add(alertKey))
                     {
                         if (normType == "chain_commander")

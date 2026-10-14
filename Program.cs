@@ -186,7 +186,7 @@ namespace TdsOverlayImGui
         {
             Task.Run(async () =>
             {
-                var (available, latestTag, url, error) = await UpdateService.CheckForUpdatesAsync(
+                var (available, latestTag, url, errorKey) = await UpdateService.CheckForUpdatesAsync(
                     GitHubOwner, GitHubRepo, CurrentAppVersion);
 
                 if (available)
@@ -194,10 +194,14 @@ namespace TdsOverlayImGui
                     _ctx.LatestVersionTag = latestTag;
                     _ctx.ReleaseUrl = url;
                     _ctx.ShowUpdateModal = true;
+                    if (!silent)
+                    {
+                        _ctx.ManualCheckMessage = "";
+                    }
                 }
                 else if (!silent)
                 {
-                    _ctx.ManualCheckMessage = string.IsNullOrEmpty(error) ? Loc.Tr("NoUpdatesNotice") : error;
+                    _ctx.ManualCheckMessage = string.IsNullOrEmpty(errorKey) ? Loc.Tr("NoUpdatesNotice") : Loc.Tr(errorKey);
                     _ctx.ManualCheckMessageTimer = 5.0f;
                 }
             });
@@ -332,7 +336,7 @@ namespace TdsOverlayImGui
 
                     if (ImGui.MenuItem(Loc.Tr("CheckUpdates")))
                     {
-                        _ctx.ManualCheckMessage = "Checking...";
+                        _ctx.ManualCheckMessage = Loc.Tr("CheckingUpdates");
                         _ctx.ManualCheckMessageTimer = 5.0f;
                         CheckForUpdatesInBackground(silent: false);
                     }

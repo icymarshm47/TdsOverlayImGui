@@ -36,7 +36,7 @@ namespace TdsOverlayImGui.UI.Views
                 if (ctx.Settings.EnableOcr && ctx.CurrentMap != null)
                 {
                     ctx.LastOcrSuccessTime = DateTime.Now;
-                    ctx.LastOcrStatus = $"Волна {waveVal}";
+                    ctx.LastOcrStatus = $"{Loc.Tr("Wave")} {waveVal}";
 
                     AudioService.OnWaveChanged(ctx, waveVal);
                     ctx.DetectedWaveNumber = waveVal;

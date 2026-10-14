@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
-using System.Text.RegularExpressions;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace TdsOverlayImGui.Services
@@ -14,60 +14,114 @@ namespace TdsOverlayImGui.Services
             Timeout = TimeSpan.FromSeconds(10)
         };
 
-        public static async Task<(bool isUpdateAvailable, string latestVersionTag, string releaseUrl, string errorMessage)> CheckForUpdatesAsync(
+        public static async Task<(bool isUpdateAvailable, string latestVersionTag, string releaseUrl, string errorKey)> CheckForUpdatesAsync(
             string owner, string repo, string currentVersionStr)
         {
             try
             {
-                string apiUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
+                string releasesUrl = $"https://api.github.com/repos/{owner}/{repo}/releases?per_page=15";
+                string tagsUrl = $"https://api.github.com/repos/{owner}/{repo}/tags?per_page=15";
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
-                request.Headers.UserAgent.ParseAdd("TdsOverlayImGui");
-                request.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
+                Version? bestVersion = null;
+                string bestTag = "";
+                string bestUrl = "";
+                bool anySuccess = false;
 
-                using var response = await HttpClient.SendAsync(request);
-
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                try
                 {
-                    return (false, "", "", "Репозиторий не найден, приватный или не содержит релизов.");
-                }
+                    using var relReq = new HttpRequestMessage(HttpMethod.Get, releasesUrl);
+                    relReq.Headers.UserAgent.ParseAdd("TdsOverlayImGui");
+                    relReq.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    return (false, "", "", $"Ошибка GitHub API: {(int)response.StatusCode} {response.ReasonPhrase}");
-                }
-
-                string json = await response.Content.ReadAsStringAsync();
-                using var doc = System.Text.Json.JsonDocument.Parse(json);
-                var root = doc.RootElement;
-
-                if (!root.TryGetProperty("tag_name", out var tagElem))
-                {
-                    return (false, "", "", "Тег релиза не найден в ответе GitHub API.");
-                }
-
-                string tagName = tagElem.GetString() ?? "";
-                string releaseUrl = root.TryGetProperty("html_url", out var urlElem)
-                    ? urlElem.GetString() ?? $"https://github.com/{owner}/{repo}/releases/tag/{tagName}"
-                    : $"https://github.com/{owner}/{repo}/releases/tag/{tagName}";
-
-                var latestVer = ParseCleanVersion(tagName);
-                var currentVer = ParseCleanVersion(currentVersionStr);
-
-                if (latestVer != null && currentVer != null)
-                {
-                    if (latestVer > currentVer)
+                    using var relResp = await HttpClient.SendAsync(relReq);
+                    if (relResp.IsSuccessStatusCode)
                     {
-                        return (true, tagName, releaseUrl, "");
+                        anySuccess = true;
+                        string json = await relResp.Content.ReadAsStringAsync();
+                        using var doc = JsonDocument.Parse(json);
+                        if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var elem in doc.RootElement.EnumerateArray())
+                            {
+                                if (elem.TryGetProperty("draft", out var draftElem) && draftElem.GetBoolean())
+                                {
+                                    continue;
+                                }
+
+                                if (elem.TryGetProperty("tag_name", out var tagElem))
+                                {
+                                    string tag = tagElem.GetString() ?? "";
+                                    var ver = ParseCleanVersion(tag);
+                                    if (ver != null && (bestVersion == null || ver > bestVersion))
+                                    {
+                                        bestVersion = ver;
+                                        bestTag = tag;
+                                        bestUrl = elem.TryGetProperty("html_url", out var uElem)
+                                            ? uElem.GetString() ?? $"https://github.com/{owner}/{repo}/releases/tag/{tag}"
+                                            : $"https://github.com/{owner}/{repo}/releases/tag/{tag}";
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                return (false, "", "", $"Ошибка подключения: {ex.Message}");
-            }
+                catch { }
 
-            return (false, "", "", "");
+                try
+                {
+                    using var tagsReq = new HttpRequestMessage(HttpMethod.Get, tagsUrl);
+                    tagsReq.Headers.UserAgent.ParseAdd("TdsOverlayImGui");
+                    tagsReq.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
+
+                    using var tagsResp = await HttpClient.SendAsync(tagsReq);
+                    if (tagsResp.IsSuccessStatusCode)
+                    {
+                        anySuccess = true;
+                        string json = await tagsResp.Content.ReadAsStringAsync();
+                        using var doc = JsonDocument.Parse(json);
+                        if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var elem in doc.RootElement.EnumerateArray())
+                            {
+                                if (elem.TryGetProperty("name", out var nameElem))
+                                {
+                                    string tag = nameElem.GetString() ?? "";
+                                    var ver = ParseCleanVersion(tag);
+                                    if (ver != null && (bestVersion == null || ver > bestVersion))
+                                    {
+                                        bestVersion = ver;
+                                        bestTag = tag;
+                                        bestUrl = $"https://github.com/{owner}/{repo}/releases/tag/{tag}";
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { }
+
+                if (!anySuccess && bestVersion == null)
+                {
+                    return (false, "", "", "CheckUpdatesError");
+                }
+
+                if (bestVersion == null)
+                {
+                    return (false, "", "", "");
+                }
+
+                var currentVer = ParseCleanVersion(currentVersionStr);
+                if (currentVer != null && bestVersion > currentVer)
+                {
+                    return (true, bestTag, bestUrl, "");
+                }
+
+                return (false, bestTag, bestUrl, "");
+            }
+            catch
+            {
+                return (false, "", "", "CheckUpdatesError");
+            }
         }
 
         private static Version? ParseCleanVersion(string versionStr)
@@ -98,14 +152,12 @@ namespace TdsOverlayImGui.Services
 
         public static void OpenUrlInBrowser(string url)
         {
+            if (string.IsNullOrWhiteSpace(url)) return;
             try
             {
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to open URL: {ex.Message}");
-            }
+            catch { }
         }
     }
 }
