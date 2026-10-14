@@ -56,15 +56,12 @@ namespace TdsOverlayImGui.UI.Views
                 }
 
                 ImGui.SameLine();
-                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.65f, 0.20f, 0.22f, 1.0f));
                 if (ImGui.Button("X"))
                 {
                     ctx.EditImagePaths.RemoveAt(imgIdx);
-                    ImGui.PopStyleColor();
                     ImGui.PopID();
                     break;
                 }
-                ImGui.PopStyleColor();
 
                 ImGui.PopID();
             }
@@ -101,7 +98,6 @@ namespace TdsOverlayImGui.UI.Views
 
             ImGui.Separator();
             ImGui.Text(Loc.Tr("StepsHeader"));
-            ImGui.TextDisabled(Loc.Tr("MarkdownHint"));
 
             for (int i = 0; i < ctx.EditSteps.Count; i++)
             {
