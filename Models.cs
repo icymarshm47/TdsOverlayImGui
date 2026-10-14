@@ -89,46 +89,4 @@ namespace TdsOverlayImGui
             return key;
         }
     }
-
-    public class StrategyStep
-    {
-        public int StartWave { get; set; } = 1;
-        public int EndWave { get; set; } = 30;
-        public string Instruction { get; set; } = "";
-        public List<string> ImagePaths { get; set; } = new();
-
-        [JsonPropertyName("ImagePath")]
-        public string? LegacyImagePath
-        {
-            set
-            {
-                if (!string.IsNullOrWhiteSpace(value) && ImagePaths.Count == 0)
-                    ImagePaths.Add(value);
-            }
-        }
-    }
-
-    public class MapStrategy
-    {
-        public string MapName { get; set; } = "";
-        public string Difficulty { get; set; } = "";
-        public string StrategyName { get; set; } = "Main";
-        public string GeneralInfo { get; set; } = "";
-        public List<string> ImagePaths { get; set; } = new();
-
-        public List<StrategyStep> Steps { get; set; } = new();
-
-        [JsonIgnore]
-        public string? FilePath { get; set; }
-
-        [JsonIgnore]
-        public string DisplayName => string.IsNullOrWhiteSpace(StrategyName)
-            ? $"{MapName} [{Difficulty}]"
-            : $"{MapName} [{Difficulty}] - {StrategyName}";
-
-        [JsonIgnore]
-        public string TaskId => !string.IsNullOrEmpty(FilePath)
-            ? Path.GetFileNameWithoutExtension(FilePath)
-            : $"{MapName}_{Difficulty}_{StrategyName}";
-    }
 }
