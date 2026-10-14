@@ -8,6 +8,29 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.7] 2026-10-14
+### Added
+- Added dynamic auto-sizing and content measuring for instruction cards and general info cards based on wrapped text height.
+- Added current step indicator to the right of the active wave counter (`Step X/Y`).
+- Added support for dragging and repositioning both docked and floating windows directly via the custom title bar header.
+
+### Changed
+- Standardized UI button styling with unified Discord-gray color scheme across all regular action buttons.
+- Display strategy placement images exclusively in a separate movable window and removed obsolete embedded image mode from settings.
+- Made tab bar always auto-hide across all docking nodes and overlay windows.
+- Hid default ImGui blue resize grip in favor of dedicated bottom-right high-visibility resize handle.
+- Removed bracket decoration `[...]` from Copy/Clear instruction buttons and trailing ellipsis `...` from Browse Photo buttons.
+- Removed markdown cheat-sheet prompt below Steps & Wave Ranges in Strategy Editor, reserving red highlight colors strictly for destructive actions.
+- Renamed Russian language option to "Russian" in settings.
+
+### Fixed
+- Fixed text wrapping and horizontal cursor drift in Wave Instructions so lines wrap smoothly without clipping or disappearing when resizing the window.
+- Fixed screen-boundary token wrapping for lines containing `<ocr>` alert tags and custom badges.
+- Fixed window close button `X` cross alignment to be centered.
+- Fixed content overlapping with the bottom user block when resizing overlay height.
+
+---
+
 ## [0.6] 2026-10-13
 ### Added
 - Added native Windows Drag & Drop support for importing `.zip` and `.json` strategy files directly into the overlay window.
