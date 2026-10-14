@@ -365,36 +365,44 @@ namespace TdsOverlayImGui
         private void SetupStyle()
         {
             var style = ImGui.GetStyle();
-            style.WindowRounding = 10.0f;
-            style.ChildRounding = 8.0f;
+            style.WindowRounding = 8.0f;
+            style.ChildRounding = 6.0f;
             style.FrameRounding = 6.0f;
-            style.PopupRounding = 8.0f;
-            style.ScrollbarRounding = 6.0f;
-            style.GrabRounding = 5.0f;
+            style.PopupRounding = 6.0f;
+            style.ScrollbarRounding = 4.0f;
+            style.GrabRounding = 4.0f;
             style.WindowBorderSize = 1.0f;
             style.ChildBorderSize = 1.0f;
-            style.ItemSpacing = new Vector2(8, 6);
-            style.FramePadding = new Vector2(8, 4);
+            style.FrameBorderSize = 1.0f;
+            style.WindowPadding = new Vector2(10, 10);
+            style.ItemSpacing = new Vector2(8, 8);
+            style.FramePadding = new Vector2(10, 6);
 
             var colors = style.Colors;
-            colors[(int)ImGuiCol.WindowBg] = new Vector4(0.08f, 0.09f, 0.11f, _ctx.Settings.WindowOpacity);
-            colors[(int)ImGuiCol.ChildBg] = new Vector4(0.11f, 0.12f, 0.15f, _ctx.Settings.WindowOpacity);
-            colors[(int)ImGuiCol.PopupBg] = new Vector4(0.10f, 0.11f, 0.14f, 0.98f);
-            colors[(int)ImGuiCol.Border] = new Vector4(0.22f, 0.24f, 0.30f, 0.70f);
-            colors[(int)ImGuiCol.Header] = new Vector4(0.20f, 0.22f, 0.27f, 1.0f);
-            colors[(int)ImGuiCol.HeaderHovered] = new Vector4(0.32f, 0.38f, 0.90f, 1.0f);
-            colors[(int)ImGuiCol.HeaderActive] = new Vector4(0.26f, 0.31f, 0.78f, 1.0f);
-            colors[(int)ImGuiCol.Button] = new Vector4(0.28f, 0.33f, 0.82f, 1.0f);
-            colors[(int)ImGuiCol.ButtonHovered] = new Vector4(0.36f, 0.42f, 0.95f, 1.0f);
-            colors[(int)ImGuiCol.ButtonActive] = new Vector4(0.22f, 0.26f, 0.68f, 1.0f);
-            colors[(int)ImGuiCol.FrameBg] = new Vector4(0.15f, 0.16f, 0.20f, 1.0f);
-            colors[(int)ImGuiCol.FrameBgHovered] = new Vector4(0.20f, 0.22f, 0.27f, 1.0f);
-            colors[(int)ImGuiCol.FrameBgActive] = new Vector4(0.24f, 0.26f, 0.33f, 1.0f);
-            colors[(int)ImGuiCol.CheckMark] = new Vector4(0.35f, 0.95f, 0.50f, 1.0f);
-            colors[(int)ImGuiCol.SliderGrab] = new Vector4(0.36f, 0.42f, 0.95f, 1.0f);
-            colors[(int)ImGuiCol.SliderGrabActive] = new Vector4(0.45f, 0.52f, 1.0f, 1.0f);
-            colors[(int)ImGuiCol.TitleBg] = new Vector4(0.09f, 0.10f, 0.13f, 1.0f);
-            colors[(int)ImGuiCol.TitleBgActive] = new Vector4(0.14f, 0.16f, 0.22f, 1.0f);
+            colors[(int)ImGuiCol.WindowBg] = new Vector4(17f / 255f, 18f / 255f, 20f / 255f, _ctx.Settings.WindowOpacity);
+            colors[(int)ImGuiCol.ChildBg] = new Vector4(30f / 255f, 30f / 255f, 46f / 255f, _ctx.Settings.WindowOpacity);
+            colors[(int)ImGuiCol.PopupBg] = new Vector4(24f / 255f, 25f / 255f, 32f / 255f, 0.98f);
+            colors[(int)ImGuiCol.Border] = new Vector4(43f / 255f, 45f / 255f, 55f / 255f, 1.0f);
+            colors[(int)ImGuiCol.Header] = new Vector4(35f / 255f, 36f / 255f, 40f / 255f, 1.0f);
+            colors[(int)ImGuiCol.HeaderHovered] = new Vector4(45f / 255f, 47f / 255f, 54f / 255f, 1.0f);
+            colors[(int)ImGuiCol.HeaderActive] = new Vector4(55f / 255f, 58f / 255f, 66f / 255f, 1.0f);
+            colors[(int)ImGuiCol.Button] = new Vector4(88f / 255f, 101f / 255f, 242f / 255f, 1.0f);
+            colors[(int)ImGuiCol.ButtonHovered] = new Vector4(71f / 255f, 82f / 196f, 196f / 255f, 1.0f);
+            colors[(int)ImGuiCol.ButtonActive] = new Vector4(60f / 255f, 69f / 255f, 165f / 255f, 1.0f);
+            colors[(int)ImGuiCol.FrameBg] = new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f);
+            colors[(int)ImGuiCol.FrameBgHovered] = new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f);
+            colors[(int)ImGuiCol.FrameBgActive] = new Vector4(66f / 255f, 69f / 255f, 76f / 255f, 1.0f);
+            colors[(int)ImGuiCol.CheckMark] = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+            colors[(int)ImGuiCol.PlotHistogram] = new Vector4(35f / 255f, 165f / 255f, 90f / 255f, 1.0f);
+            colors[(int)ImGuiCol.PlotHistogramHovered] = new Vector4(40f / 255f, 180f / 255f, 100f / 255f, 1.0f);
+            colors[(int)ImGuiCol.ScrollbarBg] = new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 0.6f);
+            colors[(int)ImGuiCol.ScrollbarGrab] = new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f);
+            colors[(int)ImGuiCol.ScrollbarGrabHovered] = new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f);
+            colors[(int)ImGuiCol.ScrollbarGrabActive] = new Vector4(88f / 255f, 101f / 255f, 242f / 255f, 1.0f);
+            colors[(int)ImGuiCol.Text] = new Vector4(242f / 255f, 243f / 255f, 245f / 255f, 1.0f);
+            colors[(int)ImGuiCol.TextDisabled] = new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f);
+            colors[(int)ImGuiCol.TitleBg] = new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f);
+            colors[(int)ImGuiCol.TitleBgActive] = new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f);
         }
 
         public static async Task Main()
