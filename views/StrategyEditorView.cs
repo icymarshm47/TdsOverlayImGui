@@ -131,11 +131,11 @@ namespace TdsOverlayImGui.Views
 
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth(75);
-                if (ImGui.InputInt(Loc.Tr("FromWave"), ref start, 0)) s.StartWave = start;
+                if (ImGui.InputInt(Loc.Tr("FromWave"), ref start, 0)) s.StartWave = Math.Max(1, start);
                 ImGui.SameLine();
 
                 ImGui.SetNextItemWidth(75);
-                if (ImGui.InputInt(Loc.Tr("ToWave"), ref end, 0)) s.EndWave = end;
+                if (ImGui.InputInt(Loc.Tr("ToWave"), ref end, 0)) s.EndWave = Math.Max(1, end);
 
                 if (ctx.EditSteps.Count > 1)
                 {
@@ -182,9 +182,19 @@ namespace TdsOverlayImGui.Views
             {
                 ImageViewer.ClearLoadedTextures(overlay);
 
-                currentMap.MapName = ctx.EditMapName;
-                currentMap.Difficulty = ctx.EditDifficulty;
-                currentMap.StrategyName = ctx.EditStrategyName;
+                string mapName = string.IsNullOrWhiteSpace(ctx.EditMapName) ? "Map" : ctx.EditMapName.Trim();
+                string difficulty = string.IsNullOrWhiteSpace(ctx.EditDifficulty) ? "Normal" : ctx.EditDifficulty.Trim();
+                string strategyName = string.IsNullOrWhiteSpace(ctx.EditStrategyName) ? "Main" : ctx.EditStrategyName.Trim();
+
+                foreach (var step in ctx.EditSteps)
+                {
+                    step.StartWave = Math.Clamp(step.StartWave, 1, 200);
+                    step.EndWave = Math.Clamp(step.EndWave, step.StartWave, 200);
+                }
+
+                currentMap.MapName = mapName;
+                currentMap.Difficulty = difficulty;
+                currentMap.StrategyName = strategyName;
                 currentMap.GeneralInfo = ctx.EditGeneralInfo;
                 currentMap.ImagePaths = new List<string>(ctx.EditImagePaths);
                 currentMap.Steps = new List<StrategyStep>(ctx.EditSteps);

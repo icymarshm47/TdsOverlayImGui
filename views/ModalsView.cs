@@ -54,6 +54,9 @@ namespace TdsOverlayImGui.Views
                     if (ctx.SelectedMapIndex < 0) ctx.SelectedMapIndex = ctx.Strategies.Count - 1;
                     ctx.CurrentStepIndex = 0;
                     ctx.CurrentImageIndex = 0;
+                    ctx.NewMapName = "";
+                    ctx.NewMapDiff = "Fallen";
+                    ctx.NewMapStrat = "Solo";
                     ctx.ShowAddMapModal = false;
                 }
 
