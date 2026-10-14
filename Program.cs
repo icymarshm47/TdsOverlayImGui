@@ -102,15 +102,33 @@ namespace TdsOverlayImGui
             }
         }
 
-        private void HookDragAndDrop()
+        private bool _isDragDropHooked = false;
+        private IntPtr _hookedHWnd = IntPtr.Zero;
+
+        private bool HookDragAndDrop()
         {
+            if (_isDragDropHooked) return true;
             IntPtr hWnd = FindWindow(null, "TDS Strategy Overlay");
-            if (hWnd == IntPtr.Zero || _oldWndProc != IntPtr.Zero) return;
+            if (hWnd == IntPtr.Zero) return false;
 
             DragAcceptFiles(hWnd, true);
             _wndProcDelegate = CustomWndProc;
             IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_wndProcDelegate);
             _oldWndProc = SetWindowLongPtr(hWnd, GWLP_WNDPROC, fnPtr);
+            _hookedHWnd = hWnd;
+            _isDragDropHooked = true;
+            return true;
+        }
+
+        private void UnhookDragAndDrop()
+        {
+            if (_isDragDropHooked && _hookedHWnd != IntPtr.Zero && _oldWndProc != IntPtr.Zero)
+            {
+                SetWindowLongPtr(_hookedHWnd, GWLP_WNDPROC, _oldWndProc);
+                DragAcceptFiles(_hookedHWnd, false);
+                _oldWndProc = IntPtr.Zero;
+                _isDragDropHooked = false;
+            }
         }
 
         private IntPtr CustomWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
@@ -192,12 +210,17 @@ namespace TdsOverlayImGui
             if (_ctx.IsFirstFrame)
             {
                 SetAlwaysOnTop(_ctx.Settings.AlwaysOnTop);
-                HookDragAndDrop();
                 _ctx.IsFirstFrame = false;
+            }
+
+            if (!_isDragDropHooked)
+            {
+                HookDragAndDrop();
             }
 
             if (!_ctx.IsOverlayOpen)
             {
+                UnhookDragAndDrop();
                 ImageViewer.ClearLoadedTextures(this);
                 Close();
                 return;
