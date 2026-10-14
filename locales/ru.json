@@ -35,6 +35,7 @@
   "LanguageSetting": "ЯЗЫК ИНТЕРФЕЙСА:",
   "ImageModeSetting": "ОТОБРАЖЕНИЕ ИЗОБРАЖЕНИЙ:",
   "WindowOpacitySetting": "ПРОЗРАЧНОСТЬ ОКНА:",
+  "AlwaysOnTopSetting": "Поверх всех окон (поверх игры)",
   "AudioAndOcrSetting": "ЗВУК И РАСПОЗНАВАНИЕ (AUTO-OCR):",
   "EnableOcrSoundSetting": "Звуковой сигнал <ocr> при смене волны",
   "OcrPreprocessSetting": "Повышать контраст текста для OCR (рекомендуется)",

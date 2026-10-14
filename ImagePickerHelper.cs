@@ -10,64 +10,12 @@ namespace TdsOverlayImGui
 {
     public static class ImagePickerHelper
     {
-        [DllImport("comdlg32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern bool GetOpenFileName([In, Out] OpenFileName ofn);
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-        private class OpenFileName
+        public static string? OpenImageFileDialog(bool restoreAlwaysOnTop = true)
         {
-            public int structSize = Marshal.SizeOf(typeof(OpenFileName));
-            public IntPtr dlgOwner = IntPtr.Zero;
-            public IntPtr instance = IntPtr.Zero;
-            public string filter = "Image Files (*.png;*.jpg;*.jpeg;*.webp;*.bmp)\0*.png;*.jpg;*.jpeg;*.webp;*.bmp\0All Files (*.*)\0*.*\0\0";
-            public string customFilter = null!;
-            public int maxCustomFilter = 0;
-            public int filterIndex = 0;
-            public string file = new string(new char[2560]);
-            public int maxFile = 2560;
-            public string fileTitle = new string(new char[640]);
-            public int maxFileTitle = 640;
-            public string initialDir = null!;
-            public string title = "Select Image File";
-            public int flags = 0x00080000 | 0x00001000 | 0x00000800 | 0x00000200 | 0x00000008;
-            public short fileOffset = 0;
-            public short fileExtension = 0;
-            public string defExt = "png";
-            public IntPtr custData = IntPtr.Zero;
-            public IntPtr hook = IntPtr.Zero;
-            public string templateName = null!;
-            public IntPtr reservedPtr = IntPtr.Zero;
-            public int reservedInt = 0;
-            public int flagsEx = 0;
+            return OpenFileDialog("Image Files (*.png;*.jpg;*.jpeg;*.webp;*.bmp)|*.png;*.jpg;*.jpeg;*.webp;*.bmp|All Files (*.*)|*.*", "png", restoreAlwaysOnTop);
         }
 
-        public static string? OpenImageFileDialog()
-        {
-            TdsImGuiOverlay.SetAlwaysOnTop(false);
-            string? selectedPath = null;
-            var thread = new Thread(() =>
-            {
-                try
-                {
-                    var ofn = new OpenFileName();
-                    if (GetOpenFileName(ofn))
-                    {
-                        selectedPath = ofn.file.Replace("\0", "").Trim();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error opening image dialog: {ex.Message}");
-                }
-            });
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
-            thread.Join();
-            TdsImGuiOverlay.SetAlwaysOnTop(true);
-            return selectedPath;
-        }
-
-        public static string? OpenFileDialog(string filter, string defaultExt)
+        public static string? OpenFileDialog(string filter, string defaultExt, bool restoreAlwaysOnTop = true)
         {
             TdsImGuiOverlay.SetAlwaysOnTop(false);
             string? selectedPath = null;
@@ -94,11 +42,15 @@ namespace TdsOverlayImGui
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             thread.Join();
-            TdsImGuiOverlay.SetAlwaysOnTop(true);
+
+            if (restoreAlwaysOnTop)
+            {
+                TdsImGuiOverlay.SetAlwaysOnTop(true);
+            }
             return selectedPath;
         }
 
-        public static string? SaveFileDialog(string defaultFileName, string filter, string defaultExt)
+        public static string? SaveFileDialog(string defaultFileName, string filter, string defaultExt, bool restoreAlwaysOnTop = true)
         {
             TdsImGuiOverlay.SetAlwaysOnTop(false);
             string? selectedPath = null;
@@ -125,7 +77,11 @@ namespace TdsOverlayImGui
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             thread.Join();
-            TdsImGuiOverlay.SetAlwaysOnTop(true);
+
+            if (restoreAlwaysOnTop)
+            {
+                TdsImGuiOverlay.SetAlwaysOnTop(true);
+            }
             return selectedPath;
         }
 

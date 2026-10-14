@@ -35,6 +35,7 @@
   "LanguageSetting": "UI LANGUAGE:",
   "ImageModeSetting": "PLACEMENT IMAGE DISPLAY:",
   "WindowOpacitySetting": "WINDOW TRANSPARENCY:",
+  "AlwaysOnTopSetting": "Always on top (keep window above game)",
   "AudioAndOcrSetting": "AUDIO & AUTO-OCR:",
   "EnableOcrSoundSetting": "Play <ocr> sound alert on wave trigger",
   "OcrPreprocessSetting": "High-contrast OCR preprocessing (recommended)",

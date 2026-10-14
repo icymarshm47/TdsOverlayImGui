@@ -50,7 +50,7 @@ namespace TdsOverlayImGui.Views
                 ImGui.SameLine();
                 if (ImGui.Button(Loc.Tr("SelectFileBtn")))
                 {
-                    string? picked = ImagePickerHelper.OpenImageFileDialog();
+                    string? picked = ImagePickerHelper.OpenImageFileDialog(ctx.Settings.AlwaysOnTop);
                     if (!string.IsNullOrEmpty(picked))
                     {
                         ctx.EditImagePaths[imgIdx] = picked;
@@ -73,7 +73,7 @@ namespace TdsOverlayImGui.Views
 
             if (ImGui.Button(Loc.Tr("AddPhotoBtn")))
             {
-                string? picked = ImagePickerHelper.OpenImageFileDialog();
+                string? picked = ImagePickerHelper.OpenImageFileDialog(ctx.Settings.AlwaysOnTop);
                 ctx.EditImagePaths.Add(picked ?? "");
             }
 

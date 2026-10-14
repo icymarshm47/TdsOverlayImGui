@@ -83,7 +83,7 @@ namespace TdsOverlayImGui.Views
                     if (ImGui.Button(Loc.Tr("ExportZip"), new Vector2(220, 0)))
                     {
                         string defaultFileName = $"{currentMap.MapName}_{currentMap.Difficulty}_{currentMap.StrategyName}.zip";
-                        string? targetPath = ImagePickerHelper.SaveFileDialog(defaultFileName, "ZIP Archive (*.zip)|*.zip", "zip");
+                        string? targetPath = ImagePickerHelper.SaveFileDialog(defaultFileName, "ZIP Archive (*.zip)|*.zip", "zip", ctx.Settings.AlwaysOnTop);
 
                         if (!string.IsNullOrEmpty(targetPath))
                         {
@@ -126,7 +126,7 @@ namespace TdsOverlayImGui.Views
 
                 if (ImGui.Button(Loc.Tr("ImportFileBtn"), new Vector2(220, 0)))
                 {
-                    string? selectedFile = ImagePickerHelper.OpenFileDialog("Strategy Files (*.zip;*.json)|*.zip;*.json|All Files (*.*)|*.*", "zip");
+                    string? selectedFile = ImagePickerHelper.OpenFileDialog("Strategy Files (*.zip;*.json)|*.zip;*.json|All Files (*.*)|*.*", "zip", ctx.Settings.AlwaysOnTop);
                     if (!string.IsNullOrEmpty(selectedFile))
                     {
                         if (StrategyService.ImportStrategy(selectedFile, out string msg))
@@ -260,6 +260,20 @@ namespace TdsOverlayImGui.Views
                 }
                 if (ImGui.IsItemDeactivatedAfterEdit())
                 {
+                    StrategyService.SaveSettings(ctx.Settings);
+                }
+
+                ImGui.Spacing();
+                ImGui.Separator();
+
+                InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("AlwaysOnTopSetting"));
+                ImGui.Spacing();
+
+                bool alwaysOnTop = ctx.Settings.AlwaysOnTop;
+                if (ImGui.Checkbox($"{Loc.Tr("AlwaysOnTopSetting")}##AlwaysOnTopCheck", ref alwaysOnTop))
+                {
+                    ctx.Settings.AlwaysOnTop = alwaysOnTop;
+                    TdsImGuiOverlay.SetAlwaysOnTop(alwaysOnTop);
                     StrategyService.SaveSettings(ctx.Settings);
                 }
 
