@@ -263,6 +263,21 @@ namespace TdsOverlayImGui.UI.Views
                 ImGui.Spacing();
                 ImGui.Separator();
 
+                InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("CaptureBypassHeader"));
+                ImGui.Spacing();
+
+                bool hideFromCapture = ctx.Settings.HideFromCapture;
+                if (ImGui.Checkbox($"{Loc.Tr("HideFromCaptureLabel")}##HideFromCaptureCheck", ref hideFromCapture))
+                {
+                    ctx.Settings.HideFromCapture = hideFromCapture;
+                    TdsImGuiOverlay.SetHideFromCapture(hideFromCapture);
+                    StrategyService.SaveSettings(ctx.Settings);
+                }
+                ImGui.TextDisabled(Loc.Tr("HideFromCaptureDesc"));
+
+                ImGui.Spacing();
+                ImGui.Separator();
+
                 if (ImGui.Button(Loc.Tr("Close"), new Vector2(120, 0)))
                 {
                     ctx.ShowSettingsModal = false;

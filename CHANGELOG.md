@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ## [0.7] 2026-10-14
 ### Added
+- Added screen capture protection setting to hide the overlay from OBS, Discord, and screen recordings (via Windows Display Affinity API).
 - Added dynamic auto-sizing and content measuring for instruction cards and general info cards based on wrapped text height.
 - Added current step indicator to the right of the active wave counter (`Step X/Y`).
 - Added support for dragging and repositioning both docked and floating windows directly via the custom title bar header.

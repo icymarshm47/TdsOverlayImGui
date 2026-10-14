@@ -18,6 +18,14 @@ namespace TdsOverlayImGui
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);
+
+        private const uint WDA_NONE = 0x00000000;
+        private const uint WDA_MONITOR = 0x00000001;
+        private const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
+
         [DllImport("shell32.dll")]
         private static extern void DragAcceptFiles(IntPtr hWnd, bool fAccept);
 
@@ -117,6 +125,25 @@ namespace TdsOverlayImGui
             }
         }
 
+        public static void SetHideFromCapture(bool enable)
+        {
+            IntPtr hWnd = FindWindow(null, "TDS Strategy Overlay");
+            if (hWnd != IntPtr.Zero)
+            {
+                if (enable)
+                {
+                    if (!SetWindowDisplayAffinity(hWnd, WDA_EXCLUDEFROMCAPTURE))
+                    {
+                        SetWindowDisplayAffinity(hWnd, WDA_MONITOR);
+                    }
+                }
+                else
+                {
+                    SetWindowDisplayAffinity(hWnd, WDA_NONE);
+                }
+            }
+        }
+
         private bool _isDragDropHooked = false;
         private IntPtr _hookedHWnd = IntPtr.Zero;
 
@@ -132,6 +159,10 @@ namespace TdsOverlayImGui
             _oldWndProc = SetWindowLongPtr(hWnd, GWLP_WNDPROC, fnPtr);
             _hookedHWnd = hWnd;
             _isDragDropHooked = true;
+            if (_ctx.Settings.HideFromCapture)
+            {
+                SetHideFromCapture(true);
+            }
             return true;
         }
 
@@ -229,6 +260,10 @@ namespace TdsOverlayImGui
             if (_ctx.IsFirstFrame)
             {
                 SetAlwaysOnTop(_ctx.Settings.AlwaysOnTop);
+                if (_ctx.Settings.HideFromCapture)
+                {
+                    SetHideFromCapture(true);
+                }
                 _ctx.IsFirstFrame = false;
             }
 
