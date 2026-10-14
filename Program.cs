@@ -438,9 +438,9 @@ namespace TdsOverlayImGui
             style.WindowBorderSize = 1.0f;
             style.ChildBorderSize = 1.0f;
             style.FrameBorderSize = 1.0f;
-            style.WindowPadding = new Vector2(10, 10);
-            style.ItemSpacing = new Vector2(8, 8);
-            style.FramePadding = new Vector2(10, 6);
+            style.WindowPadding = new Vector2(8, 8);
+            style.ItemSpacing = new Vector2(6, 6);
+            style.FramePadding = new Vector2(8, 4);
 
             var colors = style.Colors;
             colors[(int)ImGuiCol.WindowBg] = new Vector4(17f / 255f, 18f / 255f, 20f / 255f, _ctx.Settings.WindowOpacity);
