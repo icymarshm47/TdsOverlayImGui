@@ -246,6 +246,9 @@ namespace TdsOverlayImGui
 
             RenderCustomTitleBar();
 
+            float footerH = 24.0f;
+            ImGui.BeginChild("MainContentScrollArea", new Vector2(0, -footerH - 2.0f), false, ImGuiWindowFlags.None);
+
             if (!string.IsNullOrEmpty(_ctx.ManualCheckMessage))
             {
                 InstructionRenderer.SafeTextColored(new Vector4(0.3f, 1.0f, 0.4f, 1.0f), _ctx.ManualCheckMessage);
@@ -283,6 +286,8 @@ namespace TdsOverlayImGui
                 else
                     StrategyEditorView.Render(this, _ctx);
             }
+
+            ImGui.EndChild();
 
             RenderFooter();
             ImGui.End();
@@ -339,9 +344,13 @@ namespace TdsOverlayImGui
             uint closeCircleCol = ImGui.ColorConvertFloat4ToU32(isCloseHovered
                 ? new Vector4(218f / 255f, 55f / 255f, 60f / 255f, 1.0f)
                 : new Vector4(242f / 255f, 63f / 255f, 67f / 255f, 1.0f));
-            drawList.AddCircleFilled(new Vector2(closeBtnX + btnSize * 0.5f, btnY + btnSize * 0.5f), 8.0f, closeCircleCol);
-            drawList.AddLine(new Vector2(closeBtnX + 6.5f, btnY + 6.5f), new Vector2(closeBtnX + 13.5f, btnY + 13.5f), 0xFFFFFFFF, 1.8f);
-            drawList.AddLine(new Vector2(closeBtnX + 13.5f, btnY + 6.5f), new Vector2(closeBtnX + 6.5f, btnY + 13.5f), 0xFFFFFFFF, 1.8f);
+
+            float cX = MathF.Floor(closeBtnX + btnSize * 0.5f);
+            float cY = MathF.Floor(btnY + btnSize * 0.5f);
+            drawList.AddCircleFilled(new Vector2(cX, cY), 8.0f, closeCircleCol);
+            float d = 3.5f;
+            drawList.AddLine(new Vector2(cX - d, cY - d), new Vector2(cX + d, cY + d), 0xFFFFFFFF, 1.6f);
+            drawList.AddLine(new Vector2(cX + d, cY - d), new Vector2(cX - d, cY + d), 0xFFFFFFFF, 1.6f);
 
             float menuBtnX = closeBtnX - btnSize - 8.0f;
             ImGui.SetCursorScreenPos(new Vector2(menuBtnX, btnY));
@@ -419,6 +428,13 @@ namespace TdsOverlayImGui
             Vector2 textSize = ImGui.CalcTextSize(authorText);
             Vector2 textPos = new Vector2(fMin.X + (winW - textSize.X) * 0.5f, fMin.Y + (footerH - textSize.Y) * 0.5f);
             drawList.AddText(textPos, ImGui.ColorConvertFloat4ToU32(new Vector4(92f / 255f, 95f / 255f, 102f / 255f, 1.0f)), authorText);
+
+            float gripX = winPos.X + winW - 5.0f;
+            float gripY = winPos.Y + winH - 5.0f;
+            uint gripCol = ImGui.ColorConvertFloat4ToU32(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 0.85f));
+            drawList.AddLine(new Vector2(gripX - 10.0f, gripY), new Vector2(gripX, gripY - 10.0f), gripCol, 1.5f);
+            drawList.AddLine(new Vector2(gripX - 6.0f, gripY), new Vector2(gripX, gripY - 6.0f), gripCol, 1.5f);
+            drawList.AddLine(new Vector2(gripX - 2.0f, gripY), new Vector2(gripX, gripY - 2.0f), gripCol, 1.5f);
         }
 
         private void SetupStyle()
