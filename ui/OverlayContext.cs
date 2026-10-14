@@ -38,6 +38,12 @@ namespace TdsOverlayImGui.UI
         public bool IsCommanderChainStopped = false;
         public bool IsMedicChainStopped = false;
 
+        public bool SectionStrategyOpen = true;
+        public bool SectionScreenReaderOpen = true;
+        public bool SectionCurrentWaveOpen = true;
+        public bool SectionGeneralInfoOpen = true;
+        public bool SectionWaveInstructionsOpen = true;
+
         public float DjToastTimer
         {
             get => AlertToastTimer;

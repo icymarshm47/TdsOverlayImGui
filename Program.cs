@@ -233,13 +233,13 @@ namespace TdsOverlayImGui
             OcrOverlayView.ProcessBackgroundOcr(_ctx);
             AudioService.ProcessPeriodicAlerts(_ctx);
 
-            ImGui.SetNextWindowSize(new Vector2(540, 640), ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowSize(new Vector2(430, 800), ImGuiCond.FirstUseEver);
 
             bool isOpen = _ctx.IsOverlayOpen;
-            ImGui.Begin("TDS Strategy Overlay (ImGui)", ref isOpen, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.MenuBar);
+            ImGui.Begin("TDS Strategy Overlay (ImGui)", ref isOpen, ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse);
             _ctx.IsOverlayOpen = isOpen;
 
-            RenderMenuBar();
+            RenderCustomTitleBar();
 
             if (!string.IsNullOrEmpty(_ctx.ManualCheckMessage))
             {
@@ -279,6 +279,7 @@ namespace TdsOverlayImGui
                     StrategyEditorView.Render(this, _ctx);
             }
 
+            RenderFooter();
             ImGui.End();
 
             if (_ctx.Settings.SeparateImageWindow && !_ctx.IsEditing) ImageViewer.RenderSeparateImageWindow(this, _ctx);
@@ -288,78 +289,148 @@ namespace TdsOverlayImGui
             ModalsView.RenderAll(this, _ctx);
         }
 
-        private void RenderMenuBar()
+        private void RenderCustomTitleBar()
         {
-            if (ImGui.BeginMenuBar())
+            Vector2 startPos = ImGui.GetCursorScreenPos();
+            float availW = ImGui.GetContentRegionAvail().X;
+            float titleH = 34.0f;
+
+            ImGui.InvisibleButton("##CustomTitleDragArea", new Vector2(availW, titleH));
+            if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
             {
-                if (ImGui.BeginMenu(Loc.Tr("File")))
-                {
-                    if (ImGui.MenuItem(Loc.Tr("ImportExport")))
-                    {
-                        _ctx.ShowImportExportModal = true;
-                        _ctx.ImportStatusMessage = "";
-                        _ctx.ExportStatusMessage = "";
-                    }
-
-                    ImGui.Separator();
-
-                    if (ImGui.MenuItem(Loc.Tr("Settings")))
-                    {
-                        _ctx.ShowSettingsModal = true;
-                    }
-
-                    ImGui.Separator();
-
-                    if (ImGui.MenuItem(Loc.Tr("ExitApp")))
-                    {
-                        _ctx.IsOverlayOpen = false;
-                    }
-
-                    ImGui.EndMenu();
-                }
-
-                if (ImGui.BeginMenu(Loc.Tr("Other")))
-                {
-                    bool isCompact = _ctx.Settings.CompactMode;
-                    if (ImGui.MenuItem(Loc.Tr("CompactMode"), "", ref isCompact))
-                    {
-                        _ctx.Settings.CompactMode = isCompact;
-                        StrategyService.SaveSettings(_ctx.Settings);
-                    }
-
-                    ImGui.Separator();
-
-                    if (ImGui.MenuItem(Loc.Tr("Help")))
-                    {
-                        _ctx.ShowHelpModal = true;
-                    }
-
-                    if (ImGui.MenuItem(Loc.Tr("CheckUpdates")))
-                    {
-                        _ctx.ManualCheckMessage = Loc.Tr("CheckingUpdates");
-                        _ctx.ManualCheckMessageTimer = 5.0f;
-                        CheckForUpdatesInBackground(silent: false);
-                    }
-
-                    ImGui.Separator();
-
-                    if (ImGui.MenuItem(Loc.Tr("About")))
-                    {
-                        _ctx.ShowAboutModal = true;
-                    }
-
-                    ImGui.EndMenu();
-                }
-
-                float hintW = ImGui.CalcTextSize(Loc.Tr("DragDropHint")).X + 16.0f;
-                if (ImGui.GetWindowWidth() > 380)
-                {
-                    ImGui.SameLine(ImGui.GetWindowWidth() - hintW);
-                    ImGui.TextDisabled(Loc.Tr("DragDropHint"));
-                }
-
-                ImGui.EndMenuBar();
+                ImGui.SetWindowPos(ImGui.GetWindowPos() + ImGui.GetIO().MouseDelta);
             }
+
+            var drawList = ImGui.GetWindowDrawList();
+
+            Vector2 shieldPos = new Vector2(startPos.X + 4.0f, startPos.Y + 7.0f);
+            Vector2 p1 = new Vector2(shieldPos.X + 1, shieldPos.Y + 2);
+            Vector2 p2 = new Vector2(shieldPos.X + 17, shieldPos.Y + 2);
+            Vector2 p3 = new Vector2(shieldPos.X + 17, shieldPos.Y + 11);
+            Vector2 p4 = new Vector2(shieldPos.X + 9, shieldPos.Y + 18);
+            Vector2 p5 = new Vector2(shieldPos.X + 1, shieldPos.Y + 11);
+            uint shieldCol = ImGui.ColorConvertFloat4ToU32(new Vector4(88f / 255f, 101f / 255f, 242f / 255f, 1f));
+            drawList.AddQuadFilled(p1, p2, p3, p5, shieldCol);
+            drawList.AddTriangleFilled(p5, p3, p4, shieldCol);
+            drawList.AddLine(new Vector2(shieldPos.X + 9, shieldPos.Y + 4), new Vector2(shieldPos.X + 9, shieldPos.Y + 16), ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.9f)), 1.5f);
+
+            ImGui.SetCursorScreenPos(new Vector2(startPos.X + 28.0f, startPos.Y + 6.0f));
+            InstructionRenderer.SafeTextColored(new Vector4(1f, 1f, 1f, 1f), "TDS Overlay");
+
+            ImGui.SameLine();
+            string verTag = $"v{CurrentAppVersion}";
+            Vector2 verSize = ImGui.CalcTextSize(verTag);
+            Vector2 badgePos = ImGui.GetCursorScreenPos();
+            drawList.AddRectFilled(
+                new Vector2(badgePos.X - 3.0f, badgePos.Y - 1.0f),
+                new Vector2(badgePos.X + verSize.X + 3.0f, badgePos.Y + verSize.Y + 2.0f),
+                ImGui.ColorConvertFloat4ToU32(new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f)),
+                4.0f);
+            InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), verTag);
+
+            float rightX = startPos.X + availW;
+
+            float closeBtnX = rightX - 22.0f;
+            float closeBtnY = startPos.Y + 8.0f;
+            ImGui.SetCursorScreenPos(new Vector2(closeBtnX - 2.0f, closeBtnY - 2.0f));
+            if (ImGui.InvisibleButton("##CloseBtn", new Vector2(20.0f, 20.0f)))
+            {
+                _ctx.IsOverlayOpen = false;
+            }
+            bool isCloseHovered = ImGui.IsItemHovered();
+            uint closeCircleCol = ImGui.ColorConvertFloat4ToU32(isCloseHovered
+                ? new Vector4(218f / 255f, 55f / 255f, 60f / 255f, 1.0f)
+                : new Vector4(242f / 255f, 63f / 255f, 67f / 255f, 1.0f));
+            drawList.AddCircleFilled(new Vector2(closeBtnX + 8.0f, closeBtnY + 8.0f), 8.5f, closeCircleCol);
+            drawList.AddLine(new Vector2(closeBtnX + 5.0f, closeBtnY + 5.0f), new Vector2(closeBtnX + 11.0f, closeBtnY + 11.0f), 0xFFFFFFFF, 1.8f);
+            drawList.AddLine(new Vector2(closeBtnX + 11.0f, closeBtnY + 5.0f), new Vector2(closeBtnX + 5.0f, closeBtnY + 11.0f), 0xFFFFFFFF, 1.8f);
+
+            float minBtnX = closeBtnX - 26.0f;
+            ImGui.SetCursorScreenPos(new Vector2(minBtnX, closeBtnY - 2.0f));
+            if (ImGui.InvisibleButton("##MinBtn", new Vector2(20.0f, 20.0f)))
+            {
+                _ctx.Settings.CompactMode = !_ctx.Settings.CompactMode;
+                StrategyService.SaveSettings(_ctx.Settings);
+            }
+            bool isMinHovered = ImGui.IsItemHovered();
+            uint minLineCol = ImGui.ColorConvertFloat4ToU32(isMinHovered ? new Vector4(1f, 1f, 1f, 1f) : new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1f));
+            drawList.AddLine(new Vector2(minBtnX + 4.0f, closeBtnY + 8.0f), new Vector2(minBtnX + 14.0f, closeBtnY + 8.0f), minLineCol, 2.0f);
+
+            float menuBtnX = minBtnX - 28.0f;
+            ImGui.SetCursorScreenPos(new Vector2(menuBtnX, closeBtnY - 2.0f));
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 0.8f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(66f / 255f, 69f / 255f, 76f / 255f, 1.0f));
+            if (ImGui.SmallButton(" ≡ "))
+            {
+                ImGui.OpenPopup("TitleMenuPopup");
+            }
+            ImGui.PopStyleColor(3);
+
+            if (ImGui.BeginPopup("TitleMenuPopup"))
+            {
+                if (ImGui.MenuItem(Loc.Tr("ImportExport")))
+                {
+                    _ctx.ShowImportExportModal = true;
+                    _ctx.ImportStatusMessage = "";
+                    _ctx.ExportStatusMessage = "";
+                }
+                if (ImGui.MenuItem(Loc.Tr("Settings")))
+                {
+                    _ctx.ShowSettingsModal = true;
+                }
+                ImGui.Separator();
+                bool isCompact = _ctx.Settings.CompactMode;
+                if (ImGui.MenuItem(Loc.Tr("CompactMode"), "", ref isCompact))
+                {
+                    _ctx.Settings.CompactMode = isCompact;
+                    StrategyService.SaveSettings(_ctx.Settings);
+                }
+                ImGui.Separator();
+                if (ImGui.MenuItem(Loc.Tr("Help")))
+                {
+                    _ctx.ShowHelpModal = true;
+                }
+                if (ImGui.MenuItem(Loc.Tr("CheckUpdates")))
+                {
+                    _ctx.ManualCheckMessage = Loc.Tr("CheckingUpdates");
+                    _ctx.ManualCheckMessageTimer = 5.0f;
+                    CheckForUpdatesInBackground(silent: false);
+                }
+                if (ImGui.MenuItem(Loc.Tr("About")))
+                {
+                    _ctx.ShowAboutModal = true;
+                }
+                ImGui.Separator();
+                if (ImGui.MenuItem(Loc.Tr("ExitApp")))
+                {
+                    _ctx.IsOverlayOpen = false;
+                }
+                ImGui.EndPopup();
+            }
+
+            ImGui.SetCursorScreenPos(new Vector2(startPos.X, startPos.Y + titleH));
+            ImGui.Spacing();
+        }
+
+        private void RenderFooter()
+        {
+            float footerH = 24.0f;
+            float winW = ImGui.GetWindowWidth();
+            float winH = ImGui.GetWindowHeight();
+            Vector2 winPos = ImGui.GetWindowPos();
+
+            var drawList = ImGui.GetWindowDrawList();
+            Vector2 fMin = new Vector2(winPos.X, winPos.Y + winH - footerH);
+            Vector2 fMax = new Vector2(winPos.X + winW, winPos.Y + winH);
+
+            drawList.AddRectFilled(fMin, fMax, ImGui.ColorConvertFloat4ToU32(new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f)), 8.0f, ImDrawFlags.RoundCornersBottom);
+            drawList.AddLine(fMin, new Vector2(fMax.X, fMin.Y), ImGui.ColorConvertFloat4ToU32(new Vector4(43f / 255f, 45f / 255f, 55f / 255f, 0.7f)));
+
+            string authorText = "icymarsh";
+            Vector2 textSize = ImGui.CalcTextSize(authorText);
+            Vector2 textPos = new Vector2(fMin.X + (winW - textSize.X) * 0.5f, fMin.Y + (footerH - textSize.Y) * 0.5f);
+            drawList.AddText(textPos, ImGui.ColorConvertFloat4ToU32(new Vector4(92f / 255f, 95f / 255f, 102f / 255f, 1.0f)), authorText);
         }
 
         private void SetupStyle()
