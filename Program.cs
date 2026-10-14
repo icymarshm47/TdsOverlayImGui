@@ -262,6 +262,10 @@ namespace TdsOverlayImGui
             ImGui.Begin("TDS Strategy Overlay (ImGui)", ref isOpen, ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
             _ctx.IsOverlayOpen = isOpen;
 
+            _ctx.MainWindowWidth = ImGui.GetWindowWidth();
+            _ctx.MainWindowHeight = ImGui.GetWindowHeight();
+            _ctx.TextScale = Math.Clamp(((_ctx.MainWindowWidth / 430.0f) + (_ctx.MainWindowHeight / 800.0f)) * 0.5f, 0.75f, 2.0f);
+
             if (igIsWindowDocked() != 0)
             {
                 IntPtr dockNode = igGetWindowDockNode();

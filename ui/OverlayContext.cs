@@ -44,6 +44,10 @@ namespace TdsOverlayImGui.UI
         public bool SectionGeneralInfoOpen = true;
         public bool SectionWaveInstructionsOpen = true;
 
+        public float MainWindowWidth = 430.0f;
+        public float MainWindowHeight = 800.0f;
+        public float TextScale = 1.0f;
+
         public float DjToastTimer
         {
             get => AlertToastTimer;

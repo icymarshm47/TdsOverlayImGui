@@ -357,18 +357,19 @@ namespace TdsOverlayImGui.UI.Views
                 ? Array.Empty<string>()
                 : currentMap.GeneralInfo.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
-            string cacheKey = $"gen_{mapTaskId}_{currentMap.GeneralInfo?.GetHashCode() ?? 0}_{(int)Math.Round(availW)}";
+            string cacheKey = $"gen_{mapTaskId}_{currentMap.GeneralInfo?.GetHashCode() ?? 0}_{(int)Math.Round(availW)}_{(int)Math.Round(ctx.TextScale * 100)}";
             if (!_cardHeightCache.TryGetValue(cacheKey, out float cardH))
             {
-                cardH = EstimateCardHeight(lines, availW, false);
+                cardH = EstimateCardHeight(lines, availW, false, ctx.TextScale);
             }
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.Border, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
             ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 4.0f);
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f, 8.0f));
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f * ctx.TextScale, 8.0f * ctx.TextScale));
 
-            ImGui.BeginChild("SectionGeneralInfoBody", new Vector2(availW, cardH), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+            ImGui.BeginChild("SectionGeneralInfoBody", new Vector2(availW, cardH), true);
+            ImGui.SetWindowFontScale(ctx.TextScale);
 
             if (lines.Length == 0)
             {
@@ -384,7 +385,7 @@ namespace TdsOverlayImGui.UI.Views
                 }
             }
 
-            float measuredH = Math.Max(32.0f, ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y + ImGui.GetStyle().WindowPadding.Y + 2.0f);
+            float measuredH = Math.Max(32.0f * ctx.TextScale, ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y + ImGui.GetStyle().WindowPadding.Y + 2.0f);
             if (Math.Abs(measuredH - cardH) > 1.0f)
             {
                 if (_cardHeightCache.Count > 500) _cardHeightCache.Clear();
@@ -462,18 +463,16 @@ namespace TdsOverlayImGui.UI.Views
                 ? Array.Empty<string>()
                 : step.Instruction.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
-            string cacheKey = $"step_{mapTaskId}_{ctx.CurrentStepIndex}_{step.Instruction?.GetHashCode() ?? 0}_{(int)Math.Round(availW)}";
-            if (!_cardHeightCache.TryGetValue(cacheKey, out float cardH))
-            {
-                cardH = EstimateCardHeight(lines, availW, currentMap.ImagePaths.Count > 0);
-            }
+            float availH = ImGui.GetContentRegionAvail().Y - 6.0f;
+            float cardH = Math.Max(80.0f, availH);
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.Border, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
             ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 4.0f);
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f, 8.0f));
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f * ctx.TextScale, 8.0f * ctx.TextScale));
 
-            ImGui.BeginChild("WaveInstructionsScroll", new Vector2(availW, cardH), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+            ImGui.BeginChild("WaveInstructionsScroll", new Vector2(availW, cardH), true);
+            ImGui.SetWindowFontScale(ctx.TextScale);
 
             if (lines.Length == 0)
             {
@@ -495,13 +494,6 @@ namespace TdsOverlayImGui.UI.Views
                 InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), $"{Loc.Tr("SeparateImageNotice")} ({currentMap.ImagePaths.Count})");
             }
 
-            float measuredH = Math.Max(36.0f, ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y + ImGui.GetStyle().WindowPadding.Y + 2.0f);
-            if (Math.Abs(measuredH - cardH) > 1.0f)
-            {
-                if (_cardHeightCache.Count > 500) _cardHeightCache.Clear();
-                _cardHeightCache[cacheKey] = measuredH;
-            }
-
             ImGui.EndChild();
             ImGui.PopStyleVar(2);
             ImGui.PopStyleColor(2);
@@ -509,13 +501,13 @@ namespace TdsOverlayImGui.UI.Views
             ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 6.0f));
         }
 
-        private static float EstimateCardHeight(string[] lines, float availW, bool hasImageNotice)
+        private static float EstimateCardHeight(string[] lines, float availW, bool hasImageNotice, float textScale)
         {
-            if (lines.Length == 0) return 36.0f;
+            if (lines.Length == 0) return Math.Max(32.0f, 32.0f * textScale);
 
-            float padY = 8.0f * 2.0f;
-            float lineH = ImGui.GetTextLineHeightWithSpacing();
-            float innerW = Math.Max(80.0f, availW - 20.0f);
+            float padY = 8.0f * 2.0f * textScale;
+            float lineH = ImGui.GetTextLineHeightWithSpacing() * textScale;
+            float innerW = Math.Max(80.0f, availW - 20.0f * textScale);
             float totalH = padY;
 
             foreach (string line in lines)
@@ -526,17 +518,17 @@ namespace TdsOverlayImGui.UI.Views
                     continue;
                 }
 
-                float textW = ImGui.CalcTextSize(line).X;
+                float textW = ImGui.CalcTextSize(line).X * textScale;
                 int wrapped = Math.Max(1, (int)Math.Ceiling(textW / innerW));
                 totalH += wrapped * lineH;
             }
 
             if (hasImageNotice)
             {
-                totalH += lineH + 10.0f;
+                totalH += lineH + 10.0f * textScale;
             }
 
-            return Math.Max(36.0f, totalH);
+            return Math.Max(36.0f * textScale, totalH);
         }
 
         public static bool DrawSectionHeader(string id, string title, ref bool isOpen)
