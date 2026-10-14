@@ -43,7 +43,6 @@ namespace TdsOverlayImGui.UI.Components
                 ImGuiWindowFlags.NoTitleBar |
                 ImGuiWindowFlags.NoResize |
                 ImGuiWindowFlags.NoMove |
-                ImGuiWindowFlags.NoInputs |
                 ImGuiWindowFlags.AlwaysAutoResize |
                 ImGuiWindowFlags.NoSavedSettings |
                 ImGuiWindowFlags.NoFocusOnAppearing);
@@ -61,6 +60,8 @@ namespace TdsOverlayImGui.UI.Components
                 ImDrawFlags.RoundCornersLeft);
 
             string badge = string.IsNullOrWhiteSpace(ctx.AlertToastBadge) ? "ALERT" : ctx.AlertToastBadge;
+            bool isPeriodicAbility = badge.Contains("COMMANDER", StringComparison.OrdinalIgnoreCase) ||
+                                     badge.Contains("MEDIC", StringComparison.OrdinalIgnoreCase);
 
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(ctx.AlertToastColor.X * 0.22f, ctx.AlertToastColor.Y * 0.22f, ctx.AlertToastColor.Z * 0.22f, 0.90f * alpha));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(ctx.AlertToastColor.X * 0.22f, ctx.AlertToastColor.Y * 0.22f, ctx.AlertToastColor.Z * 0.22f, 0.90f * alpha));
@@ -69,15 +70,32 @@ namespace TdsOverlayImGui.UI.Components
             ImGui.SmallButton(badge);
             ImGui.PopStyleColor(4);
 
+            if (isPeriodicAbility)
+            {
+                ImGui.SameLine();
+                float stopBtnW = 60.0f;
+                if (winSize.X > stopBtnW + 30.0f)
+                {
+                    ImGui.SetCursorPosX(winSize.X - stopBtnW - 14.0f);
+                }
+                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.70f, 0.18f, 0.22f, 0.90f * alpha));
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.85f, 0.22f, 0.26f, 1.0f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.95f, 0.25f, 0.30f, 1.0f));
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 1.0f, 1.0f, alpha));
+                if (ImGui.SmallButton("STOP"))
+                {
+                    ctx.AlertToastTimer = 0.0f;
+                    ctx.IsCommanderChainStopped = true;
+                    ctx.IsMedicChainStopped = true;
+                    ctx.LastCommanderAlertTime = DateTime.MinValue;
+                    ctx.LastMedicAlertTime = DateTime.MinValue;
+                }
+                ImGui.PopStyleColor(4);
+            }
+
             ImGui.Spacing();
 
             SafeTextColored(new Vector4(1.0f, 1.0f, 1.0f, alpha), ctx.AlertToastTitle);
-
-            if (!string.IsNullOrWhiteSpace(ctx.AlertToastSubtitle))
-            {
-                ImGui.Spacing();
-                SafeTextColored(new Vector4(0.82f, 0.86f, 0.92f, 0.92f * alpha), ctx.AlertToastSubtitle);
-            }
 
             ImGui.Spacing();
 

@@ -10,7 +10,8 @@ namespace TdsOverlayImGui.UI.Views
         {
             if (!ctx.Settings.CompactMode)
             {
-                ImGui.BeginChild("MapSelectorCard", new Vector2(0, 96), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+                float mapCardH = ImGui.GetTextLineHeightWithSpacing() + ImGui.GetFrameHeightWithSpacing() * 2 + ImGui.GetStyle().WindowPadding.Y * 2 + 4.0f;
+                ImGui.BeginChild("MapSelectorCard", new Vector2(0, mapCardH), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
                 ImGui.TextDisabled(Loc.Tr("SelectStrategyHeader"));
 
@@ -127,7 +128,8 @@ namespace TdsOverlayImGui.UI.Views
 
             if (!ctx.Settings.CompactMode)
             {
-                ImGui.BeginChild("OcrHeaderCard", new Vector2(0, 58), true, ImGuiWindowFlags.NoScrollbar);
+                float ocrCardH = ImGui.GetFrameHeightWithSpacing() * 2 + ImGui.GetTextLineHeightWithSpacing() + ImGui.GetStyle().WindowPadding.Y * 2 + 4.0f;
+                ImGui.BeginChild("OcrHeaderCard", new Vector2(0, ocrCardH), true, ImGuiWindowFlags.NoScrollbar);
 
                 bool enableOcr = ctx.Settings.EnableOcr;
                 if (ImGui.Checkbox(Loc.Tr("AutoOcrHeader"), ref enableOcr))
@@ -156,24 +158,6 @@ namespace TdsOverlayImGui.UI.Views
                     InstructionRenderer.SafeTextColored(new Vector4(0.55f, 0.58f, 0.65f, 1.0f), Loc.Tr("OcrStatusOff"));
                 }
 
-                string ocrBtnText = Loc.Tr("SelectOcrRegionBtn");
-                float ocrBtnW = ImGui.CalcTextSize(ocrBtnText).X + ImGui.GetStyle().FramePadding.X * 2 + 8.0f;
-
-                if (ImGui.GetContentRegionAvail().X > ocrBtnW)
-                {
-                    ImGui.SameLine(ImGui.GetWindowWidth() - ocrBtnW - 12.0f);
-                }
-                else
-                {
-                    ImGui.SameLine();
-                }
-
-                if (ImGui.Button(ocrBtnText))
-                {
-                    ctx.IsSelectingOcrRegion = true;
-                    ctx.OcrSelectionState = 0;
-                }
-
                 if (ctx.Settings.EnableOcr)
                 {
                     string infoText = string.IsNullOrWhiteSpace(ctx.LastOcrStatus)
@@ -191,6 +175,13 @@ namespace TdsOverlayImGui.UI.Views
                     ImGui.TextDisabled(Loc.Tr("OcrDisabledNotice"));
                 }
 
+                string ocrBtnText = Loc.Tr("SelectOcrRegionBtn");
+                if (ImGui.Button(ocrBtnText, new Vector2(-1, 0)))
+                {
+                    ctx.IsSelectingOcrRegion = true;
+                    ctx.OcrSelectionState = 0;
+                }
+
                 ImGui.EndChild();
                 ImGui.Spacing();
             }
@@ -202,7 +193,8 @@ namespace TdsOverlayImGui.UI.Views
                     ctx.CurrentStepIndex = Math.Clamp(ctx.CurrentStepIndex, 0, currentMap.Steps.Count - 1);
                     var step = currentMap.Steps[ctx.CurrentStepIndex];
 
-                    ImGui.BeginChild("StepProgressCard", new Vector2(0, 118), true, ImGuiWindowFlags.NoScrollbar);
+                    float stepCardH = ImGui.GetFrameHeightWithSpacing() * 2 + ImGui.GetTextLineHeightWithSpacing() * 2 + 6.0f + ImGui.GetStyle().ItemSpacing.Y + ImGui.GetStyle().WindowPadding.Y * 2 + 6.0f;
+                    ImGui.BeginChild("StepProgressCard", new Vector2(0, stepCardH), true, ImGuiWindowFlags.NoScrollbar);
 
                     InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("CurrentWaveHeader"));
                     ImGui.SameLine();
@@ -374,6 +366,12 @@ namespace TdsOverlayImGui.UI.Views
                     }
 
                     float textH = ctx.Settings.InstructionBoxHeight;
+                    if (ctx.Settings.SeparateImageWindow || currentMap.ImagePaths.Count == 0)
+                    {
+                        float availY = ImGui.GetContentRegionAvail().Y;
+                        float dynamicH = Math.Max(textH, availY - ImGui.GetFrameHeightWithSpacing() - 8.0f);
+                        textH = dynamicH;
+                    }
                     ImGui.BeginChild("StepScroll", new Vector2(0, textH), true);
 
                     if (string.IsNullOrWhiteSpace(step.Instruction))

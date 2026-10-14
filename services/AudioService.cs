@@ -68,6 +68,8 @@ namespace TdsOverlayImGui.Services
             ctx.LastCommanderAlertTime = DateTime.MinValue;
             ctx.LastMedicAlertTime = DateTime.MinValue;
             ctx.CommanderRotationIndex = 0;
+            ctx.IsCommanderChainStopped = false;
+            ctx.IsMedicChainStopped = false;
         }
 
         private static void RemoveTriggersForWaveOrHigher(HashSet<string> set, int targetWave)
@@ -111,34 +113,51 @@ namespace TdsOverlayImGui.Services
             string rawType = match.Groups[2].Success ? match.Groups[2].Value : (match.Groups[5].Success ? match.Groups[5].Value : "");
             innerText = match.Groups[3].Success ? match.Groups[3].Value : (match.Groups[6].Success ? match.Groups[6].Value : "");
 
-            if (!ParseWaveSpec(waveSpec, out startW, out endW))
+            alertType = NormalizeAlertType(rawType);
+            if (!ParseWaveSpec(waveSpec, alertType, out startW, out endW))
             {
                 return false;
             }
 
-            alertType = NormalizeAlertType(rawType);
             return true;
         }
 
-        public static bool ParseWaveSpec(string waveSpec, out int startW, out int endW)
+        public static bool ParseWaveSpec(string waveSpec, string alertType, out int startW, out int endW)
         {
             startW = 0;
             endW = 0;
             if (string.IsNullOrWhiteSpace(waveSpec)) return false;
 
+            string norm = NormalizeAlertType(alertType);
+            bool isPeriodic = (norm is "chain_commander" or "medic");
+
             if (waveSpec.Contains('-'))
             {
                 var parts = waveSpec.Split('-');
-                int.TryParse(parts[0], out startW);
-                int.TryParse(parts[1], out endW);
+                if (parts.Length == 2 && int.TryParse(parts[0], out startW) && int.TryParse(parts[1], out endW))
+                {
+                    if (startW >= endW || startW < 1 || endW > 200)
+                    {
+                        return false;
+                    }
+                    return true;
+                }
+                return false;
             }
             else
             {
-                int.TryParse(waveSpec, out startW);
-                endW = startW;
-            }
+                if (isPeriodic)
+                {
+                    return false;
+                }
 
-            return startW > 0;
+                if (int.TryParse(waveSpec, out startW) && startW >= 1 && startW <= 200)
+                {
+                    endW = startW;
+                    return true;
+                }
+                return false;
+            }
         }
 
         public static string NormalizeAlertType(string raw)
@@ -159,6 +178,7 @@ namespace TdsOverlayImGui.Services
         {
             ctx.AlertToastMaxDuration = 4.0f;
             ctx.AlertToastTimer = ctx.AlertToastMaxDuration;
+            ctx.AlertToastSubtitle = "";
 
             string type = NormalizeAlertType(alertType);
             switch (type)
@@ -166,7 +186,6 @@ namespace TdsOverlayImGui.Services
                 case "red":
                     ctx.AlertToastBadge = Loc.Tr("DjBadge");
                     ctx.AlertToastTitle = Loc.Tr("DjToastRed");
-                    ctx.AlertToastSubtitle = Loc.Tr("DjToastRedSub");
                     ctx.AlertToastColor = new Vector4(1.0f, 0.28f, 0.32f, 1.0f);
                     PlayCommanderTone();
                     break;
@@ -174,7 +193,6 @@ namespace TdsOverlayImGui.Services
                 case "green":
                     ctx.AlertToastBadge = Loc.Tr("DjBadge");
                     ctx.AlertToastTitle = Loc.Tr("DjToastGreen");
-                    ctx.AlertToastSubtitle = Loc.Tr("DjToastGreenSub");
                     ctx.AlertToastColor = new Vector4(0.25f, 1.0f, 0.45f, 1.0f);
                     PlayCommanderTone();
                     break;
@@ -182,7 +200,6 @@ namespace TdsOverlayImGui.Services
                 case "purple":
                     ctx.AlertToastBadge = Loc.Tr("DjBadge");
                     ctx.AlertToastTitle = Loc.Tr("DjToastPurple");
-                    ctx.AlertToastSubtitle = Loc.Tr("DjToastPurpleSub");
                     ctx.AlertToastColor = new Vector4(0.85f, 0.38f, 1.0f, 1.0f);
                     PlayCommanderTone();
                     break;
@@ -190,7 +207,6 @@ namespace TdsOverlayImGui.Services
                 case "chain_commander":
                     ctx.AlertToastBadge = Loc.Tr("CommanderBadge");
                     ctx.AlertToastTitle = Loc.Tr("CommanderToastTitle");
-                    ctx.AlertToastSubtitle = Loc.Tr("CommanderToastSubtitle");
                     ctx.AlertToastColor = new Vector4(1.0f, 0.72f, 0.15f, 1.0f);
                     PlayCommanderTone();
                     break;
@@ -198,7 +214,6 @@ namespace TdsOverlayImGui.Services
                 case "medic":
                     ctx.AlertToastBadge = "MEDIC ABILITY";
                     ctx.AlertToastTitle = Loc.Tr("MedicToastTitle");
-                    ctx.AlertToastSubtitle = Loc.Tr("MedicToastSubtitle");
                     ctx.AlertToastColor = new Vector4(0.20f, 0.85f, 1.0f, 1.0f);
                     PlayCommanderTone();
                     break;
@@ -206,7 +221,6 @@ namespace TdsOverlayImGui.Services
                 default:
                     ctx.AlertToastBadge = "ALERT";
                     ctx.AlertToastTitle = string.IsNullOrWhiteSpace(customTitle) ? alertType.ToUpperInvariant() : customTitle;
-                    ctx.AlertToastSubtitle = "";
                     ctx.AlertToastColor = new Vector4(0.40f, 0.75f, 1.0f, 1.0f);
                     PlayCommanderTone();
                     break;
@@ -255,9 +269,10 @@ namespace TdsOverlayImGui.Services
                         {
                             ctx.LastCommanderAlertTime = DateTime.Now;
                             ctx.CommanderRotationIndex = 1;
+                            ctx.IsCommanderChainStopped = false;
                             ctx.AlertToastBadge = Loc.Tr("CommanderBadge");
                             ctx.AlertToastTitle = $"{Loc.Tr("CommanderToastTitle")} [#1]";
-                            ctx.AlertToastSubtitle = string.Format(Loc.Tr("CommanderRotateNotice"), 1);
+                            ctx.AlertToastSubtitle = "";
                             ctx.AlertToastColor = new Vector4(1.0f, 0.72f, 0.15f, 1.0f);
                             ctx.AlertToastMaxDuration = 4.0f;
                             ctx.AlertToastTimer = ctx.AlertToastMaxDuration;
@@ -266,6 +281,7 @@ namespace TdsOverlayImGui.Services
                         else if (normType == "medic")
                         {
                             ctx.LastMedicAlertTime = DateTime.Now;
+                            ctx.IsMedicChainStopped = false;
                             TriggerAlert(ctx, normType, innerText);
                         }
                         else
@@ -296,7 +312,7 @@ namespace TdsOverlayImGui.Services
                 ScanActiveAlerts(map.Steps[i].Instruction, activeWave, ref isCommanderActive, ref isMedicActive);
             }
 
-            if (isCommanderActive)
+            if (isCommanderActive && !ctx.IsCommanderChainStopped)
             {
                 if (ctx.LastCommanderAlertTime == DateTime.MinValue)
                 {
@@ -311,7 +327,7 @@ namespace TdsOverlayImGui.Services
 
                     ctx.AlertToastBadge = Loc.Tr("CommanderBadge");
                     ctx.AlertToastTitle = $"{Loc.Tr("CommanderToastTitle")} [#{commNum}]";
-                    ctx.AlertToastSubtitle = string.Format(Loc.Tr("CommanderRotateNotice"), commNum);
+                    ctx.AlertToastSubtitle = "";
                     ctx.AlertToastColor = new Vector4(1.0f, 0.72f, 0.15f, 1.0f);
                     ctx.AlertToastMaxDuration = 4.0f;
                     ctx.AlertToastTimer = ctx.AlertToastMaxDuration;
@@ -320,11 +336,15 @@ namespace TdsOverlayImGui.Services
             }
             else
             {
-                ctx.LastCommanderAlertTime = DateTime.MinValue;
-                ctx.CommanderRotationIndex = 0;
+                if (!isCommanderActive)
+                {
+                    ctx.LastCommanderAlertTime = DateTime.MinValue;
+                    ctx.CommanderRotationIndex = 0;
+                    ctx.IsCommanderChainStopped = false;
+                }
             }
 
-            if (isMedicActive)
+            if (isMedicActive && !ctx.IsMedicChainStopped)
             {
                 if (ctx.LastMedicAlertTime == DateTime.MinValue)
                 {
@@ -335,7 +355,7 @@ namespace TdsOverlayImGui.Services
                     ctx.LastMedicAlertTime = DateTime.Now;
                     ctx.AlertToastBadge = "MEDIC ABILITY";
                     ctx.AlertToastTitle = Loc.Tr("MedicToastTitle");
-                    ctx.AlertToastSubtitle = Loc.Tr("MedicToastSubtitle");
+                    ctx.AlertToastSubtitle = "";
                     ctx.AlertToastColor = new Vector4(0.20f, 0.85f, 1.0f, 1.0f);
                     ctx.AlertToastMaxDuration = 4.0f;
                     ctx.AlertToastTimer = ctx.AlertToastMaxDuration;
@@ -344,7 +364,11 @@ namespace TdsOverlayImGui.Services
             }
             else
             {
-                ctx.LastMedicAlertTime = DateTime.MinValue;
+                if (!isMedicActive)
+                {
+                    ctx.LastMedicAlertTime = DateTime.MinValue;
+                    ctx.IsMedicChainStopped = false;
+                }
             }
         }
 

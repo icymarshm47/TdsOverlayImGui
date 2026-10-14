@@ -35,6 +35,8 @@ namespace TdsOverlayImGui.UI
         public DateTime LastCommanderAlertTime = DateTime.MinValue;
         public DateTime LastMedicAlertTime = DateTime.MinValue;
         public int CommanderRotationIndex = 0;
+        public bool IsCommanderChainStopped = false;
+        public bool IsMedicChainStopped = false;
 
         public float DjToastTimer
         {
