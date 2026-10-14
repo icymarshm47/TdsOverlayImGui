@@ -155,6 +155,8 @@ namespace TdsOverlayImGui.UI.Components
                 return;
             }
 
+            float startX = ImGui.GetCursorPosX();
+            float rightLimit = Math.Max(startX + 40.0f, ImGui.GetWindowWidth() - ImGui.GetStyle().WindowPadding.X);
             int lastIndex = 0;
             bool isFirstOnLine = true;
 
@@ -163,7 +165,7 @@ namespace TdsOverlayImGui.UI.Components
                 if (match.Index > lastIndex)
                 {
                     string beforeText = line.Substring(lastIndex, match.Index - lastIndex);
-                    RenderFragment(beforeText, isDone ? completedColor : normalColor, ref isFirstOnLine);
+                    RenderFragment(beforeText, isDone ? completedColor : normalColor, startX, rightLimit, ref isFirstOnLine);
                 }
 
                 AudioService.ParseAlertMatch(match, out int startW, out int endW, out string alertType, out string innerText);
@@ -173,14 +175,14 @@ namespace TdsOverlayImGui.UI.Components
 
                 if (isWaveActive && !isDone)
                 {
-                    RenderFragment("[WAVE!]", new Vector4(0.3f, 1.0f, 0.4f, 1.0f), ref isFirstOnLine);
+                    RenderFragment("[WAVE!]", new Vector4(0.3f, 1.0f, 0.4f, 1.0f), startX, rightLimit, ref isFirstOnLine);
                 }
 
                 string displayText = !string.IsNullOrWhiteSpace(innerText)
                     ? innerText
                     : GetFallbackBadge(alertType, startW, endW);
 
-                RenderFragment(displayText, alertColor, ref isFirstOnLine);
+                RenderFragment(displayText, alertColor, startX, rightLimit, ref isFirstOnLine);
 
                 lastIndex = match.Index + match.Length;
             }
@@ -188,11 +190,11 @@ namespace TdsOverlayImGui.UI.Components
             if (lastIndex < line.Length)
             {
                 string afterText = line.Substring(lastIndex);
-                RenderFragment(afterText, isDone ? completedColor : normalColor, ref isFirstOnLine);
+                RenderFragment(afterText, isDone ? completedColor : normalColor, startX, rightLimit, ref isFirstOnLine);
             }
         }
 
-        private static void RenderFragment(string text, Vector4 color, ref bool isFirstOnLine)
+        private static void RenderFragment(string text, Vector4 color, float startX, float rightLimit, ref bool isFirstOnLine)
         {
             if (string.IsNullOrEmpty(text)) return;
 
@@ -204,14 +206,12 @@ namespace TdsOverlayImGui.UI.Components
 
                 float wordW = ImGui.CalcTextSize(word).X;
                 float spaceW = ImGui.CalcTextSize(" ").X;
-                float avail = ImGui.GetContentRegionAvail().X;
 
                 if (!isFirstOnLine)
                 {
-                    if (avail < wordW + spaceW)
+                    if (ImGui.GetCursorPosX() + spaceW + wordW > rightLimit)
                     {
-                        ImGui.NewLine();
-                        isFirstOnLine = true;
+                        ImGui.SetCursorPosX(startX);
                     }
                     else
                     {

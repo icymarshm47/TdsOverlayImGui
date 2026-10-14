@@ -468,8 +468,11 @@ namespace TdsOverlayImGui.UI.Views
                 ? Array.Empty<string>()
                 : step.Instruction.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
-            float availH = ImGui.GetContentRegionAvail().Y - 6.0f;
-            float cardH = Math.Max(80.0f, availH);
+            string cacheKey = $"step_{mapTaskId}_{ctx.CurrentStepIndex}_{step.Instruction?.GetHashCode() ?? 0}_{(int)Math.Round(availW)}";
+            if (!_cardHeightCache.TryGetValue(cacheKey, out float cardH))
+            {
+                cardH = EstimateCardHeight(lines, availW, currentMap.ImagePaths.Count > 0);
+            }
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.Border, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
@@ -501,6 +504,13 @@ namespace TdsOverlayImGui.UI.Views
                 InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), $"{Loc.Tr("SeparateImageNotice")} ({currentMap.ImagePaths.Count})");
             }
 
+            float measuredH = Math.Max(36.0f, ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y + ImGui.GetStyle().WindowPadding.Y + 2.0f);
+            if (Math.Abs(measuredH - cardH) > 1.0f)
+            {
+                if (_cardHeightCache.Count > 500) _cardHeightCache.Clear();
+                _cardHeightCache[cacheKey] = measuredH;
+            }
+
             ImGui.EndChild();
             ImGui.PopStyleVar(2);
             ImGui.PopStyleColor(2);
@@ -510,24 +520,36 @@ namespace TdsOverlayImGui.UI.Views
 
         private static float EstimateCardHeight(string[] lines, float availW, bool hasImageNotice)
         {
-            if (lines.Length == 0) return 32.0f;
-
             float padY = 8.0f * 2.0f;
             float lineH = ImGui.GetTextLineHeightWithSpacing();
             float innerW = Math.Max(80.0f, availW - 20.0f);
             float totalH = padY;
 
-            foreach (string line in lines)
+            if (lines.Length == 0)
             {
-                if (string.IsNullOrWhiteSpace(line))
+                totalH += lineH;
+            }
+            else
+            {
+                foreach (string line in lines)
                 {
-                    totalH += lineH * 0.5f;
-                    continue;
-                }
+                    if (string.IsNullOrWhiteSpace(line))
+                    {
+                        totalH += lineH * 0.5f;
+                        continue;
+                    }
 
-                float textW = ImGui.CalcTextSize(line).X;
-                int wrapped = Math.Max(1, (int)Math.Ceiling(textW / innerW));
-                totalH += wrapped * lineH;
+                    float effectiveW = innerW;
+                    string trimmed = line.TrimStart();
+                    if (trimmed.StartsWith("- [") || trimmed.StartsWith("* ["))
+                    {
+                        effectiveW = Math.Max(40.0f, innerW - 24.0f);
+                    }
+
+                    float textW = ImGui.CalcTextSize(line).X;
+                    int wrapped = Math.Max(1, (int)Math.Ceiling(textW / effectiveW));
+                    totalH += wrapped * lineH;
+                }
             }
 
             if (hasImageNotice)
