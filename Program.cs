@@ -60,10 +60,15 @@ namespace TdsOverlayImGui
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string[] fontCandidates = new[]
             {
+                Path.Combine(baseDir, "fonts", "JetBrainsMono-Regular.ttf"),
+                Path.Combine(baseDir, "JetBrainsMono-Regular.ttf"),
+                Path.Combine("fonts", "JetBrainsMono-Regular.ttf"),
+                "JetBrainsMono-Regular.ttf",
                 Path.Combine(baseDir, "fonts", "Roboto-Regular.ttf"),
                 Path.Combine(baseDir, "Roboto-Regular.ttf"),
                 Path.Combine("fonts", "Roboto-Regular.ttf"),
                 "Roboto-Regular.ttf",
+                @"C:\Windows\Fonts\JetBrainsMono-Regular.ttf",
                 @"C:\Windows\Fonts\Roboto-Regular.ttf",
                 @"C:\Windows\Fonts\segoeui.ttf",
                 @"C:\Windows\Fonts\arial.ttf"
