@@ -46,17 +46,9 @@ namespace TdsOverlayImGui.UI.Views
             }
 
             RenderSectionStrategy(overlay, ctx, currentMap);
-            ImGui.Spacing();
-
             RenderSectionScreenReader(ctx);
-            ImGui.Spacing();
-
             RenderSectionCurrentWave(ctx, currentMap, activeWave, maxWave);
-            ImGui.Spacing();
-
             RenderSectionGeneralInfo(ctx, currentMap, mapTaskId, activeWave);
-            ImGui.Spacing();
-
             RenderSectionWaveInstructions(overlay, ctx, currentMap, mapTaskId, activeWave);
         }
 
@@ -70,9 +62,9 @@ namespace TdsOverlayImGui.UI.Views
 
             float winW = ImGui.GetWindowWidth();
             Vector2 winPos = ImGui.GetWindowPos();
-            float contentX = winPos.X + 12.0f;
-            float availW = winW - 24.0f;
-            float startY = ImGui.GetCursorScreenPos().Y + 4.0f;
+            float contentX = winPos.X + 10.0f;
+            float availW = winW - 20.0f;
+            float startY = ImGui.GetCursorScreenPos().Y + 3.0f;
             ImGui.SetCursorScreenPos(new Vector2(contentX, startY));
 
             InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), Loc.Tr("ActiveStrategyLabel"));
@@ -121,33 +113,33 @@ namespace TdsOverlayImGui.UI.Views
                 ImGui.EndCombo();
             }
 
-            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 6.0f));
-            float spacing = 8.0f;
+            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 4.0f));
+            float spacing = 6.0f;
             float btnW = (availW - spacing * 2.0f) / 3.0f;
 
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(71f / 255f, 74f / 255f, 81f / 255f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
 
-            if (ImGui.Button(Loc.Tr("CreateBtn"), new Vector2(btnW, 30)))
+            if (ImGui.Button(Loc.Tr("CreateBtn"), new Vector2(btnW, 0)))
             {
                 ctx.ShowAddMapModal = true;
             }
 
             ImGui.SameLine(0, spacing);
-            if (ImGui.Button(Loc.Tr("EditBtn"), new Vector2(btnW, 30)))
+            if (ImGui.Button(Loc.Tr("EditBtn"), new Vector2(btnW, 0)))
             {
                 ctx.BeginEditing(currentMap);
             }
 
             ImGui.SameLine(0, spacing);
-            if (ImGui.Button(Loc.Tr("DeleteBtn"), new Vector2(btnW, 30)))
+            if (ImGui.Button(Loc.Tr("DeleteBtn"), new Vector2(btnW, 0)))
             {
                 ctx.ShowDeleteConfirmModal = true;
             }
 
             ImGui.PopStyleColor(3);
-            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 8.0f));
+            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 5.0f));
         }
 
         private static void RenderSectionScreenReader(OverlayContext ctx)
@@ -160,16 +152,16 @@ namespace TdsOverlayImGui.UI.Views
 
             float winW = ImGui.GetWindowWidth();
             Vector2 winPos = ImGui.GetWindowPos();
-            float contentX = winPos.X + 12.0f;
-            float availW = winW - 24.0f;
-            float startY = ImGui.GetCursorScreenPos().Y + 4.0f;
+            float contentX = winPos.X + 10.0f;
+            float availW = winW - 20.0f;
+            float startY = ImGui.GetCursorScreenPos().Y + 3.0f;
             ImGui.SetCursorScreenPos(new Vector2(contentX, startY));
 
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(88f / 255f, 101f / 255f, 242f / 255f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(71f / 255f, 82f / 255f, 196f / 255f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(60f / 255f, 69f / 255f, 165f / 255f, 1.0f));
 
-            if (ImGui.Button(Loc.Tr("SelectScreenAreaBtn"), new Vector2(availW, 34)))
+            if (ImGui.Button(Loc.Tr("SelectScreenAreaBtn"), new Vector2(availW, 0)))
             {
                 ctx.IsSelectingOcrRegion = true;
                 ctx.OcrSelectionState = 0;
@@ -177,7 +169,7 @@ namespace TdsOverlayImGui.UI.Views
 
             ImGui.PopStyleColor(3);
 
-            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 4.0f));
+            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 3.0f));
             bool enableOcr = ctx.Settings.EnableOcr;
             if (ImGui.Checkbox(Loc.Tr("AutoOcrHeader"), ref enableOcr))
             {
@@ -210,7 +202,7 @@ namespace TdsOverlayImGui.UI.Views
                 InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), Loc.Tr("OcrStatusOff"));
             }
 
-            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 8.0f));
+            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 5.0f));
         }
 
         private static void RenderSectionCurrentWave(OverlayContext ctx, MapStrategy currentMap, int activeWave, int maxWave)
@@ -223,30 +215,17 @@ namespace TdsOverlayImGui.UI.Views
 
             float winW = ImGui.GetWindowWidth();
             Vector2 winPos = ImGui.GetWindowPos();
-            float contentX = winPos.X + 12.0f;
-            float availW = winW - 24.0f;
+            float contentX = winPos.X + 10.0f;
+            float availW = winW - 20.0f;
             float startY = ImGui.GetCursorScreenPos().Y + 4.0f;
             ImGui.SetCursorScreenPos(new Vector2(contentX, startY));
 
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(88f / 255f, 101f / 255f, 242f / 255f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(71f / 255f, 82f / 255f, 196f / 255f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(60f / 255f, 69f / 255f, 165f / 255f, 1.0f));
+            float btnSize = 28.0f;
+            Vector2 rowStart = new Vector2(contentX, startY);
+            var drawList = ImGui.GetWindowDrawList();
 
-            if (ImGui.Button(Loc.Tr("SelectScreenAreaBtn") + "##WaveScreenArea", new Vector2(availW, 34)))
-            {
-                ctx.IsSelectingOcrRegion = true;
-                ctx.OcrSelectionState = 0;
-            }
-
-            ImGui.PopStyleColor(3);
-
-            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 6.0f));
-
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(71f / 255f, 74f / 255f, 81f / 255f, 1.0f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
-
-            if (ImGui.Button(" ◄ ##PrevWaveStep", new Vector2(34, 32)))
+            ImGui.SetCursorScreenPos(rowStart);
+            if (ImGui.InvisibleButton("##PrevWaveStep", new Vector2(btnSize, btnSize)))
             {
                 if (ctx.CurrentStepIndex > 0)
                 {
@@ -265,15 +244,24 @@ namespace TdsOverlayImGui.UI.Views
                     AudioService.CheckAndTriggerAlertsForWave(ctx, ctx.CurrentWaveNumber);
                 }
             }
+            bool isPrevHovered = ImGui.IsItemHovered();
+            uint prevBg = ImGui.ColorConvertFloat4ToU32(isPrevHovered
+                ? new Vector4(71f / 255f, 74f / 255f, 81f / 255f, 1.0f)
+                : new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f));
+            drawList.AddRectFilled(rowStart, new Vector2(rowStart.X + btnSize, rowStart.Y + btnSize), prevBg, 4.0f);
+            drawList.AddTriangleFilled(
+                new Vector2(rowStart.X + 9.0f, rowStart.Y + btnSize * 0.5f),
+                new Vector2(rowStart.X + 18.0f, rowStart.Y + btnSize * 0.5f - 5.0f),
+                new Vector2(rowStart.X + 18.0f, rowStart.Y + btnSize * 0.5f + 5.0f),
+                0xFFFFFFFF);
 
-            ImGui.SameLine(0, 10.0f);
-
-            Vector2 textPos = ImGui.GetCursorScreenPos();
-            float navY = textPos.Y + (32.0f - ImGui.GetTextLineHeight()) * 0.5f;
-            ImGui.SetCursorScreenPos(new Vector2(textPos.X, navY));
+            float textStartX = contentX + btnSize + 10.0f;
+            float baselineY = rowStart.Y + (btnSize - ImGui.GetTextLineHeight()) * 0.5f;
+            float totalWaveW = 0.0f;
 
             if (_isManualWaveInputActive)
             {
+                ImGui.SetCursorScreenPos(new Vector2(textStartX, rowStart.Y));
                 ImGui.SetNextItemWidth(70);
                 int manualWave = ctx.CurrentWaveNumber;
                 if (ImGui.InputInt("##ManualWaveInputInline", ref manualWave, 1, 5, ImGuiInputTextFlags.EnterReturnsTrue))
@@ -288,25 +276,31 @@ namespace TdsOverlayImGui.UI.Views
                 {
                     _isManualWaveInputActive = false;
                 }
+                totalWaveW = 70.0f;
             }
             else
             {
-                string waveLabel = $"Wave {activeWave}";
-                InstructionRenderer.SafeTextColored(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), waveLabel);
+                string waveStr = $"Wave {activeWave}";
+                string totalStr = $"/ {maxWave}";
+                float waveStrW = ImGui.CalcTextSize(waveStr).X;
+                float totalStrW = ImGui.CalcTextSize(totalStr).X;
+
+                ImGui.SetCursorScreenPos(new Vector2(textStartX, baselineY));
+                InstructionRenderer.SafeTextColored(new Vector4(1f, 1f, 1f, 1f), waveStr);
                 if (ImGui.IsItemClicked())
                 {
                     _isManualWaveInputActive = true;
                 }
 
-                ImGui.SameLine(0, 6.0f);
-                string totalLabel = $"/ {maxWave}";
-                InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), totalLabel);
+                ImGui.SetCursorScreenPos(new Vector2(textStartX + waveStrW + 6.0f, baselineY));
+                InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), totalStr);
+
+                totalWaveW = waveStrW + 6.0f + totalStrW;
             }
 
-            ImGui.SameLine(0, 10.0f);
-            ImGui.SetCursorScreenPos(new Vector2(ImGui.GetCursorScreenPos().X, textPos.Y));
-
-            if (ImGui.Button(" ► ##NextWaveStep", new Vector2(34, 32)))
+            float nextBtnX = textStartX + totalWaveW + 10.0f;
+            ImGui.SetCursorScreenPos(new Vector2(nextBtnX, rowStart.Y));
+            if (ImGui.InvisibleButton("##NextWaveStep", new Vector2(btnSize, btnSize)))
             {
                 if (ctx.CurrentStepIndex < currentMap.Steps.Count - 1)
                 {
@@ -325,18 +319,26 @@ namespace TdsOverlayImGui.UI.Views
                     AudioService.CheckAndTriggerAlertsForWave(ctx, ctx.CurrentWaveNumber);
                 }
             }
+            bool isNextHovered = ImGui.IsItemHovered();
+            uint nextBg = ImGui.ColorConvertFloat4ToU32(isNextHovered
+                ? new Vector4(71f / 255f, 74f / 255f, 81f / 255f, 1.0f)
+                : new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f));
+            drawList.AddRectFilled(new Vector2(nextBtnX, rowStart.Y), new Vector2(nextBtnX + btnSize, rowStart.Y + btnSize), nextBg, 4.0f);
+            drawList.AddTriangleFilled(
+                new Vector2(nextBtnX + btnSize - 9.0f, rowStart.Y + btnSize * 0.5f),
+                new Vector2(nextBtnX + btnSize - 18.0f, rowStart.Y + btnSize * 0.5f - 5.0f),
+                new Vector2(nextBtnX + btnSize - 18.0f, rowStart.Y + btnSize * 0.5f + 5.0f),
+                0xFFFFFFFF);
 
-            ImGui.PopStyleColor(3);
-
-            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 6.0f));
-
+            float progressY = rowStart.Y + btnSize + 6.0f;
+            ImGui.SetCursorScreenPos(new Vector2(contentX, progressY));
             float progress = Math.Clamp((float)activeWave / maxWave, 0.0f, 1.0f);
             ImGui.PushStyleColor(ImGuiCol.PlotHistogram, new Vector4(35f / 255f, 165f / 255f, 90f / 255f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
-            ImGui.ProgressBar(progress, new Vector2(availW, 7), "");
+            ImGui.ProgressBar(progress, new Vector2(availW, 6.0f), "");
             ImGui.PopStyleColor(2);
 
-            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 8.0f));
+            ImGui.SetCursorScreenPos(new Vector2(contentX, progressY + 10.0f));
         }
 
         private static void RenderSectionGeneralInfo(OverlayContext ctx, MapStrategy currentMap, string mapTaskId, int activeWave)
@@ -349,9 +351,9 @@ namespace TdsOverlayImGui.UI.Views
 
             float winW = ImGui.GetWindowWidth();
             Vector2 winPos = ImGui.GetWindowPos();
-            float contentX = winPos.X + 12.0f;
-            float availW = winW - 24.0f;
-            float startY = ImGui.GetCursorScreenPos().Y + 4.0f;
+            float contentX = winPos.X + 10.0f;
+            float availW = winW - 20.0f;
+            float startY = ImGui.GetCursorScreenPos().Y + 3.0f;
             ImGui.SetCursorScreenPos(new Vector2(contentX, startY));
 
             float infoH = ctx.Settings.GeneralInfoBoxHeight;
@@ -359,7 +361,7 @@ namespace TdsOverlayImGui.UI.Views
             ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.Border, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
             ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 4.0f);
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f, 10.0f));
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(8.0f, 8.0f));
 
             ImGui.BeginChild("SectionGeneralInfoBody", new Vector2(availW, infoH), true);
 
@@ -384,7 +386,7 @@ namespace TdsOverlayImGui.UI.Views
 
             ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y));
             ctx.Settings.GeneralInfoBoxHeight = ImageViewer.DrawHeightResizeHandle(ctx, ctx.Settings.GeneralInfoBoxHeight, 40.0f, 400.0f, "GeneralInfoHandle");
-            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 6.0f));
+            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 5.0f));
         }
 
         private static void RenderSectionWaveInstructions(TdsImGuiOverlay overlay, OverlayContext ctx, MapStrategy currentMap, string mapTaskId, int activeWave)
@@ -397,15 +399,15 @@ namespace TdsOverlayImGui.UI.Views
 
             float winW = ImGui.GetWindowWidth();
             Vector2 winPos = ImGui.GetWindowPos();
-            float contentX = winPos.X + 12.0f;
-            float availW = winW - 24.0f;
-            float startY = ImGui.GetCursorScreenPos().Y + 4.0f;
+            float contentX = winPos.X + 10.0f;
+            float availW = winW - 20.0f;
+            float startY = ImGui.GetCursorScreenPos().Y + 3.0f;
             ImGui.SetCursorScreenPos(new Vector2(contentX, startY));
 
             if (currentMap.Steps.Count == 0)
             {
                 ImGui.Text(Loc.Tr("NoStepsNotice"));
-                if (ImGui.Button(Loc.Tr("AddDefaultStepBtn"), new Vector2(availW, 30)))
+                if (ImGui.Button(Loc.Tr("AddDefaultStepBtn"), new Vector2(availW, 0)))
                 {
                     currentMap.Steps.Add(new StrategyStep { StartWave = 1, EndWave = 30, Instruction = "..." });
                     StrategyService.SaveStrategy(currentMap);
@@ -426,14 +428,14 @@ namespace TdsOverlayImGui.UI.Views
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(71f / 255f, 74f / 255f, 81f / 255f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
 
-            if (ImGui.Button(copyText, new Vector2(copyW, 24)))
+            if (ImGui.Button(copyText, new Vector2(copyW, 0)))
             {
                 ImagePickerHelper.SetClipboardText(step.Instruction);
                 ctx.ToastTimer = 2.0f;
             }
 
             ImGui.SameLine(0, 6.0f);
-            if (ImGui.Button(clearText, new Vector2(clearW, 24)))
+            if (ImGui.Button(clearText, new Vector2(clearW, 0)))
             {
                 ctx.CompletedTasks.RemoveWhere(k => k.StartsWith($"{mapTaskId}_") || k.StartsWith($"gen_{mapTaskId}_"));
                 ctx.TriggeredDjAlerts.Clear();
@@ -502,12 +504,12 @@ namespace TdsOverlayImGui.UI.Views
                 }
             }
 
-            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 8.0f));
+            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 5.0f));
         }
 
         public static bool DrawSectionHeader(string id, string title, ref bool isOpen)
         {
-            float headerH = 30.0f;
+            float headerH = 26.0f;
             float winW = ImGui.GetWindowWidth();
             Vector2 winPos = ImGui.GetWindowPos();
             float cursorY = ImGui.GetCursorScreenPos().Y;
@@ -528,25 +530,25 @@ namespace TdsOverlayImGui.UI.Views
             drawList.AddRectFilled(new Vector2(winPos.X, cursorY), new Vector2(winPos.X + winW, cursorY + headerH), bgCol, 0.0f);
 
             float centerY = cursorY + headerH * 0.5f;
-            float arrowLeftX = winPos.X + 16.0f;
+            float arrowLeftX = winPos.X + 14.0f;
             uint arrowCol = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f));
 
             if (isOpen)
             {
-                Vector2 p1 = new Vector2(arrowLeftX, centerY - 3.5f);
-                Vector2 p2 = new Vector2(arrowLeftX + 8.0f, centerY - 3.5f);
-                Vector2 p3 = new Vector2(arrowLeftX + 4.0f, centerY + 3.5f);
+                Vector2 p1 = new Vector2(arrowLeftX, centerY - 3.0f);
+                Vector2 p2 = new Vector2(arrowLeftX + 8.0f, centerY - 3.0f);
+                Vector2 p3 = new Vector2(arrowLeftX + 4.0f, centerY + 3.0f);
                 drawList.AddTriangleFilled(p1, p2, p3, arrowCol);
             }
             else
             {
-                Vector2 p1 = new Vector2(arrowLeftX + 1.0f, centerY - 4.5f);
-                Vector2 p2 = new Vector2(arrowLeftX + 7.5f, centerY);
-                Vector2 p3 = new Vector2(arrowLeftX + 1.0f, centerY + 4.5f);
+                Vector2 p1 = new Vector2(arrowLeftX + 1.0f, centerY - 4.0f);
+                Vector2 p2 = new Vector2(arrowLeftX + 7.0f, centerY);
+                Vector2 p3 = new Vector2(arrowLeftX + 1.0f, centerY + 4.0f);
                 drawList.AddTriangleFilled(p1, p2, p3, arrowCol);
             }
 
-            float textX = winPos.X + 32.0f;
+            float textX = winPos.X + 28.0f;
             float textY = cursorY + (headerH - ImGui.GetTextLineHeight()) * 0.5f;
             drawList.AddText(new Vector2(textX, textY), 0xFFFFFFFF, title.ToUpperInvariant());
 
@@ -557,14 +559,14 @@ namespace TdsOverlayImGui.UI.Views
         {
             float winW = ImGui.GetWindowWidth();
             Vector2 winPos = ImGui.GetWindowPos();
-            float contentX = winPos.X + 12.0f;
-            float availW = winW - 24.0f;
-            float startY = ImGui.GetCursorScreenPos().Y + 8.0f;
+            float contentX = winPos.X + 10.0f;
+            float availW = winW - 20.0f;
+            float startY = ImGui.GetCursorScreenPos().Y + 6.0f;
             ImGui.SetCursorScreenPos(new Vector2(contentX, startY));
 
             InstructionRenderer.SafeTextColored(new Vector4(1.0f, 0.8f, 0.2f, 1.0f), Loc.Tr("NoStrategySelected"));
             ImGui.TextWrapped(Loc.Tr("SelectStrategyPrompt"));
-            if (ImGui.Button(Loc.Tr("CreateBtn"), new Vector2(availW, 32)))
+            if (ImGui.Button(Loc.Tr("CreateBtn"), new Vector2(availW, 0)))
             {
                 ctx.ShowAddMapModal = true;
             }
