@@ -4,53 +4,44 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## Unreleased
-### Added
-- **Portable Base Directory**: All application paths (`strategies/`, `images/`, `settings.json`, `completed_tasks.json`) are now strictly anchored to the executable's directory (`AppDomain.CurrentDomain.BaseDirectory`), making the application fully portable regardless of working directory.
-- **Privacy & Network Toggle**: Added an option in Settings to enable/disable automatic update checks on startup to give users full control over outgoing network requests.
-- **Random Footer Splash Text**: Footer text is now randomly selected on startup from an external `quotes.txt` file (or falls back to default list).
-- **Interactive Footer Quote Cycling**: Clicking on the footer splash quote immediately cycles to another random quote from `quotes.txt` with a pointer hand cursor and hover text highlight.
-- **Persistent Header & Settings Menu on Image Tab**: Added custom title bar with hamburger settings menu and close button to `SeparateImageWindow`, allowing full menu and settings access even when docked as a tab.
-
-### Changed
-- **Removed Toggle Descriptions in Settings**: Removed redundant descriptive subtext under setting switches for a cleaner, compact dialog.
-
-### Removed
-- **Compact Mode**: Completely removed obsolete Compact Mode option.
-
-### Fixed
-- **Docked Tab Title Bar & Settings Menu**: Fixed custom title bar and hamburger settings menu `[≡]` disappearing/clipping behind tab bars when windows (`TDS Strategy Overlay (ImGui)` and `Placement Image`) are docked together into tabs, anchoring title bar rendering to the content cursor (`GetCursorScreenPos()`).
-- **OCR Screen Clamping**: Clamped screen capture bounds against `SystemInformation.VirtualScreen` to prevent `Win32Exception` when coordinates exceed monitor borders.
-- **Memory Safety in Docking**: Removed direct byte pointer offset writes into ImGui internal dock structures, switching to official DockBuilder APIs.
-- **JSON Null-Safety**: Sanitized all deserialized strategy collections and string fields across file, clipboard, and ZIP import handlers.
-- **VRAM Texture Cleanup**: Added individual texture unloading when images are removed or replaced in the Strategy Editor, and on editor cancel.
-- **OCR Concurrency & Noise Filtering**: Made OCR pending raw text thread-safe via `Interlocked` and added debounce filtering for transient wave rollbacks.
-- **Whitespace Preservation**: Fixed regex tokenization in instruction fragment rendering so that multiple spaces and indentation are never stripped.
-
----
-
 ## [0.7] 2026-10-14
 ### Added
 - **OBS / Screen Capture Protection**: Added an option in Settings to hide the overlay from OBS, Discord, and screen capture/recording tools (using Windows `SetWindowDisplayAffinity` API with `WDA_EXCLUDEFROMCAPTURE`).
 - **Dynamic Card Auto-Sizing**: Instruction and General Info cards now dynamically measure wrapped text content and auto-size their height with cache, eliminating inner scrollbars and text cutoff.
 - **Current Step Indicator**: Display current step number next to the active wave counter (`Step X/Y`).
 - **Custom Title Bar & Header Dragging**: Added custom title bar supporting window dragging for both docked and floating windows without scrolling inner content.
+- **Persistent Header & Settings Menu on Image Tab**: Added custom title bar with hamburger settings menu and close button to `SeparateImageWindow`, allowing full menu and settings access even when docked as a tab.
 - **Commander & Medic Ability Alerts**: Periodic audio reminders and popups for Chain Commander and Medic abilities across configured wave ranges.
 - **Custom Blurple Checkboxes**: Discord-style custom interactive task checkboxes with strikethrough for completed instructions.
 - **High-Visibility Resize Handle**: Dedicated bottom-right corner resize grip with smooth window resizing.
+- **Portable Base Directory**: All application paths (`strategies/`, `images/`, `settings.json`, `completed_tasks.json`) are now strictly anchored to the executable's directory (`AppDomain.CurrentDomain.BaseDirectory`), making the application fully portable regardless of working directory.
+- **Privacy & Network Toggle**: Added an option in Settings to enable/disable automatic update checks on startup to give users full control over outgoing network requests.
+- **Random Footer Splash Text**: Footer text is now randomly selected on startup from an external `quotes.txt` file (or falls back to default list).
+- **Interactive Footer Quote Cycling**: Clicking on the footer splash quote immediately cycles to another random quote from `quotes.txt` with a pointer hand cursor and hover text highlight.
 
 ### Changed
 - **Unified UI Theme**: Redesigned color palette with modern dark Discord-gray action buttons and compact block spacing.
 - **Dedicated Image Window**: Strategy placement images now always open in a separate movable window (removed obsolete embedded image mode).
 - **Tab Bar Behavior**: Tab bar is now hidden by default on all windows and docking nodes for a cleaner overlay look.
 - **Cleaned Button Labels**: Removed bracket wrappers `[...]` from Copy/Clear buttons and trailing ellipses `...` from Browse Photo buttons.
+- **Removed Toggle Descriptions in Settings**: Removed redundant descriptive subtext under setting switches for a cleaner, compact dialog.
 - **Editor Cleanup**: Removed markdown syntax prompt below Steps in Strategy Editor and reserved red accent colors strictly for destructive delete actions.
 - **Settings & Translations**: Renamed Russian language option to "Russian" in settings.
 - **Typography**: Prioritized JetBrains Mono font loading with native Cyrillic glyph support.
 
+### Removed
+- **Compact Mode**: Completely removed obsolete Compact Mode option.
+
 ### Fixed
+- **Docked Tab Title Bar & Settings Menu**: Fixed custom title bar and hamburger settings menu `[≡]` disappearing/clipping behind tab bars when windows (`TDS Strategy Overlay (ImGui)` and `Placement Image`) are docked together into tabs, anchoring title bar rendering to the content cursor (`GetCursorScreenPos()`).
 - **Wave Instructions Text Wrapping**: Fixed horizontal cursor drift and stair-stepping layout so instruction lines and checkboxes wrap smoothly without clipping or disappearing when resizing the window.
 - **Tag & Badge Wrapping**: Fixed boundary calculation for instruction lines containing `<ocr>` alert tags and badges to wrap cleanly at window edges.
+- **OCR Screen Clamping**: Clamped screen capture bounds against `SystemInformation.VirtualScreen` to prevent `Win32Exception` when coordinates exceed monitor borders.
+- **Memory Safety in Docking**: Removed direct byte pointer offset writes into ImGui internal dock structures, switching to official DockBuilder APIs.
+- **JSON Null-Safety**: Sanitized all deserialized strategy collections and string fields across file, clipboard, and ZIP import handlers.
+- **VRAM Texture Cleanup**: Added individual texture unloading when images are removed or replaced in the Strategy Editor, and on editor cancel.
+- **OCR Concurrency & Noise Filtering**: Made OCR pending raw text thread-safe via `Interlocked` and added debounce filtering for transient wave rollbacks.
+- **Whitespace Preservation**: Fixed regex tokenization in instruction fragment rendering so that multiple spaces and indentation are never stripped.
 - **Title Bar Alignments**: Centered the close button cross (`X`) and aligned navigation buttons.
 - **Footer Overlap**: Fixed vertical layout to prevent instruction cards from overlapping the bottom footer when scaling window height.
 - **Audio & Alert Reliability**: Switched audio alert beeps to `SystemSounds` for reliable playback.
