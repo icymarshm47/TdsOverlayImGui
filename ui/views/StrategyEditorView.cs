@@ -27,6 +27,80 @@ namespace TdsOverlayImGui.UI.Views
             ImGui.InputText("##EditStrategyName", ref ctx.EditStrategyName, 256);
 
             ImGui.Spacing();
+            ImGui.Separator();
+            InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("SelectPlayer"));
+
+            if (ctx.EditPlayers.Count == 0)
+            {
+                ctx.EditPlayers.Add(new PlayerStrategy { PlayerName = "Player 1" });
+            }
+            ctx.EditSelectedPlayerIndex = Math.Clamp(ctx.EditSelectedPlayerIndex, 0, ctx.EditPlayers.Count - 1);
+
+            for (int pIdx = 0; pIdx < ctx.EditPlayers.Count; pIdx++)
+            {
+                var p = ctx.EditPlayers[pIdx];
+                bool isCurrent = (ctx.EditSelectedPlayerIndex == pIdx);
+                if (isCurrent)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(88f / 255f, 101f / 255f, 242f / 255f, 1.0f));
+                }
+                if (ImGui.Button($"{p.PlayerName}##editPlayerBtn_{pIdx}"))
+                {
+                    if (ctx.EditSelectedPlayerIndex != pIdx)
+                    {
+                        ctx.SaveCurrentEditPlayerFromContext();
+                        ctx.EditSelectedPlayerIndex = pIdx;
+                        ctx.SyncCurrentEditPlayerToContext();
+                    }
+                }
+                if (isCurrent)
+                {
+                    ImGui.PopStyleColor();
+                }
+                ImGui.SameLine();
+            }
+
+            if (ImGui.Button(Loc.Tr("AddPlayer")))
+            {
+                ctx.SaveCurrentEditPlayerFromContext();
+                string nextName = $"Player {ctx.EditPlayers.Count + 1}";
+                ctx.EditPlayers.Add(new PlayerStrategy
+                {
+                    PlayerName = nextName,
+                    GeneralInfo = "",
+                    ImagePaths = new(),
+                    Steps = new()
+                    {
+                        new StrategyStep { StartWave = 1, EndWave = 30, Instruction = $"- [ ] {nextName} step instruction..." }
+                    }
+                });
+                ctx.EditSelectedPlayerIndex = ctx.EditPlayers.Count - 1;
+                ctx.SyncCurrentEditPlayerToContext();
+            }
+
+            if (ctx.EditPlayers.Count > 1)
+            {
+                ImGui.SameLine();
+                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.65f, 0.20f, 0.22f, 1.0f));
+                if (ImGui.Button($"X##delPlayer_{ctx.EditSelectedPlayerIndex}"))
+                {
+                    ctx.EditPlayers.RemoveAt(ctx.EditSelectedPlayerIndex);
+                    ctx.EditSelectedPlayerIndex = Math.Clamp(ctx.EditSelectedPlayerIndex, 0, ctx.EditPlayers.Count - 1);
+                    ctx.SyncCurrentEditPlayerToContext();
+                }
+                ImGui.PopStyleColor();
+            }
+
+            var curPlayer = ctx.EditPlayers[ctx.EditSelectedPlayerIndex];
+            string curName = curPlayer.PlayerName;
+            ImGui.Text($"{Loc.Tr("PlayerName")}:");
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            if (ImGui.InputText("##CurPNameInput", ref curName, 64))
+            {
+                curPlayer.PlayerName = curName;
+            }
+
+            ImGui.Spacing();
             ImGui.Text(Loc.Tr("GeneralInfoLabel"));
             ImGui.InputTextMultiline("##EditGeneralInfo", ref ctx.EditGeneralInfo, 65536, new Vector2(-1, 65), ImGuiInputTextFlags.AllowTabInput);
 
@@ -185,23 +259,29 @@ namespace TdsOverlayImGui.UI.Views
             if (ImGui.Button(Loc.Tr("Save"), new Vector2(editBtnW, 0)))
             {
                 ImageViewer.ClearLoadedTextures(overlay);
+                ctx.SaveCurrentEditPlayerFromContext();
 
                 string mapName = string.IsNullOrWhiteSpace(ctx.EditMapName) ? "Map" : ctx.EditMapName.Trim();
                 string difficulty = string.IsNullOrWhiteSpace(ctx.EditDifficulty) ? "Normal" : ctx.EditDifficulty.Trim();
                 string strategyName = string.IsNullOrWhiteSpace(ctx.EditStrategyName) ? "Main" : ctx.EditStrategyName.Trim();
 
-                foreach (var step in ctx.EditSteps)
+                foreach (var p in ctx.EditPlayers)
                 {
-                    step.StartWave = Math.Clamp(step.StartWave, 1, 200);
-                    step.EndWave = Math.Clamp(step.EndWave, step.StartWave, 200);
+                    foreach (var step in p.Steps)
+                    {
+                        step.StartWave = Math.Clamp(step.StartWave, 1, 200);
+                        step.EndWave = Math.Clamp(step.EndWave, step.StartWave, 200);
+                    }
                 }
 
                 currentMap.MapName = mapName;
                 currentMap.Difficulty = difficulty;
                 currentMap.StrategyName = strategyName;
-                currentMap.GeneralInfo = ctx.EditGeneralInfo;
-                currentMap.ImagePaths = new List<string>(ctx.EditImagePaths);
-                currentMap.Steps = new List<StrategyStep>(ctx.EditSteps);
+                currentMap.Players = new List<PlayerStrategy>(ctx.EditPlayers);
+                currentMap.SelectedPlayerIndex = Math.Clamp(ctx.EditSelectedPlayerIndex, 0, currentMap.Players.Count - 1);
+                currentMap.GeneralInfo = currentMap.CurrentPlayer.GeneralInfo;
+                currentMap.ImagePaths = new List<string>(currentMap.CurrentPlayer.ImagePaths);
+                currentMap.Steps = new List<StrategyStep>(currentMap.CurrentPlayer.Steps);
 
                 StrategyService.SaveStrategy(currentMap);
                 ctx.IsEditing = false;

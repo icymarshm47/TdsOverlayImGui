@@ -91,6 +91,8 @@ namespace TdsOverlayImGui.UI
         public string EditGeneralInfo = "";
         public List<string> EditImagePaths = new();
         public List<StrategyStep> EditSteps = new();
+        public List<PlayerStrategy> EditPlayers = new();
+        public int EditSelectedPlayerIndex = 0;
         public string EditorToastMessage = "";
         public float EditorToastTimer = 0.0f;
 
@@ -98,6 +100,8 @@ namespace TdsOverlayImGui.UI
         public string NewMapName = "";
         public string NewMapDiff = "Fallen";
         public string NewMapStrat = "Solo";
+        public List<string> NewMapPlayerNames = new() { "Player 1" };
+        public int NewMapSelectedPlayerIndex = 0;
 
         public bool ShowImportExportModal = false;
         public string ImportStatusMessage = "";
@@ -120,23 +124,59 @@ namespace TdsOverlayImGui.UI
 
         public void BeginEditing(MapStrategy map)
         {
+            map.EnsureDefaultPlayer();
             EditMapName = map.MapName;
             EditDifficulty = map.Difficulty;
             EditStrategyName = map.StrategyName;
-            EditGeneralInfo = map.GeneralInfo;
-            EditImagePaths = new List<string>(map.ImagePaths);
-            EditSteps = new List<StrategyStep>();
-            foreach (var s in map.Steps)
+
+            EditPlayers = new List<PlayerStrategy>();
+            foreach (var p in map.Players)
             {
-                EditSteps.Add(new StrategyStep
+                var newP = new PlayerStrategy
                 {
-                    StartWave = s.StartWave,
-                    EndWave = s.EndWave,
-                    Instruction = s.Instruction,
-                    ImagePaths = new List<string>(s.ImagePaths)
-                });
+                    PlayerName = p.PlayerName,
+                    GeneralInfo = p.GeneralInfo,
+                    ImagePaths = new List<string>(p.ImagePaths),
+                    Steps = new List<StrategyStep>()
+                };
+                foreach (var s in p.Steps)
+                {
+                    newP.Steps.Add(new StrategyStep
+                    {
+                        StartWave = s.StartWave,
+                        EndWave = s.EndWave,
+                        Instruction = s.Instruction,
+                        ImagePaths = new List<string>(s.ImagePaths)
+                    });
+                }
+                EditPlayers.Add(newP);
             }
+            EditSelectedPlayerIndex = Math.Clamp(map.SelectedPlayerIndex, 0, EditPlayers.Count - 1);
+            SyncCurrentEditPlayerToContext();
             IsEditing = true;
+        }
+
+        public void SyncCurrentEditPlayerToContext()
+        {
+            if (EditPlayers.Count == 0)
+            {
+                EditPlayers.Add(new PlayerStrategy { PlayerName = "Player 1" });
+            }
+            EditSelectedPlayerIndex = Math.Clamp(EditSelectedPlayerIndex, 0, EditPlayers.Count - 1);
+            var p = EditPlayers[EditSelectedPlayerIndex];
+            EditGeneralInfo = p.GeneralInfo;
+            EditImagePaths = p.ImagePaths;
+            EditSteps = p.Steps;
+        }
+
+        public void SaveCurrentEditPlayerFromContext()
+        {
+            if (EditPlayers.Count == 0) return;
+            EditSelectedPlayerIndex = Math.Clamp(EditSelectedPlayerIndex, 0, EditPlayers.Count - 1);
+            var p = EditPlayers[EditSelectedPlayerIndex];
+            p.GeneralInfo = EditGeneralInfo;
+            p.ImagePaths = EditImagePaths;
+            p.Steps = EditSteps;
         }
 
         public void ResetImageTransform()
@@ -147,9 +187,10 @@ namespace TdsOverlayImGui.UI
 
         public void UpdateStepByWaveNumber(MapStrategy map, int waveNumber)
         {
-            for (int i = 0; i < map.Steps.Count; i++)
+            var steps = map.CurrentPlayer.Steps;
+            for (int i = 0; i < steps.Count; i++)
             {
-                var s = map.Steps[i];
+                var s = steps[i];
                 if (waveNumber >= s.StartWave && waveNumber <= s.EndWave)
                 {
                     if (CurrentStepIndex != i)

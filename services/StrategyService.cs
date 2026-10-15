@@ -121,10 +121,17 @@ namespace TdsOverlayImGui.Services
                         strat.Difficulty ??= "";
                         strat.StrategyName ??= "Main";
                         strat.GeneralInfo ??= "";
-                        foreach (var s in strat.Steps)
+                        strat.EnsureDefaultPlayer();
+                        foreach (var p in strat.Players)
                         {
-                            s.Instruction ??= "";
-                            s.ImagePaths ??= new();
+                            p.Steps ??= new();
+                            p.ImagePaths ??= new();
+                            p.GeneralInfo ??= "";
+                            foreach (var s in p.Steps)
+                            {
+                                s.Instruction ??= "";
+                                s.ImagePaths ??= new();
+                            }
                         }
                         list.Add(strat);
                     }
@@ -152,13 +159,21 @@ namespace TdsOverlayImGui.Services
                 if (!Directory.Exists(FolderPath))
                     Directory.CreateDirectory(FolderPath);
 
-                for (int i = 0; i < strategy.ImagePaths.Count; i++)
+                strategy.EnsureDefaultPlayer();
+                foreach (var p in strategy.Players)
                 {
-                    if (!string.IsNullOrWhiteSpace(strategy.ImagePaths[i]))
+                    for (int i = 0; i < p.ImagePaths.Count; i++)
                     {
-                        strategy.ImagePaths[i] = CopyImageToImagesFolder(strategy.ImagePaths[i], strategy.MapName, i + 1);
+                        if (!string.IsNullOrWhiteSpace(p.ImagePaths[i]))
+                        {
+                            p.ImagePaths[i] = CopyImageToImagesFolder(p.ImagePaths[i], strategy.MapName, i + 1);
+                        }
                     }
                 }
+
+                strategy.GeneralInfo = strategy.CurrentPlayer.GeneralInfo;
+                strategy.ImagePaths = new List<string>(strategy.CurrentPlayer.ImagePaths);
+                strategy.Steps = new List<StrategyStep>(strategy.CurrentPlayer.Steps);
 
                 string safeFileName = SanitizeFileName($"{strategy.MapName}_{strategy.Difficulty}_{strategy.StrategyName}.json");
                 string targetPath = Path.Combine(FolderPath, safeFileName);
@@ -212,27 +227,52 @@ namespace TdsOverlayImGui.Services
 
         public static MapStrategy PrepareStrategyForExport(MapStrategy source, HashSet<string> completedTasks)
         {
+            source.EnsureDefaultPlayer();
             string mapId = source.TaskId;
             var exportMap = new MapStrategy
             {
                 MapName = source.MapName,
                 Difficulty = source.Difficulty,
                 StrategyName = source.StrategyName,
-                GeneralInfo = ApplyCheckboxStatesToText(source.GeneralInfo, $"gen_{mapId}", completedTasks),
-                ImagePaths = new List<string>(source.ImagePaths),
-                Steps = new List<StrategyStep>()
+                GeneralInfo = ApplyCheckboxStatesToText(source.CurrentPlayer.GeneralInfo, $"gen_{mapId}_{source.CurrentPlayer.PlayerName}", completedTasks),
+                ImagePaths = new List<string>(source.CurrentPlayer.ImagePaths),
+                Steps = new List<StrategyStep>(),
+                Players = new List<PlayerStrategy>()
             };
 
-            for (int i = 0; i < source.Steps.Count; i++)
+            for (int i = 0; i < source.CurrentPlayer.Steps.Count; i++)
             {
-                var step = source.Steps[i];
+                var step = source.CurrentPlayer.Steps[i];
                 exportMap.Steps.Add(new StrategyStep
                 {
                     StartWave = step.StartWave,
                     EndWave = step.EndWave,
-                    Instruction = ApplyCheckboxStatesToText(step.Instruction, $"{mapId}_{i}", completedTasks),
+                    Instruction = ApplyCheckboxStatesToText(step.Instruction, $"{mapId}_{source.CurrentPlayer.PlayerName}_{i}", completedTasks),
                     ImagePaths = new List<string>(step.ImagePaths)
                 });
+            }
+
+            foreach (var p in source.Players)
+            {
+                var ep = new PlayerStrategy
+                {
+                    PlayerName = p.PlayerName,
+                    GeneralInfo = ApplyCheckboxStatesToText(p.GeneralInfo, $"gen_{mapId}_{p.PlayerName}", completedTasks),
+                    ImagePaths = new List<string>(p.ImagePaths),
+                    Steps = new List<StrategyStep>()
+                };
+                for (int i = 0; i < p.Steps.Count; i++)
+                {
+                    var step = p.Steps[i];
+                    ep.Steps.Add(new StrategyStep
+                    {
+                        StartWave = step.StartWave,
+                        EndWave = step.EndWave,
+                        Instruction = ApplyCheckboxStatesToText(step.Instruction, $"{mapId}_{p.PlayerName}_{i}", completedTasks),
+                        ImagePaths = new List<string>(step.ImagePaths)
+                    });
+                }
+                exportMap.Players.Add(ep);
             }
 
             return exportMap;

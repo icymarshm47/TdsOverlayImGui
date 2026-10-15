@@ -23,6 +23,7 @@ namespace TdsOverlayImGui.UI.Views
             }
 
             var currentMap = ctx.CurrentMap;
+            currentMap.EnsureDefaultPlayer();
             string mapTaskId = currentMap.TaskId;
 
             if (!ctx.Settings.EnableOcr)
@@ -37,10 +38,10 @@ namespace TdsOverlayImGui.UI.Views
             ctx.UpdateStepByWaveNumber(currentMap, activeWave);
 
             int maxWave = 40;
-            if (currentMap.Steps.Count > 0)
+            if (currentMap.CurrentPlayer.Steps.Count > 0)
             {
                 int stepEndMax = 0;
-                foreach (var step in currentMap.Steps)
+                foreach (var step in currentMap.CurrentPlayer.Steps)
                 {
                     if (step.EndWave > stepEndMax) stepEndMax = step.EndWave;
                 }
@@ -73,7 +74,7 @@ namespace TdsOverlayImGui.UI.Views
 
             ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 2.0f));
             ImGui.SetNextItemWidth(availW);
-            string previewText = currentMap.DisplayName;
+            string previewText = $"{currentMap.DisplayName}  ➜  {currentMap.CurrentPlayer.PlayerName}";
             if (ImGui.BeginCombo("##ActiveStratCombo", previewText))
             {
                 ImGui.SetNextItemWidth(-1);
@@ -82,37 +83,87 @@ namespace TdsOverlayImGui.UI.Views
 
                 for (int i = 0; i < ctx.Strategies.Count; i++)
                 {
-                    string displayName = ctx.Strategies[i].DisplayName;
+                    var strat = ctx.Strategies[i];
+                    strat.EnsureDefaultPlayer();
+
+                    string stratName = strat.DisplayName;
                     if (!string.IsNullOrWhiteSpace(ctx.StrategySearchFilter) &&
-                        !displayName.Contains(ctx.StrategySearchFilter, StringComparison.OrdinalIgnoreCase))
+                        !stratName.Contains(ctx.StrategySearchFilter, StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
 
-                    bool isSelected = (ctx.SelectedMapIndex == i);
-                    if (ImGui.Selectable(displayName, isSelected))
+                    InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), stratName);
+
+                    for (int pIdx = 0; pIdx < strat.Players.Count; pIdx++)
                     {
-                        if (ctx.SelectedMapIndex != i)
+                        var player = strat.Players[pIdx];
+                        bool isSelected = (ctx.SelectedMapIndex == i && strat.SelectedPlayerIndex == pIdx);
+                        if (ImGui.Selectable($"  - {player.PlayerName}##strat_{i}_p_{pIdx}", isSelected))
                         {
-                            ImageViewer.ClearLoadedTextures(overlay);
+                            if (ctx.SelectedMapIndex != i || strat.SelectedPlayerIndex != pIdx)
+                            {
+                                ImageViewer.ClearLoadedTextures(overlay);
+                            }
+                            ctx.SelectedMapIndex = i;
+                            strat.SelectedPlayerIndex = pIdx;
+                            ctx.CurrentStepIndex = 0;
+                            ctx.CurrentImageIndex = 0;
+                            ctx.IsEditing = false;
+                            ctx.TriggeredDjAlerts.Clear();
+                            ctx.TriggeredOcrSounds.Clear();
+                            ctx.PreviousWaveNumber = 1;
+                            ctx.ResetImageTransform();
                         }
-                        ctx.SelectedMapIndex = i;
-                        ctx.CurrentStepIndex = 0;
-                        ctx.CurrentImageIndex = 0;
-                        ctx.IsEditing = false;
-                        ctx.TriggeredDjAlerts.Clear();
-                        ctx.TriggeredOcrSounds.Clear();
-                        ctx.PreviousWaveNumber = 1;
-                        ctx.ResetImageTransform();
+
+                        if (isSelected)
+                        {
+                            ImGui.SetItemDefaultFocus();
+                        }
                     }
 
-                    if (isSelected)
+                    if (i < ctx.Strategies.Count - 1)
                     {
-                        ImGui.SetItemDefaultFocus();
+                        ImGui.Separator();
                     }
                 }
 
                 ImGui.EndCombo();
+            }
+
+            if (currentMap.Players.Count > 1)
+            {
+                ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 3.0f));
+                InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), $"{Loc.Tr("SelectPlayer")}:");
+                ImGui.SameLine();
+                for (int pIdx = 0; pIdx < currentMap.Players.Count; pIdx++)
+                {
+                    var p = currentMap.Players[pIdx];
+                    bool isCurrent = (currentMap.SelectedPlayerIndex == pIdx);
+                    if (isCurrent)
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(88f / 255f, 101f / 255f, 242f / 255f, 1.0f));
+                    }
+                    if (ImGui.SmallButton($"{p.PlayerName}##quickPlayer_{pIdx}"))
+                    {
+                        if (currentMap.SelectedPlayerIndex != pIdx)
+                        {
+                            ImageViewer.ClearLoadedTextures(overlay);
+                            currentMap.SelectedPlayerIndex = pIdx;
+                            ctx.CurrentStepIndex = 0;
+                            ctx.CurrentImageIndex = 0;
+                            ctx.ResetImageTransform();
+                        }
+                    }
+                    if (isCurrent)
+                    {
+                        ImGui.PopStyleColor();
+                    }
+                    if (pIdx < currentMap.Players.Count - 1)
+                    {
+                        ImGui.SameLine();
+                    }
+                }
             }
 
             ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 4.0f));
@@ -233,16 +284,17 @@ namespace TdsOverlayImGui.UI.Views
                     AudioService.CheckAndTriggerAlertsForWave(ctx, ctx.CurrentWaveNumber);
                 }
             }
+            float alpha = ImGui.GetStyle().Alpha;
             bool isPrevHovered = ImGui.IsItemHovered();
             uint prevBg = ImGui.ColorConvertFloat4ToU32(isPrevHovered
-                ? new Vector4(71f / 255f, 74f / 255f, 81f / 255f, 1.0f)
-                : new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f));
+                ? new Vector4(71f / 255f, 74f / 255f, 81f / 255f, alpha)
+                : new Vector4(56f / 255f, 58f / 255f, 64f / 255f, alpha));
             drawList.AddRectFilled(rowStart, new Vector2(rowStart.X + btnSize, rowStart.Y + btnSize), prevBg, 4.0f);
             drawList.AddTriangleFilled(
                 new Vector2(rowStart.X + 9.0f, rowStart.Y + btnSize * 0.5f),
                 new Vector2(rowStart.X + 18.0f, rowStart.Y + btnSize * 0.5f - 5.0f),
                 new Vector2(rowStart.X + 18.0f, rowStart.Y + btnSize * 0.5f + 5.0f),
-                0xFFFFFFFF);
+                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, alpha)));
 
             float textStartX = contentX + btnSize + 10.0f;
             float baselineY = rowStart.Y + (btnSize - ImGui.GetTextLineHeight()) * 0.5f;
@@ -303,19 +355,20 @@ namespace TdsOverlayImGui.UI.Views
             }
             bool isNextHovered = ImGui.IsItemHovered();
             uint nextBg = ImGui.ColorConvertFloat4ToU32(isNextHovered
-                ? new Vector4(71f / 255f, 74f / 255f, 81f / 255f, 1.0f)
-                : new Vector4(56f / 255f, 58f / 255f, 64f / 255f, 1.0f));
+                ? new Vector4(71f / 255f, 74f / 255f, 81f / 255f, alpha)
+                : new Vector4(56f / 255f, 58f / 255f, 64f / 255f, alpha));
             drawList.AddRectFilled(new Vector2(nextBtnX, rowStart.Y), new Vector2(nextBtnX + btnSize, rowStart.Y + btnSize), nextBg, 4.0f);
             drawList.AddTriangleFilled(
                 new Vector2(nextBtnX + btnSize - 9.0f, rowStart.Y + btnSize * 0.5f),
                 new Vector2(nextBtnX + btnSize - 18.0f, rowStart.Y + btnSize * 0.5f - 5.0f),
                 new Vector2(nextBtnX + btnSize - 18.0f, rowStart.Y + btnSize * 0.5f + 5.0f),
-                0xFFFFFFFF);
+                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, alpha)));
 
-            if (currentMap.Steps.Count > 0)
+            var activePlayer = currentMap.CurrentPlayer;
+            if (activePlayer.Steps.Count > 0)
             {
                 string stepLabel = $"{Loc.Tr("Step")} {ctx.CurrentStepIndex + 1}";
-                string stepTotal = $"/ {currentMap.Steps.Count}";
+                string stepTotal = $"/ {activePlayer.Steps.Count}";
                 float stepLabelW = ImGui.CalcTextSize(stepLabel).X;
                 float stepTotalW = ImGui.CalcTextSize(stepTotal).X;
                 float stepBlockW = stepLabelW + 6.0f + stepTotalW;
@@ -353,11 +406,12 @@ namespace TdsOverlayImGui.UI.Views
             float startY = ImGui.GetCursorScreenPos().Y + 3.0f;
             ImGui.SetCursorScreenPos(new Vector2(contentX, startY));
 
-            string[] lines = string.IsNullOrWhiteSpace(currentMap.GeneralInfo)
+            var activePlayer = currentMap.CurrentPlayer;
+            string[] lines = string.IsNullOrWhiteSpace(activePlayer.GeneralInfo)
                 ? Array.Empty<string>()
-                : currentMap.GeneralInfo.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+                : activePlayer.GeneralInfo.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
-            string cacheKey = $"gen_{mapTaskId}_{currentMap.GeneralInfo?.GetHashCode() ?? 0}_{(int)Math.Round(availW)}";
+            string cacheKey = $"gen_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{activePlayer.GeneralInfo?.GetHashCode() ?? 0}_{(int)Math.Round(availW)}";
             if (!_cardHeightCache.TryGetValue(cacheKey, out float cardH))
             {
                 cardH = EstimateCardHeight(lines, availW, false);
@@ -382,7 +436,7 @@ namespace TdsOverlayImGui.UI.Views
                 for (int lineIdx = 0; lineIdx < lines.Length; lineIdx++)
                 {
                     string rawLine = lines[lineIdx];
-                    string taskKey = $"gen_{mapTaskId}_{lineIdx}";
+                    string taskKey = $"gen_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{lineIdx}";
                     InstructionRenderer.RenderInstructionLine(ctx, rawLine, activeWave, taskKey);
                 }
             }
@@ -416,19 +470,21 @@ namespace TdsOverlayImGui.UI.Views
             float startY = ImGui.GetCursorScreenPos().Y + 3.0f;
             ImGui.SetCursorScreenPos(new Vector2(contentX, startY));
 
-            if (currentMap.Steps.Count == 0)
+            var activePlayer = currentMap.CurrentPlayer;
+            if (activePlayer.Steps.Count == 0)
             {
                 ImGui.Text(Loc.Tr("NoStepsNotice"));
                 if (ImGui.Button(Loc.Tr("AddDefaultStepBtn"), new Vector2(availW, 0)))
                 {
-                    currentMap.Steps.Add(new StrategyStep { StartWave = 1, EndWave = 30, Instruction = "..." });
+                    activePlayer.Steps.Add(new StrategyStep { StartWave = 1, EndWave = 30, Instruction = "..." });
+                    currentMap.Steps = new List<StrategyStep>(activePlayer.Steps);
                     StrategyService.SaveStrategy(currentMap);
                 }
                 return;
             }
 
-            ctx.CurrentStepIndex = Math.Clamp(ctx.CurrentStepIndex, 0, currentMap.Steps.Count - 1);
-            var step = currentMap.Steps[ctx.CurrentStepIndex];
+            ctx.CurrentStepIndex = Math.Clamp(ctx.CurrentStepIndex, 0, activePlayer.Steps.Count - 1);
+            var step = activePlayer.Steps[ctx.CurrentStepIndex];
 
             string copyText = Loc.Tr("CopyInstruction");
             string clearText = Loc.Tr("ClearChecks");
@@ -468,10 +524,10 @@ namespace TdsOverlayImGui.UI.Views
                 ? Array.Empty<string>()
                 : step.Instruction.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
-            string cacheKey = $"step_{mapTaskId}_{ctx.CurrentStepIndex}_{step.Instruction?.GetHashCode() ?? 0}_{(int)Math.Round(availW)}";
+            string cacheKey = $"step_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{ctx.CurrentStepIndex}_{step.Instruction?.GetHashCode() ?? 0}_{(int)Math.Round(availW)}";
             if (!_cardHeightCache.TryGetValue(cacheKey, out float cardH))
             {
-                cardH = EstimateCardHeight(lines, availW, currentMap.ImagePaths.Count > 0);
+                cardH = EstimateCardHeight(lines, availW, activePlayer.ImagePaths.Count > 0);
             }
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f));
@@ -493,24 +549,24 @@ namespace TdsOverlayImGui.UI.Views
                 for (int lineIdx = 0; lineIdx < lines.Length; lineIdx++)
                 {
                     string rawLine = lines[lineIdx];
-                    string taskKey = $"{mapTaskId}_{ctx.CurrentStepIndex}_{lineIdx}";
+                    string taskKey = $"{mapTaskId}_{currentMap.SelectedPlayerIndex}_{ctx.CurrentStepIndex}_{lineIdx}";
                     InstructionRenderer.RenderInstructionLine(ctx, rawLine, activeWave, taskKey);
                 }
             }
 
-            if (currentMap.ImagePaths.Count > 0)
+            if (activePlayer.ImagePaths.Count > 0)
             {
                 ImGui.Spacing();
                 if (!ctx.IsSeparateImageWindowOpen)
                 {
-                    if (ImGui.SmallButton($"{Loc.Tr("SeparateImageNotice")} ({currentMap.ImagePaths.Count})"))
+                    if (ImGui.SmallButton($"{Loc.Tr("SeparateImageNotice")} ({activePlayer.ImagePaths.Count})"))
                     {
                         ctx.IsSeparateImageWindowOpen = true;
                     }
                 }
                 else
                 {
-                    InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), $"{Loc.Tr("SeparateImageNotice")} ({currentMap.ImagePaths.Count})");
+                    InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), $"{Loc.Tr("SeparateImageNotice")} ({activePlayer.ImagePaths.Count})");
                 }
             }
 
@@ -577,6 +633,7 @@ namespace TdsOverlayImGui.UI.Views
             Vector2 winPos = ImGui.GetWindowPos();
             float cursorY = ImGui.GetCursorScreenPos().Y;
             var drawList = ImGui.GetWindowDrawList();
+            float alpha = ImGui.GetStyle().Alpha;
 
             ImGui.SetCursorScreenPos(new Vector2(winPos.X, cursorY));
             ImGui.InvisibleButton($"##SecHeaderBtn_{id}", new Vector2(winW, headerH));
@@ -587,14 +644,14 @@ namespace TdsOverlayImGui.UI.Views
             }
 
             uint bgCol = ImGui.ColorConvertFloat4ToU32(isHovered
-                ? new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f)
-                : new Vector4(35f / 255f, 36f / 255f, 40f / 255f, 1.0f));
+                ? new Vector4(43f / 255f, 45f / 255f, 49f / 255f, alpha)
+                : new Vector4(35f / 255f, 36f / 255f, 40f / 255f, alpha));
 
             drawList.AddRectFilled(new Vector2(winPos.X, cursorY), new Vector2(winPos.X + winW, cursorY + headerH), bgCol, 0.0f);
 
             float centerY = cursorY + headerH * 0.5f;
             float arrowLeftX = winPos.X + 14.0f;
-            uint arrowCol = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f));
+            uint arrowCol = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f * alpha));
 
             if (isOpen)
             {
@@ -613,7 +670,8 @@ namespace TdsOverlayImGui.UI.Views
 
             float textX = winPos.X + 28.0f;
             float textY = cursorY + (headerH - ImGui.GetTextLineHeight()) * 0.5f;
-            drawList.AddText(new Vector2(textX, textY), 0xFFFFFFFF, title.ToUpperInvariant());
+            uint textCol = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, alpha));
+            drawList.AddText(new Vector2(textX, textY), textCol, title.ToUpperInvariant());
 
             return isOpen;
         }

@@ -36,32 +36,44 @@ namespace TdsOverlayImGui.UI.Components
             }
         }
 
-        public static string? GetActiveImagePath(OverlayContext ctx, MapStrategy map)
+        public static string? GetActiveImagePath(OverlayContext ctx, PlayerStrategy player)
         {
-            if (map.ImagePaths.Count == 0) return null;
-            if (ctx.CurrentImageIndex >= map.ImagePaths.Count) ctx.CurrentImageIndex = 0;
-            return map.ImagePaths[ctx.CurrentImageIndex];
+            if (player.ImagePaths.Count == 0) return null;
+            if (ctx.CurrentImageIndex >= player.ImagePaths.Count) ctx.CurrentImageIndex = 0;
+            return player.ImagePaths[ctx.CurrentImageIndex];
         }
 
-        public static void RenderImageSelector(OverlayContext ctx, MapStrategy map)
+        public static string? GetActiveImagePath(OverlayContext ctx, MapStrategy map)
         {
-            if (map.ImagePaths.Count <= 1) return;
+            map.EnsureDefaultPlayer();
+            return GetActiveImagePath(ctx, map.CurrentPlayer);
+        }
+
+        public static void RenderImageSelector(OverlayContext ctx, PlayerStrategy player)
+        {
+            if (player.ImagePaths.Count <= 1) return;
 
             if (ImGui.Button(Loc.Tr("PrevPhoto")))
             {
-                ctx.CurrentImageIndex = (ctx.CurrentImageIndex - 1 + map.ImagePaths.Count) % map.ImagePaths.Count;
+                ctx.CurrentImageIndex = (ctx.CurrentImageIndex - 1 + player.ImagePaths.Count) % player.ImagePaths.Count;
                 ctx.ResetImageTransform();
             }
 
             ImGui.SameLine();
-            ImGui.TextDisabled(string.Format(Loc.Tr("PhotoCount"), ctx.CurrentImageIndex + 1, map.ImagePaths.Count));
+            ImGui.TextDisabled(string.Format(Loc.Tr("PhotoCount"), ctx.CurrentImageIndex + 1, player.ImagePaths.Count));
             ImGui.SameLine();
 
             if (ImGui.Button(Loc.Tr("NextPhoto")))
             {
-                ctx.CurrentImageIndex = (ctx.CurrentImageIndex + 1) % map.ImagePaths.Count;
+                ctx.CurrentImageIndex = (ctx.CurrentImageIndex + 1) % player.ImagePaths.Count;
                 ctx.ResetImageTransform();
             }
+        }
+
+        public static void RenderImageSelector(OverlayContext ctx, MapStrategy map)
+        {
+            map.EnsureDefaultPlayer();
+            RenderImageSelector(ctx, map.CurrentPlayer);
         }
 
         public static float DrawHeightResizeHandle(OverlayContext ctx, float currentHeight, float minH, float maxH, string id)
@@ -186,9 +198,13 @@ namespace TdsOverlayImGui.UI.Components
         public static void RenderSeparateImageWindow(TdsImGuiOverlay overlay, OverlayContext ctx)
         {
             var currentMap = ctx.CurrentMap;
-            if (currentMap == null || currentMap.ImagePaths.Count == 0 || !ctx.IsSeparateImageWindowOpen) return;
+            if (currentMap == null || !ctx.IsSeparateImageWindowOpen) return;
 
-            string? activeImage = GetActiveImagePath(ctx, currentMap);
+            currentMap.EnsureDefaultPlayer();
+            var activePlayer = currentMap.CurrentPlayer;
+            if (activePlayer.ImagePaths.Count == 0) return;
+
+            string? activeImage = GetActiveImagePath(ctx, activePlayer);
             if (string.IsNullOrWhiteSpace(activeImage) || !File.Exists(activeImage)) return;
 
             var wc = new ImGuiWindowClass();
@@ -205,7 +221,7 @@ namespace TdsOverlayImGui.UI.Components
 
             overlay.RenderCustomTitleBar(Loc.Tr("SeparateImageTitle"), isMainWindow: false, popupSuffix: "_img");
 
-            RenderImageSelector(ctx, currentMap);
+            RenderImageSelector(ctx, activePlayer);
             float availH = Math.Max(120, ImGui.GetContentRegionAvail().Y - 26);
             RenderImageCanvas(overlay, ctx, activeImage, availH, $"SeparateCanvas_{ctx.CurrentImageIndex}", enableResizeGrip: false);
 

@@ -7,6 +7,7 @@ namespace TdsOverlayImGui.UI.Views
     {
         public static void RenderAll(TdsImGuiOverlay overlay, OverlayContext ctx)
         {
+            ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 1.0f);
             if (ctx.ShowAddMapModal) RenderAddMapModal(ctx);
             if (ctx.ShowImportExportModal) RenderImportExportModal(overlay, ctx);
             if (ctx.ShowSettingsModal) RenderSettingsModal(ctx);
@@ -14,6 +15,7 @@ namespace TdsOverlayImGui.UI.Views
             if (ctx.ShowHelpModal) RenderHelpModal(ctx);
             if (ctx.ShowDeleteConfirmModal) RenderDeleteConfirmModal(overlay, ctx);
             if (ctx.ShowUpdateModal) RenderUpdateModal(ctx);
+            ImGui.PopStyleVar();
         }
 
         private static void RenderAddMapModal(OverlayContext ctx)
@@ -31,20 +33,71 @@ namespace TdsOverlayImGui.UI.Views
                 ImGui.Text($"{Loc.Tr("Difficulty")}:");
                 ImGui.InputText("##NewMapDiff", ref ctx.NewMapDiff, 256);
 
+                if (ctx.NewMapPlayerNames.Count == 0)
+                {
+                    ctx.NewMapPlayerNames.Add("Player 1");
+                }
+                ctx.NewMapSelectedPlayerIndex = Math.Clamp(ctx.NewMapSelectedPlayerIndex, 0, ctx.NewMapPlayerNames.Count - 1);
+
+                ImGui.Text($"{Loc.Tr("SelectPlayer")}:");
+                ImGui.SetNextItemWidth(200);
+                if (ImGui.BeginCombo("##NewMapPlayerCombo", ctx.NewMapPlayerNames[ctx.NewMapSelectedPlayerIndex]))
+                {
+                    for (int pIdx = 0; pIdx < ctx.NewMapPlayerNames.Count; pIdx++)
+                    {
+                        bool isSel = (ctx.NewMapSelectedPlayerIndex == pIdx);
+                        if (ImGui.Selectable(ctx.NewMapPlayerNames[pIdx], isSel))
+                        {
+                            ctx.NewMapSelectedPlayerIndex = pIdx;
+                        }
+                    }
+                    ImGui.EndCombo();
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Button("+##AddPlayerToNewMap"))
+                {
+                    string nextPlayer = $"Player {ctx.NewMapPlayerNames.Count + 1}";
+                    ctx.NewMapPlayerNames.Add(nextPlayer);
+                    ctx.NewMapSelectedPlayerIndex = ctx.NewMapPlayerNames.Count - 1;
+                }
+
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
+
                 if (ImGui.Button(Loc.Tr("Create"), new Vector2(120, 0)))
                 {
                     var map = new MapStrategy
                     {
-                        MapName = string.IsNullOrWhiteSpace(ctx.NewMapName) ? "New Map" : ctx.NewMapName,
-                        Difficulty = ctx.NewMapDiff,
-                        StrategyName = string.IsNullOrWhiteSpace(ctx.NewMapStrat) ? "Solo" : ctx.NewMapStrat,
+                        MapName = string.IsNullOrWhiteSpace(ctx.NewMapName) ? "New Map" : ctx.NewMapName.Trim(),
+                        Difficulty = string.IsNullOrWhiteSpace(ctx.NewMapDiff) ? "Normal" : ctx.NewMapDiff.Trim(),
+                        StrategyName = string.IsNullOrWhiteSpace(ctx.NewMapStrat) ? "Solo" : ctx.NewMapStrat.Trim(),
                         GeneralInfo = "",
                         ImagePaths = new(),
-                        Steps = new()
-                        {
-                            new StrategyStep { StartWave = 1, EndWave = 30, Instruction = "- [ ] First step instruction..." }
-                        }
+                        Steps = new(),
+                        Players = new()
                     };
+
+                    for (int pIdx = 0; pIdx < ctx.NewMapPlayerNames.Count; pIdx++)
+                    {
+                        string pName = ctx.NewMapPlayerNames[pIdx];
+                        map.Players.Add(new PlayerStrategy
+                        {
+                            PlayerName = pName,
+                            GeneralInfo = "",
+                            ImagePaths = new(),
+                            Steps = new()
+                            {
+                                new StrategyStep { StartWave = 1, EndWave = 30, Instruction = $"- [ ] {pName} step instruction..." }
+                            }
+                        });
+                    }
+
+                    map.SelectedPlayerIndex = ctx.NewMapSelectedPlayerIndex;
+                    map.GeneralInfo = map.CurrentPlayer.GeneralInfo;
+                    map.ImagePaths = new List<string>(map.CurrentPlayer.ImagePaths);
+                    map.Steps = new List<StrategyStep>(map.CurrentPlayer.Steps);
 
                     StrategyService.SaveStrategy(map);
                     ctx.Strategies = StrategyService.LoadStrategies();
@@ -55,6 +108,8 @@ namespace TdsOverlayImGui.UI.Views
                     ctx.NewMapName = "";
                     ctx.NewMapDiff = "Fallen";
                     ctx.NewMapStrat = "Solo";
+                    ctx.NewMapPlayerNames = new() { "Player 1" };
+                    ctx.NewMapSelectedPlayerIndex = 0;
                     ctx.ShowAddMapModal = false;
                 }
 

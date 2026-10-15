@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace TdsOverlayImGui.Services
@@ -19,73 +20,34 @@ namespace TdsOverlayImGui.Services
         {
             try
             {
-                string releasesUrl = $"https://api.github.com/repos/{owner}/{repo}/releases?per_page=15";
-                string tagsUrl = $"https://api.github.com/repos/{owner}/{repo}/tags?per_page=15";
-
                 Version? bestVersion = null;
                 string bestTag = "";
                 string bestUrl = "";
                 bool anySuccess = false;
 
-                try
+                string[] atomFeeds = new[]
                 {
-                    using var relReq = new HttpRequestMessage(HttpMethod.Get, releasesUrl);
-                    relReq.Headers.UserAgent.ParseAdd("TdsOverlayImGui");
-                    relReq.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
+                    $"https://github.com/{owner}/{repo}/tags.atom",
+                    $"https://github.com/{owner}/{repo}/releases.atom"
+                };
 
-                    using var relResp = await HttpClient.SendAsync(relReq);
-                    if (relResp.IsSuccessStatusCode)
-                    {
-                        anySuccess = true;
-                        string json = await relResp.Content.ReadAsStringAsync();
-                        using var doc = JsonDocument.Parse(json);
-                        if (doc.RootElement.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var elem in doc.RootElement.EnumerateArray())
-                            {
-                                if (elem.TryGetProperty("draft", out var draftElem) && draftElem.GetBoolean())
-                                {
-                                    continue;
-                                }
-
-                                if (elem.TryGetProperty("tag_name", out var tagElem))
-                                {
-                                    string tag = tagElem.GetString() ?? "";
-                                    var ver = ParseCleanVersion(tag);
-                                    if (ver != null && (bestVersion == null || ver > bestVersion))
-                                    {
-                                        bestVersion = ver;
-                                        bestTag = tag;
-                                        bestUrl = elem.TryGetProperty("html_url", out var uElem)
-                                            ? uElem.GetString() ?? $"https://github.com/{owner}/{repo}/releases/tag/{tag}"
-                                            : $"https://github.com/{owner}/{repo}/releases/tag/{tag}";
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                catch { }
-
-                try
+                foreach (var feedUrl in atomFeeds)
                 {
-                    using var tagsReq = new HttpRequestMessage(HttpMethod.Get, tagsUrl);
-                    tagsReq.Headers.UserAgent.ParseAdd("TdsOverlayImGui");
-                    tagsReq.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
-
-                    using var tagsResp = await HttpClient.SendAsync(tagsReq);
-                    if (tagsResp.IsSuccessStatusCode)
+                    try
                     {
-                        anySuccess = true;
-                        string json = await tagsResp.Content.ReadAsStringAsync();
-                        using var doc = JsonDocument.Parse(json);
-                        if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                        using var feedReq = new HttpRequestMessage(HttpMethod.Get, feedUrl);
+                        feedReq.Headers.UserAgent.ParseAdd("TdsOverlayImGui");
+                        using var feedResp = await HttpClient.SendAsync(feedReq);
+                        if (feedResp.IsSuccessStatusCode)
                         {
-                            foreach (var elem in doc.RootElement.EnumerateArray())
+                            anySuccess = true;
+                            string xml = await feedResp.Content.ReadAsStringAsync();
+                            var matches = Regex.Matches(xml, @"releases/tag/([^""'\s<]+)");
+                            foreach (Match match in matches)
                             {
-                                if (elem.TryGetProperty("name", out var nameElem))
+                                if (match.Groups.Count > 1)
                                 {
-                                    string tag = nameElem.GetString() ?? "";
+                                    string tag = match.Groups[1].Value;
                                     var ver = ParseCleanVersion(tag);
                                     if (ver != null && (bestVersion == null || ver > bestVersion))
                                     {
@@ -97,8 +59,87 @@ namespace TdsOverlayImGui.Services
                             }
                         }
                     }
+                    catch { }
                 }
-                catch { }
+
+                if (bestVersion == null)
+                {
+                    string releasesUrl = $"https://api.github.com/repos/{owner}/{repo}/releases?per_page=15";
+                    string tagsUrl = $"https://api.github.com/repos/{owner}/{repo}/tags?per_page=15";
+
+                    try
+                    {
+                        using var relReq = new HttpRequestMessage(HttpMethod.Get, releasesUrl);
+                        relReq.Headers.UserAgent.ParseAdd("TdsOverlayImGui");
+                        relReq.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
+
+                        using var relResp = await HttpClient.SendAsync(relReq);
+                        if (relResp.IsSuccessStatusCode)
+                        {
+                            anySuccess = true;
+                            string json = await relResp.Content.ReadAsStringAsync();
+                            using var doc = JsonDocument.Parse(json);
+                            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (var elem in doc.RootElement.EnumerateArray())
+                                {
+                                    if (elem.TryGetProperty("draft", out var draftElem) && draftElem.GetBoolean())
+                                    {
+                                        continue;
+                                    }
+
+                                    if (elem.TryGetProperty("tag_name", out var tagElem))
+                                    {
+                                        string tag = tagElem.GetString() ?? "";
+                                        var ver = ParseCleanVersion(tag);
+                                        if (ver != null && (bestVersion == null || ver > bestVersion))
+                                        {
+                                            bestVersion = ver;
+                                            bestTag = tag;
+                                            bestUrl = elem.TryGetProperty("html_url", out var uElem)
+                                                ? uElem.GetString() ?? $"https://github.com/{owner}/{repo}/releases/tag/{tag}"
+                                                : $"https://github.com/{owner}/{repo}/releases/tag/{tag}";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        using var tagsReq = new HttpRequestMessage(HttpMethod.Get, tagsUrl);
+                        tagsReq.Headers.UserAgent.ParseAdd("TdsOverlayImGui");
+                        tagsReq.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
+
+                        using var tagsResp = await HttpClient.SendAsync(tagsReq);
+                        if (tagsResp.IsSuccessStatusCode)
+                        {
+                            anySuccess = true;
+                            string json = await tagsResp.Content.ReadAsStringAsync();
+                            using var doc = JsonDocument.Parse(json);
+                            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (var elem in doc.RootElement.EnumerateArray())
+                                {
+                                    if (elem.TryGetProperty("name", out var nameElem))
+                                    {
+                                        string tag = nameElem.GetString() ?? "";
+                                        var ver = ParseCleanVersion(tag);
+                                        if (ver != null && (bestVersion == null || ver > bestVersion))
+                                        {
+                                            bestVersion = ver;
+                                            bestTag = tag;
+                                            bestUrl = $"https://github.com/{owner}/{repo}/releases/tag/{tag}";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+                }
 
                 if (!anySuccess && bestVersion == null)
                 {

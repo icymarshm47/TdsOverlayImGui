@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.7.1] 2026-10-15
+### Added
+- **Multi-Player Strategy Support**: Added player selection (`Player 1`, `Player 2`, etc.) when creating and editing strategies, allowing separate steps, notes, and placement images for each player.
+- **Player Hierarchy in Strategy Menu**: Strategies with multiple players now display as an intuitive hierarchy in the dropdown (`STRATEGY NAME` -> `- PLAYER 1` -> `- PLAYER 2`) with quick player switch pills for instant switching.
+
+### Fixed
+- **Check for Updates Rate Limiting**: Fixed update check failing with "CheckUpdatesError" by querying public GitHub Atom feeds (`tags.atom`, `releases.atom`) first, completely bypassing unauthenticated GitHub REST API 403 rate limits.
+- **Window & Text Transparency**: Fixed text and card backgrounds remaining opaque when adjusting window transparency by binding `style.Alpha` and custom vector draw lists directly to `WindowOpacity`.
+
+---
+
 ## [0.7.0] 2026-10-14
 ### Added
 - **OBS / Screen Capture Protection**: Added an option in Settings to hide the overlay from OBS, Discord, and screen capture/recording tools (using Windows `SetWindowDisplayAffinity` API with `WDA_EXCLUDEFROMCAPTURE`).
