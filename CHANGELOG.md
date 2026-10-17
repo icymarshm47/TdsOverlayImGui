@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.7.2] 2026-10-17
+### Added
+- **Stopwatch Section**: Added interactive stopwatch with Start, Pause, Resume, Reset, and Lap tracking positioned directly under Strategy Selection in Discord-dark styling.
+
+### Fixed
+- **Window Dragging Layout Stability**: Fixed jitter, flickering, and down-expansion of instructions during window movement by applying drag deltas before `ImGui.Begin` and stabilizing layout calculations.
+
+---
+
 ## [0.7.1] 2026-10-15
 ### Added
 - **Multi-Player Strategy Support**: Added player selection (`Player 1`, `Player 2`, etc.) when creating and editing strategies, allowing separate steps, notes, and placement images for each player.

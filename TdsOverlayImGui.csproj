@@ -11,7 +11,7 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>0.7.1</Version>
+    <Version>0.7.2</Version>
   </PropertyGroup>
 
   <ItemGroup>

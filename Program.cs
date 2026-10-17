@@ -71,7 +71,7 @@ namespace TdsOverlayImGui
 
         private const string GitHubOwner = "icymarshm47";
         private const string GitHubRepo = "TdsOverlayImGui";
-        public const string CurrentAppVersion = "0.7.1";
+        public const string CurrentAppVersion = "0.7.2";
 
         private readonly OverlayContext _ctx = new();
         private string _footerQuote = GetRandomQuote();
