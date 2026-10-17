@@ -29,5 +29,7 @@ strategies/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+.DS_Store
 *.log
 *.tmp
+*.dmp
