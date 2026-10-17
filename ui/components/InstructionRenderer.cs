@@ -120,13 +120,17 @@ namespace TdsOverlayImGui.UI.Components
 
                 if (isDone)
                 {
-                    string cleanLine = AudioService.AlertTagRegex.Replace(lineAfterCheck, m =>
+                    string cleanLine = lineAfterCheck;
+                    if (cleanLine.IndexOf("ocr", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        AudioService.ParseAlertMatch(m, out int startW, out int endW, out string alertType, out string innerText);
-                        return !string.IsNullOrWhiteSpace(innerText)
-                            ? innerText
-                            : GetFallbackBadge(alertType, startW, endW);
-                    });
+                        cleanLine = AudioService.AlertTagRegex.Replace(cleanLine, m =>
+                        {
+                            AudioService.ParseAlertMatch(m, out int startW, out int endW, out string alertType, out string innerText);
+                            return !string.IsNullOrWhiteSpace(innerText)
+                                ? innerText
+                                : GetFallbackBadge(alertType, startW, endW);
+                        });
+                    }
                     float maxAllowedW = Math.Max(10.0f, ImGui.GetWindowPos().X + ImGui.GetWindowWidth() - textStartPos.X - ImGui.GetStyle().WindowPadding.X);
                     float textW = Math.Min(ImGui.CalcTextSize(cleanLine).X, maxAllowedW);
                     float strikeY = textStartPos.Y + lineH * 0.5f;
@@ -157,6 +161,15 @@ namespace TdsOverlayImGui.UI.Components
 
             Vector4 normalColor = new Vector4(220f / 255f, 222f / 255f, 225f / 255f, 1.0f);
             Vector4 completedColor = new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f);
+
+            if (line.IndexOf("ocr", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                float wrapX = Math.Max(ImGui.GetCursorPosX() + 40.0f, ImGui.GetWindowWidth() - ImGui.GetStyle().WindowPadding.X);
+                ImGui.PushTextWrapPos(wrapX);
+                SafeTextColored(isDone ? completedColor : normalColor, line);
+                ImGui.PopTextWrapPos();
+                return;
+            }
 
             var matches = AudioService.AlertTagRegex.Matches(line);
             if (matches.Count == 0)

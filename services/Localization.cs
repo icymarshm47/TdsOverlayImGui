@@ -12,7 +12,19 @@ namespace TdsOverlayImGui.Services
         private static readonly Dictionary<string, Dictionary<string, string>> Languages = new(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, string> DisplayNames = new(StringComparer.OrdinalIgnoreCase);
 
-        public static string CurrentLanguage = "en";
+        private static Dictionary<string, string>? _activeLangDict;
+        private static Dictionary<string, string>? _enLangDict;
+
+        private static string _currentLanguage = "en";
+        public static string CurrentLanguage
+        {
+            get => _currentLanguage;
+            set
+            {
+                _currentLanguage = value;
+                UpdateCachedDictionaries();
+            }
+        }
 
         public static void LoadLanguages()
         {
@@ -59,6 +71,14 @@ namespace TdsOverlayImGui.Services
                 Languages["en"] = new Dictionary<string, string>();
                 DisplayNames["en"] = "English";
             }
+
+            UpdateCachedDictionaries();
+        }
+
+        private static void UpdateCachedDictionaries()
+        {
+            Languages.TryGetValue(_currentLanguage, out _activeLangDict);
+            Languages.TryGetValue("en", out _enLangDict);
         }
 
         public static List<string> GetAvailableLanguages()
@@ -75,17 +95,11 @@ namespace TdsOverlayImGui.Services
 
         public static string Tr(string key)
         {
-            if (Languages.TryGetValue(CurrentLanguage, out var dict))
-            {
-                if (dict.TryGetValue(key, out var val) && !string.IsNullOrEmpty(val))
-                    return val;
-            }
+            if (_activeLangDict != null && _activeLangDict.TryGetValue(key, out var val) && !string.IsNullOrEmpty(val))
+                return val;
 
-            if (Languages.TryGetValue("en", out var enDict))
-            {
-                if (enDict.TryGetValue(key, out var enVal) && !string.IsNullOrEmpty(enVal))
-                    return enVal;
-            }
+            if (_enLangDict != null && _enLangDict.TryGetValue(key, out var enVal) && !string.IsNullOrEmpty(enVal))
+                return enVal;
 
             return key;
         }

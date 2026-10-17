@@ -116,7 +116,13 @@ namespace TdsOverlayImGui.UI.Components
 
         public static void RenderImageCanvas(TdsImGuiOverlay overlay, OverlayContext ctx, string imagePath, float height, string canvasId, bool enableResizeGrip = false)
         {
-            if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+            if (string.IsNullOrWhiteSpace(imagePath))
+            {
+                InstructionRenderer.SafeTextColored(new Vector4(1, 0.4f, 0.4f, 1), "[Image file not found]");
+                return;
+            }
+
+            if (!LoadedTextures.Contains(imagePath) && !File.Exists(imagePath))
             {
                 InstructionRenderer.SafeTextColored(new Vector4(1, 0.4f, 0.4f, 1), "[Image file not found]");
                 return;

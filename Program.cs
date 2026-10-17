@@ -98,8 +98,15 @@ namespace TdsOverlayImGui
             _hasImageWindowPos = true;
         }
 
+        private static List<string>? _cachedQuotes;
+
         private static List<string> LoadQuotes()
         {
+            if (_cachedQuotes != null && _cachedQuotes.Count > 0)
+            {
+                return _cachedQuotes;
+            }
+
             string[] defaultQuotes = new[]
             {
                 "icymarsh",
@@ -118,7 +125,8 @@ namespace TdsOverlayImGui
                 if (!File.Exists(path))
                 {
                     File.WriteAllLines(path, defaultQuotes);
-                    return new List<string>(defaultQuotes);
+                    _cachedQuotes = new List<string>(defaultQuotes);
+                    return _cachedQuotes;
                 }
 
                 var lines = File.ReadAllLines(path);
@@ -138,12 +146,14 @@ namespace TdsOverlayImGui
 
                 if (validQuotes.Count > 0)
                 {
-                    return validQuotes;
+                    _cachedQuotes = validQuotes;
+                    return _cachedQuotes;
                 }
             }
             catch { }
 
-            return new List<string>(defaultQuotes);
+            _cachedQuotes = new List<string>(defaultQuotes);
+            return _cachedQuotes;
         }
 
         private static string GetRandomQuote()
@@ -674,10 +684,14 @@ namespace TdsOverlayImGui
             drawList.AddLine(new Vector2(gripX - 2.0f, gripY), new Vector2(gripX, gripY - 2.0f), gripCol, 1.5f);
         }
 
+        private bool _isStyleInitialized = false;
+
         private void SetupStyle()
         {
             var style = ImGui.GetStyle();
             style.Alpha = _ctx.Settings.WindowOpacity;
+            if (_isStyleInitialized) return;
+
             style.WindowRounding = 8.0f;
             style.ChildRounding = 6.0f;
             style.FrameRounding = 6.0f;
@@ -719,6 +733,7 @@ namespace TdsOverlayImGui
             colors[(int)ImGuiCol.TextDisabled] = new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f);
             colors[(int)ImGuiCol.TitleBg] = new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f);
             colors[(int)ImGuiCol.TitleBgActive] = new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f);
+            _isStyleInitialized = true;
         }
 
         public static async Task Main()

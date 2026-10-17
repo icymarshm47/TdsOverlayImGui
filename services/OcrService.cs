@@ -140,24 +140,23 @@ namespace TdsOverlayImGui.Services
             return (wave, rawText);
         }
 
-        private static void ApplyContrastBoost(Bitmap bmp)
+        private static unsafe void ApplyContrastBoost(Bitmap bmp)
         {
             var rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
             var data = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
             try
             {
                 int byteCount = Math.Abs(data.Stride) * bmp.Height;
-                byte[] pixels = new byte[byteCount];
-                Marshal.Copy(data.Scan0, pixels, 0, byteCount);
+                byte* ptr = (byte*)data.Scan0;
 
                 int minLum = 255;
                 int maxLum = 0;
 
                 for (int i = 0; i < byteCount; i += 4)
                 {
-                    int b = pixels[i];
-                    int g = pixels[i + 1];
-                    int r = pixels[i + 2];
+                    int b = ptr[i];
+                    int g = ptr[i + 1];
+                    int r = ptr[i + 2];
                     int lum = (r * 299 + g * 587 + b * 114) / 1000;
                     if (lum < minLum) minLum = lum;
                     if (lum > maxLum) maxLum = lum;
@@ -168,20 +167,18 @@ namespace TdsOverlayImGui.Services
                 {
                     for (int i = 0; i < byteCount; i += 4)
                     {
-                        int b = pixels[i];
-                        int g = pixels[i + 1];
-                        int r = pixels[i + 2];
+                        int b = ptr[i];
+                        int g = ptr[i + 1];
+                        int r = ptr[i + 2];
 
                         int lum = (r * 299 + g * 587 + b * 114) / 1000;
                         int stretched = Math.Clamp((lum - minLum) * 255 / range, 0, 255);
 
-                        pixels[i] = (byte)stretched;
-                        pixels[i + 1] = (byte)stretched;
-                        pixels[i + 2] = (byte)stretched;
-                        pixels[i + 3] = 255;
+                        ptr[i] = (byte)stretched;
+                        ptr[i + 1] = (byte)stretched;
+                        ptr[i + 2] = (byte)stretched;
+                        ptr[i + 3] = 255;
                     }
-
-                    Marshal.Copy(pixels, 0, data.Scan0, byteCount);
                 }
             }
             finally

@@ -14,6 +14,30 @@ namespace TdsOverlayImGui.UI.Views
         private static bool _isManualWaveInputActive = false;
         private static readonly Dictionary<string, float> _cardHeightCache = new();
 
+        private static string? _lastGeneralInfoRef;
+        private static string[] _cachedGeneralInfoLines = Array.Empty<string>();
+
+        private static string? _lastInstructionRef;
+        private static string[] _cachedInstructionLines = Array.Empty<string>();
+
+        private static string[] GetGeneralInfoLines(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return Array.Empty<string>();
+            if (ReferenceEquals(text, _lastGeneralInfoRef)) return _cachedGeneralInfoLines;
+            _lastGeneralInfoRef = text;
+            _cachedGeneralInfoLines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            return _cachedGeneralInfoLines;
+        }
+
+        private static string[] GetInstructionLines(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return Array.Empty<string>();
+            if (ReferenceEquals(text, _lastInstructionRef)) return _cachedInstructionLines;
+            _lastInstructionRef = text;
+            _cachedInstructionLines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            return _cachedInstructionLines;
+        }
+
         public static void Render(TdsImGuiOverlay overlay, OverlayContext ctx)
         {
             if (ctx.Strategies.Count == 0 || ctx.CurrentMap == null)
@@ -570,9 +594,7 @@ namespace TdsOverlayImGui.UI.Views
             ImGui.SetCursorScreenPos(new Vector2(contentX, startY));
 
             var activePlayer = currentMap.CurrentPlayer;
-            string[] lines = string.IsNullOrWhiteSpace(activePlayer.GeneralInfo)
-                ? Array.Empty<string>()
-                : activePlayer.GeneralInfo.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            string[] lines = GetGeneralInfoLines(activePlayer.GeneralInfo);
 
             string cacheKey = $"gen_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{activePlayer.GeneralInfo?.GetHashCode() ?? 0}";
             if (!_cardHeightCache.TryGetValue(cacheKey, out float cardH))
@@ -683,9 +705,7 @@ namespace TdsOverlayImGui.UI.Views
             float cardStartY = ImGui.GetCursorScreenPos().Y + 5.0f;
             ImGui.SetCursorScreenPos(new Vector2(contentX, cardStartY));
 
-            string[] lines = string.IsNullOrWhiteSpace(step.Instruction)
-                ? Array.Empty<string>()
-                : step.Instruction.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            string[] lines = GetInstructionLines(step.Instruction);
 
             string cacheKey = $"step_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{ctx.CurrentStepIndex}_{step.Instruction?.GetHashCode() ?? 0}";
             if (!_cardHeightCache.TryGetValue(cacheKey, out float cardH))
@@ -775,13 +795,17 @@ namespace TdsOverlayImGui.UI.Views
                         effectiveW = Math.Max(40.0f, innerW - 24.0f);
                     }
 
-                    string cleanLine = AudioService.AlertTagRegex.Replace(line, m =>
+                    string cleanLine = line;
+                    if (cleanLine.IndexOf("ocr", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        AudioService.ParseAlertMatch(m, out int startW, out int endW, out string alertType, out string innerText);
-                        return !string.IsNullOrWhiteSpace(innerText)
-                            ? innerText
-                            : InstructionRenderer.GetFallbackBadge(alertType, startW, endW);
-                    });
+                        cleanLine = AudioService.AlertTagRegex.Replace(cleanLine, m =>
+                        {
+                            AudioService.ParseAlertMatch(m, out int startW, out int endW, out string alertType, out string innerText);
+                            return !string.IsNullOrWhiteSpace(innerText)
+                                ? innerText
+                                : InstructionRenderer.GetFallbackBadge(alertType, startW, endW);
+                        });
+                    }
 
                     float textW = ImGui.CalcTextSize(cleanLine).X;
                     int wrapped = Math.Max(1, (int)Math.Ceiling(textW / effectiveW));

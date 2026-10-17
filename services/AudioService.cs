@@ -297,7 +297,7 @@ namespace TdsOverlayImGui.Services
 
         private static void ScanTextForAlerts(OverlayContext ctx, string mapTaskId, string? text, int activeWave)
         {
-            if (string.IsNullOrWhiteSpace(text)) return;
+            if (string.IsNullOrWhiteSpace(text) || text.IndexOf("ocr", StringComparison.OrdinalIgnoreCase) < 0) return;
 
             var matches = AlertTagRegex.Matches(text);
             foreach (Match match in matches)
@@ -423,7 +423,7 @@ namespace TdsOverlayImGui.Services
 
         private static void ScanActiveAlerts(string? text, int activeWave, ref bool isCommanderActive, ref bool isMedicActive)
         {
-            if (string.IsNullOrWhiteSpace(text)) return;
+            if (string.IsNullOrWhiteSpace(text) || text.IndexOf("ocr", StringComparison.OrdinalIgnoreCase) < 0) return;
 
             var matches = AlertTagRegex.Matches(text);
             foreach (Match match in matches)
