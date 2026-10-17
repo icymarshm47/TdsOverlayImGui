@@ -49,6 +49,7 @@ namespace TdsOverlayImGui.UI.Views
             }
 
             RenderSectionStrategy(overlay, ctx, currentMap);
+            RenderSectionStopwatch(ctx);
             RenderSectionScreenReader(ctx);
             RenderSectionCurrentWave(ctx, currentMap, activeWave, maxWave);
             RenderSectionGeneralInfo(ctx, currentMap, mapTaskId, activeWave);
@@ -185,6 +186,168 @@ namespace TdsOverlayImGui.UI.Views
             if (ImGui.Button(Loc.Tr("DeleteBtn"), new Vector2(btnW, 0)))
             {
                 ctx.ShowDeleteConfirmModal = true;
+            }
+
+            ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 5.0f));
+        }
+
+        private static void RenderSectionStopwatch(OverlayContext ctx)
+        {
+            bool isOpen = ctx.SectionStopwatchOpen;
+            DrawSectionHeader("Stopwatch", Loc.Tr("StopwatchHeader"), ref isOpen);
+            ctx.SectionStopwatchOpen = isOpen;
+
+            if (!isOpen) return;
+
+            float winW = ImGui.GetWindowWidth();
+            Vector2 winPos = ImGui.GetWindowPos();
+            float contentX = winPos.X + 10.0f;
+            float availW = winW - 20.0f;
+            float startY = ImGui.GetCursorScreenPos().Y + 4.0f;
+            ImGui.SetCursorScreenPos(new Vector2(contentX, startY));
+
+            TimeSpan elapsed = ctx.Stopwatch.Elapsed;
+            string timeStr = elapsed.TotalHours >= 1
+                ? string.Format("{0:D2}:{1:D2}:{2:D2}.{3:D2}", (int)elapsed.TotalHours, elapsed.Minutes, elapsed.Seconds, elapsed.Milliseconds / 10)
+                : string.Format("{0:D2}:{1:D2}.{2:D2}", elapsed.Minutes, elapsed.Seconds, elapsed.Milliseconds / 10);
+
+            float cardH = 36.0f;
+            var drawList = ImGui.GetWindowDrawList();
+            float alpha = ImGui.GetStyle().Alpha;
+
+            Vector2 cardMin = new Vector2(contentX, startY);
+            Vector2 cardMax = new Vector2(contentX + availW, startY + cardH);
+
+            uint bgCol = ImGui.ColorConvertFloat4ToU32(new Vector4(17f / 255f, 18f / 255f, 20f / 255f, alpha));
+            uint borderCol = ImGui.ColorConvertFloat4ToU32(new Vector4(43f / 255f, 45f / 255f, 49f / 255f, alpha));
+            drawList.AddRectFilled(cardMin, cardMax, bgCol, 4.0f);
+            drawList.AddRect(cardMin, cardMax, borderCol, 4.0f);
+
+            bool isRunning = ctx.Stopwatch.IsRunning;
+            uint statusDotCol = isRunning
+                ? ImGui.ColorConvertFloat4ToU32(new Vector4(35f / 255f, 165f / 255f, 90f / 255f, alpha))
+                : (elapsed.TotalMilliseconds > 0
+                    ? ImGui.ColorConvertFloat4ToU32(new Vector4(240f / 255f, 178f / 255f, 50f / 255f, alpha))
+                    : ImGui.ColorConvertFloat4ToU32(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 0.6f * alpha)));
+
+            Vector2 dotPos = new Vector2(contentX + 16.0f, startY + cardH * 0.5f);
+            drawList.AddCircleFilled(dotPos, 4.5f, statusDotCol);
+
+            Vector2 textSize = ImGui.CalcTextSize(timeStr);
+            Vector2 textPos = new Vector2(contentX + (availW - textSize.X) * 0.5f, startY + (cardH - textSize.Y) * 0.5f);
+
+            uint textCol = isRunning
+                ? ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, alpha))
+                : (elapsed.TotalMilliseconds > 0
+                    ? ImGui.ColorConvertFloat4ToU32(new Vector4(240f / 255f, 240f / 255f, 240f / 255f, 0.95f * alpha))
+                    : ImGui.ColorConvertFloat4ToU32(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 0.85f * alpha)));
+
+            drawList.AddText(textPos, textCol, timeStr);
+
+            float btnStartY = startY + cardH + 6.0f;
+            ImGui.SetCursorScreenPos(new Vector2(contentX, btnStartY));
+
+            float spacing = 6.0f;
+            float btnW = (availW - spacing * 2.0f) / 3.0f;
+            float btnH = 26.0f;
+
+            if (!isRunning)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(35f / 255f, 165f / 255f, 90f / 255f, 1.0f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(45f / 255f, 185f / 255f, 105f / 255f, 1.0f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(30f / 255f, 145f / 255f, 80f / 255f, 1.0f));
+
+                string startLabel = elapsed.TotalMilliseconds > 0 ? Loc.Tr("StopwatchResume") : Loc.Tr("StopwatchStart");
+                if (ImGui.Button($"{startLabel}##SwStart", new Vector2(btnW, btnH)))
+                {
+                    ctx.Stopwatch.Start();
+                }
+                ImGui.PopStyleColor(3);
+            }
+            else
+            {
+                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(240f / 255f, 178f / 255f, 50f / 255f, 0.9f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(254f / 255f, 195f / 255f, 65f / 255f, 1.0f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(220f / 255f, 160f / 255f, 40f / 255f, 1.0f));
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f));
+
+                if (ImGui.Button($"{Loc.Tr("StopwatchPause")}##SwPause", new Vector2(btnW, btnH)))
+                {
+                    ctx.Stopwatch.Stop();
+                }
+                ImGui.PopStyleColor(4);
+            }
+
+            ImGui.SameLine(0, spacing);
+
+            bool canReset = elapsed.TotalMilliseconds > 0 || ctx.StopwatchLaps.Count > 0;
+            if (!canReset)
+            {
+                ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.5f);
+            }
+
+            if (ImGui.Button($"{Loc.Tr("StopwatchReset")}##SwReset", new Vector2(btnW, btnH)))
+            {
+                if (canReset)
+                {
+                    ctx.Stopwatch.Reset();
+                    ctx.StopwatchLaps.Clear();
+                }
+            }
+
+            if (!canReset)
+            {
+                ImGui.PopStyleVar();
+            }
+
+            ImGui.SameLine(0, spacing);
+
+            bool canLap = isRunning || elapsed.TotalMilliseconds > 0;
+            if (!canLap)
+            {
+                ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.5f);
+            }
+
+            if (ImGui.Button($"{Loc.Tr("StopwatchLap")}##SwLap", new Vector2(btnW, btnH)))
+            {
+                if (canLap && ctx.StopwatchLaps.Count < 20)
+                {
+                    ctx.StopwatchLaps.Insert(0, elapsed);
+                }
+            }
+
+            if (!canLap)
+            {
+                ImGui.PopStyleVar();
+            }
+
+            if (ctx.StopwatchLaps.Count > 0)
+            {
+                float lapsStartY = btnStartY + btnH + 6.0f;
+                ImGui.SetCursorScreenPos(new Vector2(contentX, lapsStartY));
+                float lapAreaH = Math.Min(90.0f, ctx.StopwatchLaps.Count * 22.0f + 10.0f);
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(17f / 255f, 18f / 255f, 20f / 255f, 1.0f));
+                ImGui.PushStyleColor(ImGuiCol.Border, new Vector4(43f / 255f, 45f / 255f, 49f / 255f, 1.0f));
+                ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 4.0f);
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(8.0f, 6.0f));
+
+                if (ImGui.BeginChild("##StopwatchLapsArea", new Vector2(availW, lapAreaH), true, ImGuiWindowFlags.None))
+                {
+                    for (int i = 0; i < ctx.StopwatchLaps.Count; i++)
+                    {
+                        var lapTime = ctx.StopwatchLaps[i];
+                        int lapNum = ctx.StopwatchLaps.Count - i;
+                        string lapStr = lapTime.TotalHours >= 1
+                            ? string.Format("#{0}  {1:D2}:{2:D2}:{3:D2}.{4:D2}", lapNum, (int)lapTime.TotalHours, lapTime.Minutes, lapTime.Seconds, lapTime.Milliseconds / 10)
+                            : string.Format("#{0}  {1:D2}:{2:D2}.{3:D2}", lapNum, lapTime.Minutes, lapTime.Seconds, lapTime.Milliseconds / 10);
+
+                        InstructionRenderer.SafeTextColored(new Vector4(180f / 255f, 185f / 255f, 195f / 255f, 0.9f), lapStr);
+                    }
+                    ImGui.EndChild();
+                }
+
+                ImGui.PopStyleVar(2);
+                ImGui.PopStyleColor(2);
             }
 
             ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 5.0f));

@@ -40,10 +40,14 @@ namespace TdsOverlayImGui.UI
         public bool IsMedicChainStopped = false;
 
         public bool SectionStrategyOpen = true;
+        public bool SectionStopwatchOpen = true;
         public bool SectionScreenReaderOpen = true;
         public bool SectionCurrentWaveOpen = true;
         public bool SectionGeneralInfoOpen = true;
         public bool SectionWaveInstructionsOpen = true;
+
+        public System.Diagnostics.Stopwatch Stopwatch = new();
+        public List<TimeSpan> StopwatchLaps = new();
 
         public float MainWindowWidth = 430.0f;
         public float MainWindowHeight = 800.0f;
