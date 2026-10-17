@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NuGetAudit>false</NuGetAudit>
-    <NoWarn>NU1510</NoWarn>
+    <NoWarn>$(NoWarn);NU1510;IL2104</NoWarn>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Version>0.7.2</Version>
