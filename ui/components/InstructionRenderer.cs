@@ -120,8 +120,15 @@ namespace TdsOverlayImGui.UI.Components
 
                 if (isDone)
                 {
+                    string cleanLine = AudioService.AlertTagRegex.Replace(lineAfterCheck, m =>
+                    {
+                        AudioService.ParseAlertMatch(m, out int startW, out int endW, out string alertType, out string innerText);
+                        return !string.IsNullOrWhiteSpace(innerText)
+                            ? innerText
+                            : GetFallbackBadge(alertType, startW, endW);
+                    });
                     float maxAllowedW = Math.Max(10.0f, ImGui.GetWindowPos().X + ImGui.GetWindowWidth() - textStartPos.X - ImGui.GetStyle().WindowPadding.X);
-                    float textW = Math.Min(ImGui.CalcTextSize(lineAfterCheck).X, maxAllowedW);
+                    float textW = Math.Min(ImGui.CalcTextSize(cleanLine).X, maxAllowedW);
                     float strikeY = textStartPos.Y + lineH * 0.5f;
                     uint strikeCol = ImGui.ColorConvertFloat4ToU32(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 0.95f));
                     drawList.AddLine(new Vector2(textStartPos.X, strikeY), new Vector2(textStartPos.X + textW, strikeY), strikeCol, 1.5f);
@@ -162,16 +169,18 @@ namespace TdsOverlayImGui.UI.Components
             }
 
             float startLocalX = ImGui.GetCursorPosX();
-            float rightLimitScreen = ImGui.GetWindowPos().X + ImGui.GetWindowWidth() - ImGui.GetStyle().WindowPadding.X;
+            float maxLocalX = Math.Max(startLocalX + 40.0f, ImGui.GetWindowWidth() - ImGui.GetStyle().WindowPadding.X);
             int lastIndex = 0;
             bool isFirstOnLine = true;
+            float currentLocalX = startLocalX;
+            float pendingSpaceW = 0.0f;
 
             foreach (Match match in matches)
             {
                 if (match.Index > lastIndex)
                 {
                     string beforeText = line.Substring(lastIndex, match.Index - lastIndex);
-                    RenderFragment(beforeText, isDone ? completedColor : normalColor, startLocalX, rightLimitScreen, ref isFirstOnLine);
+                    RenderFragment(beforeText, isDone ? completedColor : normalColor, startLocalX, maxLocalX, ref isFirstOnLine, ref currentLocalX, ref pendingSpaceW);
                 }
 
                 AudioService.ParseAlertMatch(match, out int startW, out int endW, out string alertType, out string innerText);
@@ -181,14 +190,14 @@ namespace TdsOverlayImGui.UI.Components
 
                 if (isWaveActive && !isDone)
                 {
-                    RenderFragment("[WAVE!]", new Vector4(0.3f, 1.0f, 0.4f, 1.0f), startLocalX, rightLimitScreen, ref isFirstOnLine);
+                    RenderFragment("[WAVE!]", new Vector4(0.3f, 1.0f, 0.4f, 1.0f), startLocalX, maxLocalX, ref isFirstOnLine, ref currentLocalX, ref pendingSpaceW);
                 }
 
                 string displayText = !string.IsNullOrWhiteSpace(innerText)
                     ? innerText
                     : GetFallbackBadge(alertType, startW, endW);
 
-                RenderFragment(displayText, alertColor, startLocalX, rightLimitScreen, ref isFirstOnLine);
+                RenderFragment(displayText, alertColor, startLocalX, maxLocalX, ref isFirstOnLine, ref currentLocalX, ref pendingSpaceW);
 
                 lastIndex = match.Index + match.Length;
             }
@@ -196,11 +205,11 @@ namespace TdsOverlayImGui.UI.Components
             if (lastIndex < line.Length)
             {
                 string afterText = line.Substring(lastIndex);
-                RenderFragment(afterText, isDone ? completedColor : normalColor, startLocalX, rightLimitScreen, ref isFirstOnLine);
+                RenderFragment(afterText, isDone ? completedColor : normalColor, startLocalX, maxLocalX, ref isFirstOnLine, ref currentLocalX, ref pendingSpaceW);
             }
         }
 
-        private static void RenderFragment(string text, Vector4 color, float startLocalX, float rightLimitScreen, ref bool isFirstOnLine)
+        private static void RenderFragment(string text, Vector4 color, float startLocalX, float maxLocalX, ref bool isFirstOnLine, ref float currentLocalX, ref float pendingSpaceW)
         {
             if (string.IsNullOrEmpty(text)) return;
 
@@ -212,30 +221,35 @@ namespace TdsOverlayImGui.UI.Components
 
                 if (char.IsWhiteSpace(token[0]))
                 {
-                    float spaceW = ImGui.CalcTextSize(token).X;
-                    if (!isFirstOnLine)
-                    {
-                        ImGui.SameLine(0, spaceW);
-                    }
-                    else
-                    {
-                        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + spaceW);
-                    }
+                    pendingSpaceW += ImGui.CalcTextSize(token).X;
                 }
                 else
                 {
                     float wordW = ImGui.CalcTextSize(token).X;
-                    if (!isFirstOnLine)
+                    if (isFirstOnLine)
                     {
-                        float nextWordScreenRight = ImGui.GetItemRectMax().X + wordW;
-                        if (nextWordScreenRight > rightLimitScreen)
+                        ImGui.SetCursorPosX(startLocalX + pendingSpaceW);
+                        SafeTextColored(color, token);
+                        currentLocalX = startLocalX + pendingSpaceW + wordW;
+                        isFirstOnLine = false;
+                    }
+                    else
+                    {
+                        if (currentLocalX + pendingSpaceW + wordW <= maxLocalX)
+                        {
+                            ImGui.SameLine(0, pendingSpaceW);
+                            SafeTextColored(color, token);
+                            currentLocalX += pendingSpaceW + wordW;
+                        }
+                        else
                         {
                             ImGui.SetCursorPosX(startLocalX);
+                            SafeTextColored(color, token);
+                            currentLocalX = startLocalX + wordW;
                         }
                     }
 
-                    SafeTextColored(color, token);
-                    isFirstOnLine = false;
+                    pendingSpaceW = 0.0f;
                 }
             }
         }
@@ -254,7 +268,7 @@ namespace TdsOverlayImGui.UI.Components
             };
         }
 
-        private static string GetFallbackBadge(string alertType, int startW, int endW)
+        public static string GetFallbackBadge(string alertType, int startW, int endW)
         {
             string norm = AudioService.NormalizeAlertType(alertType);
             string waveLabel = startW == endW ? $"W:{startW}" : $"W:{startW}-{endW}";

@@ -411,7 +411,7 @@ namespace TdsOverlayImGui.UI.Views
                 ? Array.Empty<string>()
                 : activePlayer.GeneralInfo.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
-            string cacheKey = $"gen_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{activePlayer.GeneralInfo?.GetHashCode() ?? 0}_{(int)Math.Round(availW)}";
+            string cacheKey = $"gen_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{activePlayer.GeneralInfo?.GetHashCode() ?? 0}";
             if (!_cardHeightCache.TryGetValue(cacheKey, out float cardH))
             {
                 cardH = EstimateCardHeight(lines, availW, false);
@@ -422,7 +422,7 @@ namespace TdsOverlayImGui.UI.Views
             ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 4.0f);
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f, 8.0f));
 
-            ImGui.BeginChild("SectionGeneralInfoBody", new Vector2(availW, cardH), true);
+            ImGui.BeginChild("SectionGeneralInfoBody", new Vector2(availW, cardH), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
             if (lines.Length == 0)
             {
@@ -524,7 +524,7 @@ namespace TdsOverlayImGui.UI.Views
                 ? Array.Empty<string>()
                 : step.Instruction.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
-            string cacheKey = $"step_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{ctx.CurrentStepIndex}_{step.Instruction?.GetHashCode() ?? 0}_{(int)Math.Round(availW)}";
+            string cacheKey = $"step_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{ctx.CurrentStepIndex}_{step.Instruction?.GetHashCode() ?? 0}";
             if (!_cardHeightCache.TryGetValue(cacheKey, out float cardH))
             {
                 cardH = EstimateCardHeight(lines, availW, activePlayer.ImagePaths.Count > 0);
@@ -535,7 +535,7 @@ namespace TdsOverlayImGui.UI.Views
             ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 4.0f);
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10.0f, 8.0f));
 
-            ImGui.BeginChild("WaveInstructionsScroll", new Vector2(availW, cardH), true);
+            ImGui.BeginChild("WaveInstructionsScroll", new Vector2(availW, cardH), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
             if (lines.Length == 0)
             {
@@ -612,7 +612,15 @@ namespace TdsOverlayImGui.UI.Views
                         effectiveW = Math.Max(40.0f, innerW - 24.0f);
                     }
 
-                    float textW = ImGui.CalcTextSize(line).X;
+                    string cleanLine = AudioService.AlertTagRegex.Replace(line, m =>
+                    {
+                        AudioService.ParseAlertMatch(m, out int startW, out int endW, out string alertType, out string innerText);
+                        return !string.IsNullOrWhiteSpace(innerText)
+                            ? innerText
+                            : InstructionRenderer.GetFallbackBadge(alertType, startW, endW);
+                    });
+
+                    float textW = ImGui.CalcTextSize(cleanLine).X;
                     int wrapped = Math.Max(1, (int)Math.Ceiling(textW / effectiveW));
                     totalH += wrapped * lineH;
                 }

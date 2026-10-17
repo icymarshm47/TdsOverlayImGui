@@ -462,26 +462,29 @@ namespace TdsOverlayImGui
             if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
             {
                 Vector2 delta = ImGui.GetIO().MouseDelta;
-                if (igIsWindowDocked() != 0)
+                if (delta != Vector2.Zero)
                 {
-                    IntPtr dockNode = igGetWindowDockNode();
-                    if (dockNode != IntPtr.Zero)
+                    if (igIsWindowDocked() != 0)
                     {
-                        IntPtr rootNode = igDockNodeGetRootNode(dockNode);
-                        if (rootNode != IntPtr.Zero)
+                        IntPtr dockNode = igGetWindowDockNode();
+                        if (dockNode != IntPtr.Zero)
                         {
-                            unsafe
+                            IntPtr rootNode = igDockNodeGetRootNode(dockNode);
+                            if (rootNode != IntPtr.Zero)
                             {
-                                uint rootId = *(uint*)rootNode;
-                                Vector2 newPos = ImGui.GetWindowPos() + delta;
-                                igDockBuilderSetNodePos(rootId, newPos);
+                                unsafe
+                                {
+                                    uint rootId = *(uint*)rootNode;
+                                    Vector2 newPos = ImGui.GetWindowPos() + delta;
+                                    igDockBuilderSetNodePos(rootId, newPos);
+                                }
                             }
                         }
                     }
-                }
-                else
-                {
-                    ImGui.SetWindowPos(ImGui.GetWindowPos() + delta);
+                    else
+                    {
+                        ImGui.SetWindowPos(ImGui.GetWindowPos() + delta);
+                    }
                 }
             }
 
