@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using TdsOverlayImGui.Models;
 
 namespace TdsOverlayImGui.Services
@@ -44,25 +45,33 @@ namespace TdsOverlayImGui.Services
             }
 
             string[] files = Directory.GetFiles(localesPath, "*.json");
+            var loaded = new (string langCode, Dictionary<string, string> dict, string name)?[files.Length];
 
-            foreach (var file in files)
+            Parallel.For(0, files.Length, i =>
             {
                 try
                 {
+                    string file = files[i];
                     string langCode = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
                     string json = File.ReadAllText(file);
                     var dict = JsonSerializer.Deserialize(json, AppJsonContext.Default.DictionaryStringString);
 
                     if (dict != null)
                     {
-                        Languages[langCode] = dict;
                         string name = dict.TryGetValue("LanguageName", out var langName) ? langName : langCode.ToUpperInvariant();
-                        DisplayNames[langCode] = name;
+                        loaded[i] = (langCode, dict, name);
                     }
                 }
-                catch (Exception ex)
+                catch { }
+            });
+
+            for (int i = 0; i < loaded.Length; i++)
+            {
+                if (loaded[i].HasValue)
                 {
-                    Console.WriteLine($"Error loading locale file {file}: {ex.Message}");
+                    var item = loaded[i]!.Value;
+                    Languages[item.langCode] = item.dict;
+                    DisplayNames[item.langCode] = item.name;
                 }
             }
 

@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace TdsOverlayImGui.Services
 {
@@ -103,10 +104,21 @@ namespace TdsOverlayImGui.Services
 
             string[] files = Directory.GetFiles(FolderPath, "*.json");
 
-            foreach (var file in files)
+            if (files.Length == 0)
+            {
+                var defaultStrat = GetDefaultStrategy();
+                SaveStrategy(defaultStrat);
+                list.Add(defaultStrat);
+                return list;
+            }
+
+            var strats = new MapStrategy?[files.Length];
+
+            Parallel.For(0, files.Length, i =>
             {
                 try
                 {
+                    string file = files[i];
                     string json = File.ReadAllText(file);
                     var strat = JsonSerializer.Deserialize(json, AppJsonContext.Default.MapStrategy);
                     if (strat != null)
@@ -130,12 +142,17 @@ namespace TdsOverlayImGui.Services
                                 s.ImagePaths ??= new();
                             }
                         }
-                        list.Add(strat);
+                        strats[i] = strat;
                     }
                 }
-                catch (Exception ex)
+                catch { }
+            });
+
+            for (int i = 0; i < strats.Length; i++)
+            {
+                if (strats[i] != null)
                 {
-                    Console.WriteLine($"Error reading file {file}: {ex.Message}");
+                    list.Add(strats[i]!);
                 }
             }
 

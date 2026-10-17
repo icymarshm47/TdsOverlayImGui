@@ -74,7 +74,7 @@ namespace TdsOverlayImGui
         public const string CurrentAppVersion = "0.7.3";
 
         private readonly OverlayContext _ctx = new();
-        private string _footerQuote = GetRandomQuote();
+        private string _footerQuote = "icymarsh";
         private Vector2 _mainWindowPos;
         private bool _hasMainWindowPos;
         private Vector2 _mainDragDelta = Vector2.Zero;
@@ -177,41 +177,62 @@ namespace TdsOverlayImGui
             _footerQuote = distinctQuotes[Random.Shared.Next(distinctQuotes.Count)];
         }
 
-        public TdsImGuiOverlay() : base("TDS Strategy Overlay", true)
+        public TdsImGuiOverlay(Task<(AppSettings Settings, HashSet<string> Tasks, List<MapStrategy> Strategies, List<string> Quotes)>? preloadTask = null) : base("TDS Strategy Overlay", true)
         {
             VSync = true;
 
-            Loc.LoadLanguages();
-
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            string[] fontCandidates = new[]
+            string primaryFont = Path.Combine(baseDir, "fonts", "JetBrainsMono-Regular.ttf");
+            if (File.Exists(primaryFont))
             {
-                Path.Combine(baseDir, "fonts", "JetBrainsMono-Regular.ttf"),
-                Path.Combine(baseDir, "JetBrainsMono-Regular.ttf"),
-                Path.Combine("fonts", "JetBrainsMono-Regular.ttf"),
-                "JetBrainsMono-Regular.ttf",
-                Path.Combine(baseDir, "fonts", "Roboto-Regular.ttf"),
-                Path.Combine(baseDir, "Roboto-Regular.ttf"),
-                Path.Combine("fonts", "Roboto-Regular.ttf"),
-                "Roboto-Regular.ttf",
-                @"C:\Windows\Fonts\JetBrainsMono-Regular.ttf",
-                @"C:\Windows\Fonts\Roboto-Regular.ttf",
-                @"C:\Windows\Fonts\segoeui.ttf",
-                @"C:\Windows\Fonts\arial.ttf"
-            };
-
-            foreach (var candidate in fontCandidates)
+                ReplaceFont(primaryFont, 18, FontGlyphRangeType.Cyrillic);
+            }
+            else
             {
-                if (File.Exists(candidate))
+                string[] fallbackCandidates = new[]
                 {
-                    ReplaceFont(candidate, 18, FontGlyphRangeType.Cyrillic);
-                    break;
+                    Path.Combine(baseDir, "JetBrainsMono-Regular.ttf"),
+                    Path.Combine("fonts", "JetBrainsMono-Regular.ttf"),
+                    "JetBrainsMono-Regular.ttf",
+                    Path.Combine(baseDir, "fonts", "Roboto-Regular.ttf"),
+                    Path.Combine(baseDir, "Roboto-Regular.ttf"),
+                    Path.Combine("fonts", "Roboto-Regular.ttf"),
+                    "Roboto-Regular.ttf",
+                    @"C:\Windows\Fonts\JetBrainsMono-Regular.ttf",
+                    @"C:\Windows\Fonts\Roboto-Regular.ttf",
+                    @"C:\Windows\Fonts\segoeui.ttf",
+                    @"C:\Windows\Fonts\arial.ttf"
+                };
+
+                foreach (var candidate in fallbackCandidates)
+                {
+                    if (File.Exists(candidate))
+                    {
+                        ReplaceFont(candidate, 18, FontGlyphRangeType.Cyrillic);
+                        break;
+                    }
                 }
             }
 
-            _ctx.Settings = StrategyService.LoadSettings();
-            _ctx.Strategies = StrategyService.LoadStrategies();
-            _ctx.CompletedTasks = StrategyService.LoadCompletedTasks();
+            if (preloadTask != null)
+            {
+                var (settings, tasks, strategies, quotes) = preloadTask.GetAwaiter().GetResult();
+                _ctx.Settings = settings;
+                _ctx.CompletedTasks = tasks;
+                _ctx.Strategies = strategies;
+                if (quotes.Count > 0)
+                {
+                    _footerQuote = quotes[Random.Shared.Next(quotes.Count)];
+                }
+            }
+            else
+            {
+                Loc.LoadLanguages();
+                _ctx.Settings = StrategyService.LoadSettings();
+                _ctx.Strategies = StrategyService.LoadStrategies();
+                _ctx.CompletedTasks = StrategyService.LoadCompletedTasks();
+                _footerQuote = GetRandomQuote();
+            }
 
             if (_ctx.Strategies.Count > 0)
             {
@@ -744,7 +765,22 @@ namespace TdsOverlayImGui
             };
             try
             {
-                var overlay = new TdsImGuiOverlay();
+                var preloadTask = Task.Run(() =>
+                {
+                    var settingsTask = Task.Run(StrategyService.LoadSettings);
+                    var tasksTask = Task.Run(StrategyService.LoadCompletedTasks);
+                    var stratsTask = Task.Run(StrategyService.LoadStrategies);
+                    var localesTask = Task.Run(Loc.LoadLanguages);
+                    var quotesTask = Task.Run(LoadQuotes);
+
+                    Task.WaitAll(settingsTask, tasksTask, stratsTask, localesTask, quotesTask);
+
+                    var settings = settingsTask.Result;
+                    Loc.CurrentLanguage = settings.Language;
+                    return (settings, tasksTask.Result, stratsTask.Result, quotesTask.Result);
+                });
+
+                var overlay = new TdsImGuiOverlay(preloadTask);
                 await overlay.Run();
             }
             catch (Exception ex)
