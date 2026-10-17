@@ -207,6 +207,8 @@ namespace TdsOverlayImGui.UI.Components
             string? activeImage = GetActiveImagePath(ctx, activePlayer);
             if (string.IsNullOrWhiteSpace(activeImage) || !File.Exists(activeImage)) return;
 
+            overlay.ApplyImageWindowDragDelta();
+
             var wc = new ImGuiWindowClass();
             wc.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags.AutoHideTabBar;
             unsafe
@@ -218,6 +220,8 @@ namespace TdsOverlayImGui.UI.Components
             bool isOpen = ctx.IsSeparateImageWindowOpen;
             ImGui.Begin($"{Loc.Tr("SeparateImageTitle")}###SeparateImageWindow", ref isOpen, ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollWithMouse);
             ctx.IsSeparateImageWindowOpen = isOpen;
+
+            overlay.UpdateImageWindowPos();
 
             overlay.RenderCustomTitleBar(Loc.Tr("SeparateImageTitle"), isMainWindow: false, popupSuffix: "_img");
 

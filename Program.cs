@@ -75,6 +75,28 @@ namespace TdsOverlayImGui
 
         private readonly OverlayContext _ctx = new();
         private string _footerQuote = GetRandomQuote();
+        private Vector2 _mainWindowPos;
+        private bool _hasMainWindowPos;
+        private Vector2 _mainDragDelta = Vector2.Zero;
+        private Vector2 _imageWindowPos;
+        private bool _hasImageWindowPos;
+        private Vector2 _imageDragDelta = Vector2.Zero;
+
+        public void ApplyImageWindowDragDelta()
+        {
+            if (_hasImageWindowPos && _imageDragDelta != Vector2.Zero)
+            {
+                _imageWindowPos += _imageDragDelta;
+                ImGui.SetNextWindowPos(_imageWindowPos);
+                _imageDragDelta = Vector2.Zero;
+            }
+        }
+
+        public void UpdateImageWindowPos()
+        {
+            _imageWindowPos = ImGui.GetWindowPos();
+            _hasImageWindowPos = true;
+        }
 
         private static List<string> LoadQuotes()
         {
@@ -375,6 +397,13 @@ namespace TdsOverlayImGui
             OcrOverlayView.ProcessBackgroundOcr(_ctx);
             AudioService.ProcessPeriodicAlerts(_ctx);
 
+            if (_hasMainWindowPos && _mainDragDelta != Vector2.Zero)
+            {
+                _mainWindowPos += _mainDragDelta;
+                ImGui.SetNextWindowPos(_mainWindowPos);
+                _mainDragDelta = Vector2.Zero;
+            }
+
             var wc = new ImGuiWindowClass();
             wc.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags.AutoHideTabBar;
             unsafe
@@ -387,6 +416,9 @@ namespace TdsOverlayImGui
             bool isOpen = _ctx.IsOverlayOpen;
             ImGui.Begin("TDS Strategy Overlay (ImGui)", ref isOpen, ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
             _ctx.IsOverlayOpen = isOpen;
+
+            _mainWindowPos = ImGui.GetWindowPos();
+            _hasMainWindowPos = true;
 
             _ctx.MainWindowWidth = ImGui.GetWindowWidth();
             _ctx.MainWindowHeight = ImGui.GetWindowHeight();
@@ -483,7 +515,14 @@ namespace TdsOverlayImGui
                     }
                     else
                     {
-                        ImGui.SetWindowPos(ImGui.GetWindowPos() + delta);
+                        if (isMainWindow)
+                        {
+                            _mainDragDelta += delta;
+                        }
+                        else
+                        {
+                            _imageDragDelta += delta;
+                        }
                     }
                 }
             }
