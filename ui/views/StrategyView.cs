@@ -74,7 +74,7 @@ namespace TdsOverlayImGui.UI.Views
 
             ImGui.SetCursorScreenPos(new Vector2(contentX, ImGui.GetCursorScreenPos().Y + 2.0f));
             ImGui.SetNextItemWidth(availW);
-            string previewText = $"{currentMap.DisplayName}  ➜  {currentMap.CurrentPlayer.PlayerName}";
+            string previewText = $"{currentMap.DisplayName}  ->  {currentMap.CurrentPlayer.PlayerName}";
             if (ImGui.BeginCombo("##ActiveStratCombo", previewText))
             {
                 ImGui.SetNextItemWidth(-1);

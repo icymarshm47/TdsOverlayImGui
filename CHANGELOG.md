@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **Check for Updates Rate Limiting**: Fixed update check failing with "CheckUpdatesError" by querying public GitHub Atom feeds (`tags.atom`, `releases.atom`) first, completely bypassing unauthenticated GitHub REST API 403 rate limits.
 - **Window & Text Transparency**: Fixed text and card backgrounds remaining opaque when adjusting window transparency by binding `style.Alpha` and custom vector draw lists directly to `WindowOpacity`.
+- **Strategy Dropdown Arrow Glyph**: Replaced non-standard Unicode arrow character with ASCII `->` to prevent missing glyph question mark (`?`) in the strategy selector.
 
 ---
 
