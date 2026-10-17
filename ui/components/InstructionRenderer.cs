@@ -66,7 +66,9 @@ namespace TdsOverlayImGui.UI.Components
 
             if (hasCheckbox)
             {
-                bool isDone = ctx.CompletedTasks.Contains(taskKey) || defaultCheckedInText;
+                bool isDone = defaultCheckedInText
+                    ? !ctx.CompletedTasks.Contains($"uncheck_{taskKey}")
+                    : ctx.CompletedTasks.Contains(taskKey);
 
                 ImGui.PushID($"Task_{taskKey}");
 
@@ -79,9 +81,18 @@ namespace TdsOverlayImGui.UI.Components
                 {
                     isDone = !isDone;
                     if (isDone)
+                    {
                         ctx.CompletedTasks.Add(taskKey);
+                        ctx.CompletedTasks.Remove($"uncheck_{taskKey}");
+                    }
                     else
+                    {
                         ctx.CompletedTasks.Remove(taskKey);
+                        if (defaultCheckedInText)
+                        {
+                            ctx.CompletedTasks.Add($"uncheck_{taskKey}");
+                        }
+                    }
 
                     StrategyService.SaveCompletedTasks(ctx.CompletedTasks);
                 }

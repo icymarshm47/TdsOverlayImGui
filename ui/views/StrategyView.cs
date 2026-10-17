@@ -596,7 +596,7 @@ namespace TdsOverlayImGui.UI.Views
             var activePlayer = currentMap.CurrentPlayer;
             string[] lines = GetGeneralInfoLines(activePlayer.GeneralInfo);
 
-            string cacheKey = $"gen_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{activePlayer.GeneralInfo?.GetHashCode() ?? 0}";
+            string cacheKey = $"gen_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{(int)availW}_{activePlayer.GeneralInfo?.GetHashCode() ?? 0}";
             if (!_cardHeightCache.TryGetValue(cacheKey, out float cardH))
             {
                 cardH = EstimateCardHeight(lines, availW, false);
@@ -627,7 +627,7 @@ namespace TdsOverlayImGui.UI.Views
             }
 
             float measuredH = Math.Max(32.0f, ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y + ImGui.GetStyle().WindowPadding.Y + 2.0f);
-            if (Math.Abs(measuredH - cardH) > 1.0f)
+            if (Math.Abs(measuredH - cardH) > 4.0f)
             {
                 if (_cardHeightCache.Count > 500) _cardHeightCache.Clear();
                 _cardHeightCache[cacheKey] = measuredH;
@@ -689,7 +689,7 @@ namespace TdsOverlayImGui.UI.Views
             }
             if (ImGui.Button(clearText, new Vector2(clearW, 0)))
             {
-                ctx.CompletedTasks.RemoveWhere(k => k.StartsWith($"{mapTaskId}_") || k.StartsWith($"gen_{mapTaskId}_"));
+                ctx.CompletedTasks.RemoveWhere(k => k.StartsWith($"{mapTaskId}_") || k.StartsWith($"gen_{mapTaskId}_") || k.StartsWith($"uncheck_{mapTaskId}_") || k.StartsWith($"uncheck_gen_{mapTaskId}_"));
                 ctx.TriggeredDjAlerts.Clear();
                 ctx.TriggeredOcrSounds.Clear();
                 StrategyService.SaveCompletedTasks(ctx.CompletedTasks);
@@ -707,7 +707,7 @@ namespace TdsOverlayImGui.UI.Views
 
             string[] lines = GetInstructionLines(step.Instruction);
 
-            string cacheKey = $"step_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{ctx.CurrentStepIndex}_{step.Instruction?.GetHashCode() ?? 0}";
+            string cacheKey = $"step_{mapTaskId}_{currentMap.SelectedPlayerIndex}_{ctx.CurrentStepIndex}_{(int)availW}_{step.Instruction?.GetHashCode() ?? 0}";
             if (!_cardHeightCache.TryGetValue(cacheKey, out float cardH))
             {
                 cardH = EstimateCardHeight(lines, availW, activePlayer.ImagePaths.Count > 0);
@@ -754,7 +754,7 @@ namespace TdsOverlayImGui.UI.Views
             }
 
             float measuredH = Math.Max(36.0f, ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y + ImGui.GetStyle().WindowPadding.Y + 2.0f);
-            if (Math.Abs(measuredH - cardH) > 1.0f)
+            if (Math.Abs(measuredH - cardH) > 4.0f)
             {
                 if (_cardHeightCache.Count > 500) _cardHeightCache.Clear();
                 _cardHeightCache[cacheKey] = measuredH;
@@ -770,7 +770,8 @@ namespace TdsOverlayImGui.UI.Views
         private static float EstimateCardHeight(string[] lines, float availW, bool hasImageNotice)
         {
             float padY = 8.0f * 2.0f;
-            float lineH = ImGui.GetTextLineHeightWithSpacing();
+            float lineH = ImGui.GetTextLineHeight();
+            float itemSpacingY = ImGui.GetStyle().ItemSpacing.Y;
             float innerW = Math.Max(80.0f, availW - 20.0f);
             float totalH = padY;
 
@@ -780,22 +781,23 @@ namespace TdsOverlayImGui.UI.Views
             }
             else
             {
-                foreach (string line in lines)
+                for (int i = 0; i < lines.Length; i++)
                 {
+                    string line = lines[i];
                     if (string.IsNullOrWhiteSpace(line))
                     {
-                        totalH += lineH * 0.5f;
+                        totalH += itemSpacingY;
                         continue;
                     }
 
                     float effectiveW = innerW;
-                    string trimmed = line.TrimStart();
-                    if (trimmed.StartsWith("- [") || trimmed.StartsWith("* ["))
+                    string cleanLine = line;
+                    if (InstructionRenderer.IsCheckbox(line, out _, out string afterCheck))
                     {
                         effectiveW = Math.Max(40.0f, innerW - 24.0f);
+                        cleanLine = afterCheck;
                     }
 
-                    string cleanLine = line;
                     if (cleanLine.IndexOf("ocr", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         cleanLine = AudioService.AlertTagRegex.Replace(cleanLine, m =>
@@ -807,18 +809,22 @@ namespace TdsOverlayImGui.UI.Views
                         });
                     }
 
-                    float textW = ImGui.CalcTextSize(cleanLine).X;
-                    int wrapped = Math.Max(1, (int)Math.Ceiling(textW / effectiveW));
-                    totalH += wrapped * lineH;
+                    Vector2 size = ImGui.CalcTextSize(cleanLine, effectiveW);
+                    float h = Math.Max(lineH, size.Y);
+                    totalH += h;
+                    if (i < lines.Length - 1)
+                    {
+                        totalH += itemSpacingY;
+                    }
                 }
             }
 
             if (hasImageNotice)
             {
-                totalH += lineH + 10.0f;
+                totalH += lineH + itemSpacingY + 8.0f;
             }
 
-            return Math.Max(36.0f, totalH);
+            return Math.Max(36.0f, totalH + 2.0f);
         }
 
         public static bool DrawSectionHeader(string id, string title, ref bool isOpen)

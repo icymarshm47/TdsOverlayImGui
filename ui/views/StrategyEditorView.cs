@@ -153,7 +153,10 @@ namespace TdsOverlayImGui.UI.Views
             if (ImGui.Button(Loc.Tr("AddPhotoBtn")))
             {
                 string? picked = ImagePickerHelper.OpenImageFileDialog(ctx.Settings.AlwaysOnTop);
-                ctx.EditImagePaths.Add(picked ?? "");
+                if (!string.IsNullOrEmpty(picked))
+                {
+                    ctx.EditImagePaths.Add(picked);
+                }
             }
 
             ImGui.SameLine();
@@ -196,11 +199,17 @@ namespace TdsOverlayImGui.UI.Views
                 if (i > 0 && ImGui.SmallButton("^"))
                 {
                     (ctx.EditSteps[i - 1], ctx.EditSteps[i]) = (ctx.EditSteps[i], ctx.EditSteps[i - 1]);
+                    ImGui.EndChild();
+                    ImGui.PopID();
+                    break;
                 }
                 ImGui.SameLine();
                 if (i < ctx.EditSteps.Count - 1 && ImGui.SmallButton("v"))
                 {
                     (ctx.EditSteps[i + 1], ctx.EditSteps[i]) = (ctx.EditSteps[i], ctx.EditSteps[i + 1]);
+                    ImGui.EndChild();
+                    ImGui.PopID();
+                    break;
                 }
 
                 int start = s.StartWave;

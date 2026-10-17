@@ -211,7 +211,6 @@ namespace TdsOverlayImGui.UI.Components
             if (activePlayer.ImagePaths.Count == 0) return;
 
             string? activeImage = GetActiveImagePath(ctx, activePlayer);
-            if (string.IsNullOrWhiteSpace(activeImage) || !File.Exists(activeImage)) return;
 
             overlay.ApplyImageWindowDragDelta();
 
@@ -232,8 +231,16 @@ namespace TdsOverlayImGui.UI.Components
             overlay.RenderCustomTitleBar(Loc.Tr("SeparateImageTitle"), isMainWindow: false, popupSuffix: "_img");
 
             RenderImageSelector(ctx, activePlayer);
-            float availH = Math.Max(120, ImGui.GetContentRegionAvail().Y - 26);
-            RenderImageCanvas(overlay, ctx, activeImage, availH, $"SeparateCanvas_{ctx.CurrentImageIndex}", enableResizeGrip: false);
+
+            if (string.IsNullOrWhiteSpace(activeImage) || !File.Exists(activeImage))
+            {
+                InstructionRenderer.SafeTextColored(new Vector4(1, 0.4f, 0.4f, 1), "[Image file not found]");
+            }
+            else
+            {
+                float availH = Math.Max(120, ImGui.GetContentRegionAvail().Y - 26);
+                RenderImageCanvas(overlay, ctx, activeImage, availH, $"SeparateCanvas_{ctx.CurrentImageIndex}", enableResizeGrip: false);
+            }
 
             ImGui.End();
         }

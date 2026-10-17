@@ -183,6 +183,16 @@ namespace TdsOverlayImGui.Services
                             p.ImagePaths[i] = CopyImageToImagesFolder(p.ImagePaths[i], strategy.MapName, i + 1);
                         }
                     }
+                    foreach (var step in p.Steps)
+                    {
+                        for (int i = 0; i < step.ImagePaths.Count; i++)
+                        {
+                            if (!string.IsNullOrWhiteSpace(step.ImagePaths[i]))
+                            {
+                                step.ImagePaths[i] = CopyImageToImagesFolder(step.ImagePaths[i], strategy.MapName, i + 1);
+                            }
+                        }
+                    }
                 }
 
                 strategy.GeneralInfo = strategy.CurrentPlayer.GeneralInfo;
@@ -218,9 +228,9 @@ namespace TdsOverlayImGui.Services
                 }
 
                 string fullImagesDir = Path.GetFullPath(ImagesFolder);
-                foreach (var imgPath in strategy.ImagePaths)
+                void DeleteImgFile(string? imgPath)
                 {
-                    if (string.IsNullOrWhiteSpace(imgPath)) continue;
+                    if (string.IsNullOrWhiteSpace(imgPath)) return;
                     string fullPath = Path.GetFullPath(imgPath);
                     if (File.Exists(fullPath) && fullPath.StartsWith(fullImagesDir, StringComparison.OrdinalIgnoreCase))
                     {
@@ -229,6 +239,26 @@ namespace TdsOverlayImGui.Services
                             File.Delete(fullPath);
                         }
                         catch { }
+                    }
+                }
+
+                foreach (var imgPath in strategy.ImagePaths)
+                    DeleteImgFile(imgPath);
+
+                foreach (var step in strategy.Steps)
+                    foreach (var imgPath in step.ImagePaths)
+                        DeleteImgFile(imgPath);
+
+                if (strategy.Players != null)
+                {
+                    foreach (var p in strategy.Players)
+                    {
+                        foreach (var imgPath in p.ImagePaths)
+                            DeleteImgFile(imgPath);
+
+                        foreach (var step in p.Steps)
+                            foreach (var imgPath in step.ImagePaths)
+                                DeleteImgFile(imgPath);
                     }
                 }
             }
@@ -247,7 +277,7 @@ namespace TdsOverlayImGui.Services
                 MapName = source.MapName,
                 Difficulty = source.Difficulty,
                 StrategyName = source.StrategyName,
-                GeneralInfo = ApplyCheckboxStatesToText(source.CurrentPlayer.GeneralInfo, $"gen_{mapId}_{source.CurrentPlayer.PlayerName}", completedTasks),
+                GeneralInfo = ApplyCheckboxStatesToText(source.CurrentPlayer.GeneralInfo, $"gen_{mapId}_{source.SelectedPlayerIndex}", completedTasks),
                 ImagePaths = new List<string>(source.CurrentPlayer.ImagePaths),
                 Steps = new List<StrategyStep>(),
                 Players = new List<PlayerStrategy>()
@@ -260,17 +290,18 @@ namespace TdsOverlayImGui.Services
                 {
                     StartWave = step.StartWave,
                     EndWave = step.EndWave,
-                    Instruction = ApplyCheckboxStatesToText(step.Instruction, $"{mapId}_{source.CurrentPlayer.PlayerName}_{i}", completedTasks),
+                    Instruction = ApplyCheckboxStatesToText(step.Instruction, $"{mapId}_{source.SelectedPlayerIndex}_{i}", completedTasks),
                     ImagePaths = new List<string>(step.ImagePaths)
                 });
             }
 
-            foreach (var p in source.Players)
+            for (int pIdx = 0; pIdx < source.Players.Count; pIdx++)
             {
+                var p = source.Players[pIdx];
                 var ep = new PlayerStrategy
                 {
                     PlayerName = p.PlayerName,
-                    GeneralInfo = ApplyCheckboxStatesToText(p.GeneralInfo, $"gen_{mapId}_{p.PlayerName}", completedTasks),
+                    GeneralInfo = ApplyCheckboxStatesToText(p.GeneralInfo, $"gen_{mapId}_{pIdx}", completedTasks),
                     ImagePaths = new List<string>(p.ImagePaths),
                     Steps = new List<StrategyStep>()
                 };
@@ -281,7 +312,7 @@ namespace TdsOverlayImGui.Services
                     {
                         StartWave = step.StartWave,
                         EndWave = step.EndWave,
-                        Instruction = ApplyCheckboxStatesToText(step.Instruction, $"{mapId}_{p.PlayerName}_{i}", completedTasks),
+                        Instruction = ApplyCheckboxStatesToText(step.Instruction, $"{mapId}_{pIdx}_{i}", completedTasks),
                         ImagePaths = new List<string>(step.ImagePaths)
                     });
                 }
@@ -301,21 +332,16 @@ namespace TdsOverlayImGui.Services
                 string line = lines[lineIdx];
                 string taskKey = $"{keyPrefix}_{lineIdx}";
 
-                bool isCompleted = completedTasks.Contains(taskKey);
+                bool isUncheckedBox = UncheckedBoxRegex.IsMatch(line);
+                bool isCheckedBox = CheckedBoxRegex.IsMatch(line);
 
-                if (isCompleted)
+                if (isUncheckedBox && completedTasks.Contains(taskKey))
                 {
-                    if (UncheckedBoxRegex.IsMatch(line))
-                    {
-                        lines[lineIdx] = UncheckedBoxRegex.Replace(line, "${1}[x]");
-                    }
+                    lines[lineIdx] = UncheckedBoxRegex.Replace(line, "${1}[x]");
                 }
-                else
+                else if (isCheckedBox && completedTasks.Contains($"uncheck_{taskKey}"))
                 {
-                    if (CheckedBoxRegex.IsMatch(line))
-                    {
-                        lines[lineIdx] = CheckedBoxRegex.Replace(line, "${1}[ ]");
-                    }
+                    lines[lineIdx] = CheckedBoxRegex.Replace(line, "${1}[ ]");
                 }
             }
 
@@ -329,15 +355,16 @@ namespace TdsOverlayImGui.Services
                 if (File.Exists(zipPath))
                     File.Delete(zipPath);
 
+                strategy.EnsureDefaultPlayer();
                 var exportMap = PrepareStrategyForExport(strategy, completedTasks);
                 exportMap.ImagePaths = new List<string>();
 
                 using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
                 {
                     int imgCount = 1;
-                    foreach (var imgPath in strategy.ImagePaths)
+                    string AddImage(string imgPath)
                     {
-                        if (string.IsNullOrWhiteSpace(imgPath)) continue;
+                        if (string.IsNullOrWhiteSpace(imgPath)) return "";
 
                         string fullPath = Path.GetFullPath(imgPath);
                         if (!File.Exists(fullPath) && File.Exists(imgPath))
@@ -349,8 +376,60 @@ namespace TdsOverlayImGui.Services
                             string zipRelativePath = $"images/img_{imgCount}{ext}";
 
                             archive.CreateEntryFromFile(fullPath, zipRelativePath);
-                            exportMap.ImagePaths.Add(zipRelativePath);
                             imgCount++;
+                            return zipRelativePath;
+                        }
+                        return "";
+                    }
+
+                    foreach (var imgPath in strategy.ImagePaths)
+                    {
+                        string rel = AddImage(imgPath);
+                        if (!string.IsNullOrEmpty(rel))
+                            exportMap.ImagePaths.Add(rel);
+                    }
+
+                    for (int sIdx = 0; sIdx < strategy.Steps.Count; sIdx++)
+                    {
+                        if (sIdx < exportMap.Steps.Count)
+                        {
+                            exportMap.Steps[sIdx].ImagePaths = new List<string>();
+                            foreach (var imgPath in strategy.Steps[sIdx].ImagePaths)
+                            {
+                                string rel = AddImage(imgPath);
+                                if (!string.IsNullOrEmpty(rel))
+                                    exportMap.Steps[sIdx].ImagePaths.Add(rel);
+                            }
+                        }
+                    }
+
+                    for (int pIdx = 0; pIdx < strategy.Players.Count; pIdx++)
+                    {
+                        if (pIdx < exportMap.Players.Count)
+                        {
+                            var srcP = strategy.Players[pIdx];
+                            var dstP = exportMap.Players[pIdx];
+                            dstP.ImagePaths = new List<string>();
+                            foreach (var imgPath in srcP.ImagePaths)
+                            {
+                                string rel = AddImage(imgPath);
+                                if (!string.IsNullOrEmpty(rel))
+                                    dstP.ImagePaths.Add(rel);
+                            }
+
+                            for (int sIdx = 0; sIdx < srcP.Steps.Count; sIdx++)
+                            {
+                                if (sIdx < dstP.Steps.Count)
+                                {
+                                    dstP.Steps[sIdx].ImagePaths = new List<string>();
+                                    foreach (var imgPath in srcP.Steps[sIdx].ImagePaths)
+                                    {
+                                        string rel = AddImage(imgPath);
+                                        if (!string.IsNullOrEmpty(rel))
+                                            dstP.Steps[sIdx].ImagePaths.Add(rel);
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -503,14 +582,12 @@ namespace TdsOverlayImGui.Services
                         }
 
                         string fullTempDir = Path.GetFullPath(tempDir);
-                        var importedImages = new List<string>();
-                        for (int i = 0; i < strat.ImagePaths.Count; i++)
+                        string ImportImage(string zipImgRelPath)
                         {
-                            string zipImgRelPath = strat.ImagePaths[i];
-                            if (string.IsNullOrWhiteSpace(zipImgRelPath)) continue;
+                            if (string.IsNullOrWhiteSpace(zipImgRelPath)) return "";
 
                             string tempImgFullPath = Path.GetFullPath(Path.Combine(tempDir, zipImgRelPath));
-                            if (!tempImgFullPath.StartsWith(fullTempDir, StringComparison.OrdinalIgnoreCase)) continue;
+                            if (!tempImgFullPath.StartsWith(fullTempDir, StringComparison.OrdinalIgnoreCase)) return "";
 
                             if (File.Exists(tempImgFullPath))
                             {
@@ -521,11 +598,62 @@ namespace TdsOverlayImGui.Services
                                 string destImgPath = Path.Combine(ImagesFolder, destImgName);
 
                                 File.Copy(tempImgFullPath, destImgPath, overwrite: true);
-                                importedImages.Add(destImgPath);
+                                return destImgPath;
+                            }
+                            return "";
+                        }
+
+                        var importedImages = new List<string>();
+                        for (int i = 0; i < strat.ImagePaths.Count; i++)
+                        {
+                            string dest = ImportImage(strat.ImagePaths[i]);
+                            if (!string.IsNullOrEmpty(dest))
+                                importedImages.Add(dest);
+                        }
+                        strat.ImagePaths = importedImages;
+
+                        foreach (var s in strat.Steps)
+                        {
+                            var stepImages = new List<string>();
+                            foreach (var img in s.ImagePaths)
+                            {
+                                string dest = ImportImage(img);
+                                if (!string.IsNullOrEmpty(dest))
+                                    stepImages.Add(dest);
+                            }
+                            s.ImagePaths = stepImages;
+                        }
+
+                        if (strat.Players != null)
+                        {
+                            foreach (var p in strat.Players)
+                            {
+                                p.ImagePaths ??= new();
+                                p.Steps ??= new();
+                                var pImages = new List<string>();
+                                foreach (var img in p.ImagePaths)
+                                {
+                                    string dest = ImportImage(img);
+                                    if (!string.IsNullOrEmpty(dest))
+                                        pImages.Add(dest);
+                                }
+                                p.ImagePaths = pImages;
+
+                                foreach (var s in p.Steps)
+                                {
+                                    s.ImagePaths ??= new();
+                                    var stepImages = new List<string>();
+                                    foreach (var img in s.ImagePaths)
+                                    {
+                                        string dest = ImportImage(img);
+                                        if (!string.IsNullOrEmpty(dest))
+                                            stepImages.Add(dest);
+                                    }
+                                    s.ImagePaths = stepImages;
+                                }
                             }
                         }
 
-                        strat.ImagePaths = importedImages;
                         SaveStrategy(strat);
 
                         statusMessage = $"Strategy '{strat.DisplayName}' successfully imported!";
@@ -565,7 +693,7 @@ namespace TdsOverlayImGui.Services
 
             if (fullSource.StartsWith(fullImagesDir, StringComparison.OrdinalIgnoreCase))
             {
-                return Path.GetRelativePath(".", sourcePath);
+                return sourcePath;
             }
 
             try

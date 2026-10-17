@@ -118,10 +118,7 @@ namespace TdsOverlayImGui.Helpers
             thread.Start();
             thread.Join();
 
-            if (restoreAlwaysOnTop)
-            {
-                TdsImGuiOverlay.SetAlwaysOnTop(true);
-            }
+            TdsImGuiOverlay.SetAlwaysOnTop(restoreAlwaysOnTop);
             return selectedPath;
         }
 
@@ -164,10 +161,7 @@ namespace TdsOverlayImGui.Helpers
             thread.Start();
             thread.Join();
 
-            if (restoreAlwaysOnTop)
-            {
-                TdsImGuiOverlay.SetAlwaysOnTop(true);
-            }
+            TdsImGuiOverlay.SetAlwaysOnTop(restoreAlwaysOnTop);
             return selectedPath;
         }
 
@@ -268,11 +262,12 @@ namespace TdsOverlayImGui.Helpers
                                 using var img = Image.FromHbitmap(hBitmap);
                                 if (img != null)
                                 {
-                                    if (!Directory.Exists("images"))
-                                        Directory.CreateDirectory("images");
+                                    string imagesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "images");
+                                    if (!Directory.Exists(imagesDir))
+                                        Directory.CreateDirectory(imagesDir);
 
                                     string cleanMap = Sanitize(mapName);
-                                    string fileName = $"images/{cleanMap}_clip_img{imgNum}_{Guid.NewGuid().ToString("N")[..6]}.png";
+                                    string fileName = Path.Combine(imagesDir, $"{cleanMap}_clip_img{imgNum}_{Guid.NewGuid().ToString("N")[..6]}.png");
                                     img.Save(fileName, ImageFormat.Png);
                                     savedPath = fileName;
                                 }

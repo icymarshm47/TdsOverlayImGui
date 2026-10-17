@@ -83,10 +83,11 @@ namespace TdsOverlayImGui.Services
             var map = ctx.CurrentMap;
             if (map != null)
             {
-                ScanActiveAlerts(map.GeneralInfo, newWave, ref isCommanderActive, ref isMedicActive);
-                for (int i = 0; i < map.Steps.Count; i++)
+                var player = map.CurrentPlayer;
+                ScanActiveAlerts(player.GeneralInfo, newWave, ref isCommanderActive, ref isMedicActive);
+                for (int i = 0; i < player.Steps.Count; i++)
                 {
-                    ScanActiveAlerts(map.Steps[i].Instruction, newWave, ref isCommanderActive, ref isMedicActive);
+                    ScanActiveAlerts(player.Steps[i].Instruction, newWave, ref isCommanderActive, ref isMedicActive);
                 }
             }
 
@@ -118,7 +119,7 @@ namespace TdsOverlayImGui.Services
                         string startWStr = key[start..dash];
                         if (int.TryParse(startWStr, out int startW))
                         {
-                            return startW > targetWave;
+                            return startW >= targetWave;
                         }
                     }
                 }
@@ -286,12 +287,15 @@ namespace TdsOverlayImGui.Services
 
             ctx.UpdateStepByWaveNumber(map, activeWave);
 
-            ScanTextForAlerts(ctx, map.TaskId, map.GeneralInfo, activeWave);
+            var player = map.CurrentPlayer;
+            string alertPrefix = $"{map.TaskId}_{map.SelectedPlayerIndex}";
 
-            for (int i = 0; i < map.Steps.Count; i++)
+            ScanTextForAlerts(ctx, alertPrefix, player.GeneralInfo, activeWave);
+
+            for (int i = 0; i < player.Steps.Count; i++)
             {
-                var s = map.Steps[i];
-                ScanTextForAlerts(ctx, map.TaskId, s.Instruction, activeWave);
+                var s = player.Steps[i];
+                ScanTextForAlerts(ctx, alertPrefix, s.Instruction, activeWave);
             }
         }
 
@@ -354,11 +358,12 @@ namespace TdsOverlayImGui.Services
             bool isCommanderActive = false;
             bool isMedicActive = false;
 
-            ScanActiveAlerts(map.GeneralInfo, activeWave, ref isCommanderActive, ref isMedicActive);
+            var player = map.CurrentPlayer;
+            ScanActiveAlerts(player.GeneralInfo, activeWave, ref isCommanderActive, ref isMedicActive);
 
-            for (int i = 0; i < map.Steps.Count; i++)
+            for (int i = 0; i < player.Steps.Count; i++)
             {
-                ScanActiveAlerts(map.Steps[i].Instruction, activeWave, ref isCommanderActive, ref isMedicActive);
+                ScanActiveAlerts(player.Steps[i].Instruction, activeWave, ref isCommanderActive, ref isMedicActive);
             }
 
             if (isCommanderActive && !ctx.IsCommanderChainStopped)
