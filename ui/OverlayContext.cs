@@ -51,6 +51,7 @@ namespace TdsOverlayImGui.UI
 
         public float MainWindowWidth = 430.0f;
         public float MainWindowHeight = 800.0f;
+        public float CurrentEffectiveOpacity = 0.96f;
         public float TextScale = 1.0f;
 
         public float DjToastTimer

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] 2026-10-17
+### Added
+- **Adaptive Window Transparency**: The overlay automatically reduces its opacity (down to 20%) when the mouse leaves the application windows, smoothly restoring full configured opacity when hovered back. Can be toggled on/off in Settings.
+
+### Changed
+- **Codebase Cleanliness**: Removed legacy code comments across all source files for a clean and maintainable codebase.
+- **Documentation Alignment**: Synchronized English and Russian documentation with updated project architecture and acknowledgments.
+
 ---
 
 ## [0.7.3] 2026-10-17

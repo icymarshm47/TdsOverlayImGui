@@ -44,6 +44,7 @@ Helps beat difficult maps (Fallen, Hardcore, Special Events) by automatically tr
 - **Placement Maps Viewer**: View placement maps embedded in the step card or in a separate detached window with smooth zooming and panning.
 - **Built-in Stopwatch**: Track total match duration, timing for specific waves, and record split laps.
 - **Ability Audio Alerts**: Timers and reminders for Commander (Call to Arms), Medic cleanse, DJ abilities, and wave transition audio cues.
+- **Adaptive Transparency**: Automatically lowers window opacity when the cursor moves away into the game, smoothly restoring full opacity when hovered back (can be toggled in settings).
 - **Stream & Screen Share Protection**: Native `SetWindowDisplayAffinity` support — the overlay is invisible to OBS Studio, Discord Screen Share, and other screen capture software.
 - **Easy Import & Export**: Full `.zip` archive support, direct Drag & Drop into the app window, and Base64 clipboard sharing.
 - **Bilingual Interface**: Instantly switch between English and Russian directly in the settings.

@@ -302,6 +302,16 @@ namespace TdsOverlayImGui.UI.Views
                 }
 
                 ImGui.Spacing();
+
+                bool adaptiveTransparency = ctx.Settings.EnableAdaptiveTransparency;
+                if (ImGui.Checkbox($"{Loc.Tr("AdaptiveTransparencySetting")}##AdaptiveTransparencyCheck", ref adaptiveTransparency))
+                {
+                    ctx.Settings.EnableAdaptiveTransparency = adaptiveTransparency;
+                    StrategyService.SaveSettings(ctx.Settings);
+                }
+                ImGui.TextDisabled(Loc.Tr("AdaptiveTransparencyDesc"));
+
+                ImGui.Spacing();
                 ImGui.Separator();
 
                 InstructionRenderer.SafeTextColored(new Vector4(0.45f, 0.52f, 1.0f, 1.0f), Loc.Tr("AlwaysOnTopSetting"));

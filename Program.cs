@@ -18,6 +18,17 @@ namespace TdsOverlayImGui
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool IsWindow(IntPtr hWnd);
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetCursorPos(out POINT lpPoint);
+
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
@@ -71,7 +82,7 @@ namespace TdsOverlayImGui
 
         private const string GitHubOwner = "icymarshm47";
         private const string GitHubRepo = "TdsOverlayImGui";
-        public const string CurrentAppVersion = "0.7.3";
+        public const string CurrentAppVersion = "0.8.0";
 
         private readonly OverlayContext _ctx = new();
         private string _footerQuote = "icymarsh";
@@ -79,6 +90,7 @@ namespace TdsOverlayImGui
         private bool _hasMainWindowPos;
         private Vector2 _mainDragDelta = Vector2.Zero;
         private Vector2 _imageWindowPos;
+        private Vector2 _imageWindowSize = new Vector2(420, 340);
         private bool _hasImageWindowPos;
         private Vector2 _imageDragDelta = Vector2.Zero;
 
@@ -95,6 +107,7 @@ namespace TdsOverlayImGui
         public void UpdateImageWindowPos()
         {
             _imageWindowPos = ImGui.GetWindowPos();
+            _imageWindowSize = ImGui.GetWindowSize();
             _hasImageWindowPos = true;
         }
 
@@ -398,10 +411,71 @@ namespace TdsOverlayImGui
             });
         }
 
+        private void UpdateAdaptiveOpacity()
+        {
+            float targetOpacity = _ctx.Settings.WindowOpacity;
+
+            if (_ctx.Settings.EnableAdaptiveTransparency)
+            {
+                float mouseX = 0;
+                float mouseY = 0;
+                if (GetCursorPos(out POINT pt))
+                {
+                    mouseX = pt.X;
+                    mouseY = pt.Y;
+                }
+                else
+                {
+                    Vector2 m = ImGui.GetMousePos();
+                    mouseX = m.X;
+                    mouseY = m.Y;
+                }
+
+                bool inMainWindow = _hasMainWindowPos &&
+                    mouseX >= _mainWindowPos.X && mouseX <= _mainWindowPos.X + _ctx.MainWindowWidth &&
+                    mouseY >= _mainWindowPos.Y && mouseY <= _mainWindowPos.Y + _ctx.MainWindowHeight;
+
+                bool inImageWindow = _ctx.IsSeparateImageWindowOpen && _hasImageWindowPos &&
+                    mouseX >= _imageWindowPos.X && mouseX <= _imageWindowPos.X + _imageWindowSize.X &&
+                    mouseY >= _imageWindowPos.Y && mouseY <= _imageWindowPos.Y + _imageWindowSize.Y;
+
+                bool hasOpenModals = _ctx.ShowSettingsModal ||
+                                     _ctx.ShowImportExportModal ||
+                                     _ctx.ShowAddMapModal ||
+                                     _ctx.ShowUpdateModal ||
+                                     _ctx.ShowDeleteConfirmModal ||
+                                     _ctx.IsSelectingOcrRegion;
+
+                bool isHovered = inMainWindow ||
+                                 inImageWindow ||
+                                 hasOpenModals ||
+                                 ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow) ||
+                                 ImGui.GetIO().WantCaptureMouse ||
+                                 ImGui.IsAnyItemActive();
+
+                if (!isHovered)
+                {
+                    targetOpacity = Math.Min(0.20f, _ctx.Settings.WindowOpacity);
+                }
+            }
+
+            float dt = ImGui.GetIO().DeltaTime;
+            if (dt > 0.0f && Math.Abs(_ctx.CurrentEffectiveOpacity - targetOpacity) > 0.002f)
+            {
+                float speed = 10.0f;
+                _ctx.CurrentEffectiveOpacity += (targetOpacity - _ctx.CurrentEffectiveOpacity) * Math.Clamp(dt * speed, 0.05f, 1.0f);
+            }
+            else
+            {
+                _ctx.CurrentEffectiveOpacity = targetOpacity;
+            }
+        }
+
         protected override void Render()
         {
             if (_ctx.IsFirstFrame)
             {
+                _ctx.CurrentEffectiveOpacity = _ctx.Settings.WindowOpacity;
                 SetAlwaysOnTop(_ctx.Settings.AlwaysOnTop);
                 if (_ctx.Settings.HideFromCapture)
                 {
@@ -424,6 +498,7 @@ namespace TdsOverlayImGui
             }
 
             ProcessDroppedFiles();
+            UpdateAdaptiveOpacity();
             SetupStyle();
             OcrOverlayView.ProcessBackgroundOcr(_ctx);
             AudioService.ProcessPeriodicAlerts(_ctx);
@@ -562,6 +637,8 @@ namespace TdsOverlayImGui
             ImGui.SetCursorScreenPos(new Vector2(startPos.X, textY));
             InstructionRenderer.SafeTextColored(new Vector4(1f, 1f, 1f, 1f), title);
 
+            float op = _ctx.CurrentEffectiveOpacity;
+
             if (isMainWindow)
             {
                 ImGui.SameLine(0, 8.0f);
@@ -571,7 +648,7 @@ namespace TdsOverlayImGui
                 drawList.AddRectFilled(
                     new Vector2(badgePos.X - 3.0f, textY - 1.0f),
                     new Vector2(badgePos.X + verSize.X + 3.0f, textY + verSize.Y + 2.0f),
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(43f / 255f, 45f / 255f, 49f / 255f, _ctx.Settings.WindowOpacity)),
+                    ImGui.ColorConvertFloat4ToU32(new Vector4(43f / 255f, 45f / 255f, 49f / 255f, op)),
                     4.0f);
                 InstructionRenderer.SafeTextColored(new Vector4(148f / 255f, 155f / 255f, 164f / 255f, 1.0f), verTag);
             }
@@ -595,14 +672,14 @@ namespace TdsOverlayImGui
             }
             bool isCloseHovered = ImGui.IsItemHovered();
             uint closeCircleCol = ImGui.ColorConvertFloat4ToU32(isCloseHovered
-                ? new Vector4(218f / 255f, 55f / 255f, 60f / 255f, _ctx.Settings.WindowOpacity)
-                : new Vector4(242f / 255f, 63f / 255f, 67f / 255f, _ctx.Settings.WindowOpacity));
+                ? new Vector4(218f / 255f, 55f / 255f, 60f / 255f, op)
+                : new Vector4(242f / 255f, 63f / 255f, 67f / 255f, op));
 
             float cX = MathF.Floor(closeBtnX + btnSize * 0.5f);
             float cY = MathF.Floor(btnY + btnSize * 0.5f);
             drawList.AddCircleFilled(new Vector2(cX, cY), 8.0f, closeCircleCol);
             float d = 3.5f;
-            uint closeXCol = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, _ctx.Settings.WindowOpacity));
+            uint closeXCol = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, op));
             drawList.AddLine(new Vector2(cX - d, cY - d), new Vector2(cX + d, cY + d), closeXCol, 1.6f);
             drawList.AddLine(new Vector2(cX + d, cY - d), new Vector2(cX - d, cY + d), closeXCol, 1.6f);
 
@@ -613,7 +690,7 @@ namespace TdsOverlayImGui
                 ImGui.OpenPopup("TitleMenuPopup" + popupSuffix);
             }
             bool isMenuHovered = ImGui.IsItemHovered();
-            uint menuLineCol = ImGui.ColorConvertFloat4ToU32(isMenuHovered ? new Vector4(1f, 1f, 1f, _ctx.Settings.WindowOpacity) : new Vector4(148f / 255f, 155f / 255f, 164f / 255f, _ctx.Settings.WindowOpacity));
+            uint menuLineCol = ImGui.ColorConvertFloat4ToU32(isMenuHovered ? new Vector4(1f, 1f, 1f, op) : new Vector4(148f / 255f, 155f / 255f, 164f / 255f, op));
             drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 4.0f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 4.0f), menuLineCol, 1.8f);
             drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 9.5f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 9.5f), menuLineCol, 1.8f);
             drawList.AddLine(new Vector2(menuBtnX + 3.0f, btnY + 15.0f), new Vector2(menuBtnX + btnSize - 3.0f, btnY + 15.0f), menuLineCol, 1.8f);
@@ -666,7 +743,7 @@ namespace TdsOverlayImGui
             float winH = ImGui.GetWindowHeight();
             Vector2 winPos = ImGui.GetWindowPos();
 
-            float op = _ctx.Settings.WindowOpacity;
+            float op = _ctx.CurrentEffectiveOpacity;
             var drawList = ImGui.GetWindowDrawList();
             Vector2 fMin = new Vector2(winPos.X, winPos.Y + winH - footerH);
             Vector2 fMax = new Vector2(winPos.X + winW, winPos.Y + winH);
@@ -710,7 +787,7 @@ namespace TdsOverlayImGui
         private void SetupStyle()
         {
             var style = ImGui.GetStyle();
-            style.Alpha = _ctx.Settings.WindowOpacity;
+            style.Alpha = _ctx.CurrentEffectiveOpacity;
             if (_isStyleInitialized) return;
 
             style.WindowRounding = 8.0f;
