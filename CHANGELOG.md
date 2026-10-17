@@ -4,12 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.7.3] 2026-10-17
+### Optimized
+- **Build Output Binary Size**: Reduced single-file executable size by ~81% (from ~77 MB down to ~14.3 MB) and memory usage by over 50% (~105 MB down from ~211 MB).
+- **Native Win32 Integration**: Completely removed heavy Windows Forms dependencies (`Microsoft.WindowsDesktop.App.WindowsForms`) in favor of native Win32 APIs (`comdlg32`, `user32`, `kernel32`) for file dialogs, clipboard management, screen metrics, and system sounds.
+- **Trimming & Source-Generated JSON**: Enabled IL Linker assembly trimming (`PublishTrimmed`, `TrimMode=partial`) and introduced compile-time source-generated `JsonSerializerContext` (`AppJsonContext`), eliminating reflection overhead and suppressing trim warnings.
+- **Simplified Build Workflow**: Embedded single-file compression and release settings directly into `TdsOverlayImGui.csproj`, streamlining publish commands.
+
+### Fixed
+- **Git Tracking of Completed Tasks**: Removed `completed_tasks.json` from git tracking cache and expanded `.gitignore` with crash dump masks (`*.dmp`, `.DS_Store`).
+
+---
+
 ## [0.7.2] 2026-10-17
 ### Added
 - **Stopwatch Section**: Added interactive stopwatch with Start, Pause, Resume, Reset, and Lap tracking positioned directly under Strategy Selection in Discord-dark styling.
-
-### Optimized
-- **Build Output Binary Size**: Reduced single-file executable size by ~81% (from ~77 MB down to ~14.3 MB) and memory usage by removing heavy Windows Forms runtime dependencies in favor of native Win32 APIs (`comdlg32`, `user32`), enabling assembly trimming (`PublishTrimmed`), disabling ReadyToRun duplication, and introducing source-generated `JsonSerializerContext`.
 
 ### Fixed
 - **Window Dragging Layout Stability**: Fixed jitter, flickering, and down-expansion of instructions during window movement by applying drag deltas before `ImGui.Begin` and stabilizing layout calculations.

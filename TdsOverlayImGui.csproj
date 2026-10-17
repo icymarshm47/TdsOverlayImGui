@@ -9,7 +9,7 @@
     <NoWarn>$(NoWarn);NU1510;IL2104</NoWarn>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>0.7.2</Version>
+    <Version>0.7.3</Version>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfContained>true</IncludeNativeLibrariesForSelfContained>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
