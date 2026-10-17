@@ -309,7 +309,6 @@ namespace TdsOverlayImGui.UI.Views
                     ctx.Settings.EnableAdaptiveTransparency = adaptiveTransparency;
                     StrategyService.SaveSettings(ctx.Settings);
                 }
-                ImGui.TextDisabled(Loc.Tr("AdaptiveTransparencyDesc"));
 
                 ImGui.Spacing();
                 ImGui.Separator();

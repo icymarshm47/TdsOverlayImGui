@@ -10,7 +10,7 @@ namespace TdsOverlayImGui.Models
         public float InstructionBoxHeight { get; set; } = 160.0f;
         public float EmbeddedImageBoxHeight { get; set; } = 220.0f;
         public float WindowOpacity { get; set; } = 0.96f;
-        public bool EnableAdaptiveTransparency { get; set; } = true;
+        public bool EnableAdaptiveTransparency { get; set; } = false;
         public string Language { get; set; } = "en";
 
         public bool EnableOcr { get; set; } = false;
