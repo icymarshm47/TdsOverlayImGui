@@ -28,7 +28,7 @@ namespace TdsOverlayImGui.Services
             try
             {
                 string json = File.ReadAllText(SettingsFilePath);
-                var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+                var settings = JsonSerializer.Deserialize(json, AppJsonContext.Default.AppSettings) ?? new AppSettings();
 
                 if (settings.Language == "0" || settings.Language.Equals("English", StringComparison.OrdinalIgnoreCase))
                     settings.Language = "en";
@@ -48,8 +48,7 @@ namespace TdsOverlayImGui.Services
         {
             try
             {
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                string json = JsonSerializer.Serialize(settings, options);
+                string json = JsonSerializer.Serialize(settings, AppJsonContext.Default.AppSettings);
                 File.WriteAllText(SettingsFilePath, json);
             }
             catch (Exception ex)
@@ -66,7 +65,7 @@ namespace TdsOverlayImGui.Services
             try
             {
                 string json = File.ReadAllText(TasksFilePath);
-                var list = JsonSerializer.Deserialize<List<string>>(json);
+                var list = JsonSerializer.Deserialize(json, AppJsonContext.Default.ListString);
                 return list != null ? new HashSet<string>(list) : new HashSet<string>();
             }
             catch
@@ -80,8 +79,7 @@ namespace TdsOverlayImGui.Services
             try
             {
                 var list = new List<string>(tasks);
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                string json = JsonSerializer.Serialize(list, options);
+                string json = JsonSerializer.Serialize(list, AppJsonContext.Default.ListString);
                 File.WriteAllText(TasksFilePath, json);
             }
             catch (Exception ex)
@@ -104,14 +102,13 @@ namespace TdsOverlayImGui.Services
             }
 
             string[] files = Directory.GetFiles(FolderPath, "*.json");
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
             foreach (var file in files)
             {
                 try
                 {
                     string json = File.ReadAllText(file);
-                    var strat = JsonSerializer.Deserialize<MapStrategy>(json, options);
+                    var strat = JsonSerializer.Deserialize(json, AppJsonContext.Default.MapStrategy);
                     if (strat != null)
                     {
                         strat.FilePath = file;
@@ -185,8 +182,7 @@ namespace TdsOverlayImGui.Services
 
                 strategy.FilePath = targetPath;
 
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                string json = JsonSerializer.Serialize(strategy, options);
+                string json = JsonSerializer.Serialize(strategy, AppJsonContext.Default.MapStrategy);
                 File.WriteAllText(targetPath, json);
             }
             catch (Exception ex)
@@ -341,8 +337,7 @@ namespace TdsOverlayImGui.Services
                         }
                     }
 
-                    var options = new JsonSerializerOptions { WriteIndented = true };
-                    string json = JsonSerializer.Serialize(exportMap, options);
+                    string json = JsonSerializer.Serialize(exportMap, AppJsonContext.Default.MapStrategy);
                     var jsonEntry = archive.CreateEntry("strategy.json");
                     using (var writer = new StreamWriter(jsonEntry.Open()))
                     {
@@ -364,8 +359,7 @@ namespace TdsOverlayImGui.Services
             var exportMap = PrepareStrategyForExport(strategy, completedTasks);
             exportMap.ImagePaths = new List<string>();
 
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            string json = JsonSerializer.Serialize(exportMap, options);
+            string json = JsonSerializer.Serialize(exportMap, AppJsonContext.Default.MapStrategy);
             byte[] bytes = Encoding.UTF8.GetBytes(json);
             return Convert.ToBase64String(bytes);
         }
@@ -401,8 +395,7 @@ namespace TdsOverlayImGui.Services
                     jsonText = trimmed;
                 }
 
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var strat = JsonSerializer.Deserialize<MapStrategy>(jsonText, options);
+                var strat = JsonSerializer.Deserialize(jsonText, AppJsonContext.Default.MapStrategy);
 
                 if (strat == null || string.IsNullOrWhiteSpace(strat.MapName))
                 {
@@ -472,8 +465,7 @@ namespace TdsOverlayImGui.Services
                         }
 
                         string jsonText = File.ReadAllText(jsonFile);
-                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                        var strat = JsonSerializer.Deserialize<MapStrategy>(jsonText, options);
+                        var strat = JsonSerializer.Deserialize(jsonText, AppJsonContext.Default.MapStrategy);
 
                         if (strat == null)
                         {

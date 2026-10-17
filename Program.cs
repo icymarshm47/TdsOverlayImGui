@@ -723,8 +723,19 @@ namespace TdsOverlayImGui
 
         public static async Task Main()
         {
-            var overlay = new TdsImGuiOverlay();
-            await overlay.Run();
+            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            {
+                File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unhandled_crash.log"), e.ExceptionObject?.ToString() ?? "Unknown unhandled error");
+            };
+            try
+            {
+                var overlay = new TdsImGuiOverlay();
+                await overlay.Run();
+            }
+            catch (Exception ex)
+            {
+                File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "startup_error.log"), ex.ToString());
+            }
         }
     }
 }

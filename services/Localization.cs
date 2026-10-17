@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using TdsOverlayImGui.Models;
 
 namespace TdsOverlayImGui.Services
 {
@@ -38,7 +39,7 @@ namespace TdsOverlayImGui.Services
                 {
                     string langCode = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
                     string json = File.ReadAllText(file);
-                    var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                    var dict = JsonSerializer.Deserialize(json, AppJsonContext.Default.DictionaryStringString);
 
                     if (dict != null)
                     {

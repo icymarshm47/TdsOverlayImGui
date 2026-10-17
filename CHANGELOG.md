@@ -8,6 +8,9 @@ All notable changes to this project will be documented in this file.
 ### Added
 - **Stopwatch Section**: Added interactive stopwatch with Start, Pause, Resume, Reset, and Lap tracking positioned directly under Strategy Selection in Discord-dark styling.
 
+### Optimized
+- **Build Output Binary Size**: Reduced single-file executable size by ~81% (from ~77 MB down to ~14.3 MB) and memory usage by removing heavy Windows Forms runtime dependencies in favor of native Win32 APIs (`comdlg32`, `user32`), enabling assembly trimming (`PublishTrimmed`), disabling ReadyToRun duplication, and introducing source-generated `JsonSerializerContext`.
+
 ### Fixed
 - **Window Dragging Layout Stability**: Fixed jitter, flickering, and down-expansion of instructions during window movement by applying drag deltas before `ImGui.Begin` and stabilizing layout calculations.
 

@@ -4,12 +4,81 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Windows.Forms;
 
 namespace TdsOverlayImGui.Helpers
 {
     public static class ImagePickerHelper
     {
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct OPENFILENAME
+        {
+            public int lStructSize;
+            public IntPtr hwndOwner;
+            public IntPtr hInstance;
+            public string? lpstrFilter;
+            public string? lpstrCustomFilter;
+            public int nMaxCustFilter;
+            public int nFilterIndex;
+            public IntPtr lpstrFile;
+            public int nMaxFile;
+            public IntPtr lpstrFileTitle;
+            public int nMaxFileTitle;
+            public string? lpstrInitialDir;
+            public string? lpstrTitle;
+            public int Flags;
+            public short nFileOffset;
+            public short nFileExtension;
+            public string? lpstrDefExt;
+            public IntPtr lCustData;
+            public IntPtr lpfnHook;
+            public string? lpTemplateName;
+            public IntPtr pvReserved;
+            public int dwReserved;
+            public int FlagsEx;
+        }
+
+        [DllImport("comdlg32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "GetOpenFileNameW")]
+        private static extern bool GetOpenFileName([In, Out] ref OPENFILENAME ofn);
+
+        [DllImport("comdlg32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "GetSaveFileNameW")]
+        private static extern bool GetSaveFileName([In, Out] ref OPENFILENAME ofn);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool OpenClipboard(IntPtr hWndNewOwner);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool CloseClipboard();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool EmptyClipboard();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr GetClipboardData(uint uFormat);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsClipboardFormatAvailable(uint format);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GlobalAlloc(uint uFlags, UIntPtr dwBytes);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GlobalLock(IntPtr hMem);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool GlobalUnlock(IntPtr hMem);
+
+        private const uint CF_BITMAP = 2;
+        private const uint CF_UNICODETEXT = 13;
+        private const uint GMEM_MOVEABLE = 0x0002;
+        private const int OFN_EXPLORER = 0x00080000;
+        private const int OFN_FILEMUSTEXIST = 0x00001000;
+        private const int OFN_PATHMUSTEXIST = 0x00000800;
+        private const int OFN_NOCHANGEDIR = 0x00000008;
+        private const int OFN_OVERWRITEPROMPT = 0x00000002;
+
         public static string? OpenImageFileDialog(bool restoreAlwaysOnTop = true)
         {
             return OpenFileDialog("Image Files (*.png;*.jpg;*.jpeg;*.webp;*.bmp)|*.png;*.jpg;*.jpeg;*.webp;*.bmp|All Files (*.*)|*.*", "png", restoreAlwaysOnTop);
@@ -23,16 +92,22 @@ namespace TdsOverlayImGui.Helpers
             {
                 try
                 {
-                    using var dlg = new OpenFileDialog
+                    var ofn = new OPENFILENAME();
+                    ofn.lStructSize = Marshal.SizeOf(ofn);
+                    ofn.lpstrFilter = filter.Replace('|', '\0') + "\0\0";
+                    ofn.lpstrDefExt = defaultExt;
+                    int maxChars = 2048;
+                    IntPtr buffer = Marshal.AllocHGlobal(maxChars * sizeof(char));
+                    Marshal.Copy(new char[maxChars], 0, buffer, maxChars);
+                    ofn.lpstrFile = buffer;
+                    ofn.nMaxFile = maxChars;
+                    ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+
+                    if (GetOpenFileName(ref ofn))
                     {
-                        Filter = filter,
-                        DefaultExt = defaultExt,
-                        CheckFileExists = true
-                    };
-                    if (dlg.ShowDialog() == DialogResult.OK)
-                    {
-                        selectedPath = dlg.FileName;
+                        selectedPath = Marshal.PtrToStringUni(buffer);
                     }
+                    Marshal.FreeHGlobal(buffer);
                 }
                 catch (Exception ex)
                 {
@@ -58,16 +133,27 @@ namespace TdsOverlayImGui.Helpers
             {
                 try
                 {
-                    using var dlg = new SaveFileDialog
+                    var ofn = new OPENFILENAME();
+                    ofn.lStructSize = Marshal.SizeOf(ofn);
+                    ofn.lpstrFilter = filter.Replace('|', '\0') + "\0\0";
+                    ofn.lpstrDefExt = defaultExt;
+                    int maxChars = 2048;
+                    IntPtr buffer = Marshal.AllocHGlobal(maxChars * sizeof(char));
+                    char[] initialChars = new char[maxChars];
+                    if (!string.IsNullOrEmpty(defaultFileName))
                     {
-                        FileName = defaultFileName,
-                        Filter = filter,
-                        DefaultExt = defaultExt
-                    };
-                    if (dlg.ShowDialog() == DialogResult.OK)
-                    {
-                        selectedPath = dlg.FileName;
+                        defaultFileName.CopyTo(0, initialChars, 0, Math.Min(defaultFileName.Length, maxChars - 1));
                     }
+                    Marshal.Copy(initialChars, 0, buffer, maxChars);
+                    ofn.lpstrFile = buffer;
+                    ofn.nMaxFile = maxChars;
+                    ofn.Flags = OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_OVERWRITEPROMPT;
+
+                    if (GetSaveFileName(ref ofn))
+                    {
+                        selectedPath = Marshal.PtrToStringUni(buffer);
+                    }
+                    Marshal.FreeHGlobal(buffer);
                 }
                 catch (Exception ex)
                 {
@@ -87,11 +173,33 @@ namespace TdsOverlayImGui.Helpers
 
         public static void SetClipboardText(string text)
         {
+            if (string.IsNullOrEmpty(text)) return;
             var thread = new Thread(() =>
             {
                 try
                 {
-                    Clipboard.SetText(text);
+                    if (!OpenClipboard(IntPtr.Zero)) return;
+                    try
+                    {
+                        EmptyClipboard();
+                        int bytesCount = (text.Length + 1) * sizeof(char);
+                        IntPtr hGlobal = GlobalAlloc(GMEM_MOVEABLE, (UIntPtr)bytesCount);
+                        if (hGlobal != IntPtr.Zero)
+                        {
+                            IntPtr target = GlobalLock(hGlobal);
+                            if (target != IntPtr.Zero)
+                            {
+                                Marshal.Copy(text.ToCharArray(), 0, target, text.Length);
+                                Marshal.WriteInt16(target + text.Length * sizeof(char), 0);
+                                GlobalUnlock(hGlobal);
+                                SetClipboardData(CF_UNICODETEXT, hGlobal);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        CloseClipboard();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -110,9 +218,24 @@ namespace TdsOverlayImGui.Helpers
             {
                 try
                 {
-                    if (Clipboard.ContainsText())
+                    if (!IsClipboardFormatAvailable(CF_UNICODETEXT)) return;
+                    if (!OpenClipboard(IntPtr.Zero)) return;
+                    try
                     {
-                        text = Clipboard.GetText();
+                        IntPtr hGlobal = GetClipboardData(CF_UNICODETEXT);
+                        if (hGlobal != IntPtr.Zero)
+                        {
+                            IntPtr target = GlobalLock(hGlobal);
+                            if (target != IntPtr.Zero)
+                            {
+                                text = Marshal.PtrToStringUni(target);
+                                GlobalUnlock(hGlobal);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        CloseClipboard();
                     }
                 }
                 catch (Exception ex)
@@ -135,19 +258,29 @@ namespace TdsOverlayImGui.Helpers
                 {
                     try
                     {
-                        if (Clipboard.ContainsImage())
+                        if (!IsClipboardFormatAvailable(CF_BITMAP)) return;
+                        if (!OpenClipboard(IntPtr.Zero)) return;
+                        try
                         {
-                            using var img = Clipboard.GetImage();
-                            if (img != null)
+                            IntPtr hBitmap = GetClipboardData(CF_BITMAP);
+                            if (hBitmap != IntPtr.Zero)
                             {
-                                if (!Directory.Exists("images"))
-                                    Directory.CreateDirectory("images");
+                                using var img = Image.FromHbitmap(hBitmap);
+                                if (img != null)
+                                {
+                                    if (!Directory.Exists("images"))
+                                        Directory.CreateDirectory("images");
 
-                                string cleanMap = Sanitize(mapName);
-                                string fileName = $"images/{cleanMap}_clip_img{imgNum}_{Guid.NewGuid().ToString("N")[..6]}.png";
-                                img.Save(fileName, ImageFormat.Png);
-                                savedPath = fileName;
+                                    string cleanMap = Sanitize(mapName);
+                                    string fileName = $"images/{cleanMap}_clip_img{imgNum}_{Guid.NewGuid().ToString("N")[..6]}.png";
+                                    img.Save(fileName, ImageFormat.Png);
+                                    savedPath = fileName;
+                                }
                             }
+                        }
+                        finally
+                        {
+                            CloseClipboard();
                         }
                     }
                     catch (Exception ex)

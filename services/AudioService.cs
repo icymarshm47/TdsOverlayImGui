@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -12,13 +13,20 @@ namespace TdsOverlayImGui.Services
             @"(?:<ocr\s+(\d+(?:-\d+)?)\s+([\w\-]+)>(.*?)</ocr(?:\s+\1\s+\2)?\s*>|\[ocr\s+(\d+(?:-\d+)?)\s+([\w\-]+)\](.*?)\[/ocr(?:\s+\4\s+\5)?\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
 
+        [DllImport("user32.dll")]
+        private static extern bool MessageBeep(uint uType);
+
         public static void PlayOcrBeep()
         {
             Task.Run(() =>
             {
                 try
                 {
-                    System.Media.SystemSounds.Exclamation.Play();
+                    if (!MessageBeep(0x00000030))
+                    {
+                        Console.Beep(880, 100);
+                        Console.Beep(1175, 180);
+                    }
                 }
                 catch
                 {
@@ -38,7 +46,11 @@ namespace TdsOverlayImGui.Services
             {
                 try
                 {
-                    System.Media.SystemSounds.Exclamation.Play();
+                    if (!MessageBeep(0x00000030))
+                    {
+                        Console.Beep(587, 100);
+                        Console.Beep(880, 200);
+                    }
                 }
                 catch
                 {

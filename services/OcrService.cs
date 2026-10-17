@@ -5,7 +5,6 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using Windows.Graphics.Imaging;
 using Windows.Media.Ocr;
 using Windows.Storage.Streams;
@@ -14,6 +13,14 @@ namespace TdsOverlayImGui.Services
 {
     public static class OcrService
     {
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
+
+        private const int SM_XVIRTUALSCREEN = 76;
+        private const int SM_YVIRTUALSCREEN = 77;
+        private const int SM_CXVIRTUALSCREEN = 78;
+        private const int SM_CYVIRTUALSCREEN = 79;
+
         private static OcrEngine? _ocrEngine;
 
         private static readonly Regex WaveWordRegex = new Regex(@"(?:wave|волна|w)[\s:.]*(\d{1,3})", RegexOptions.Compiled);
@@ -26,11 +33,14 @@ namespace TdsOverlayImGui.Services
 
             try
             {
-                var vScreen = SystemInformation.VirtualScreen;
-                int clampedX = Math.Max(vScreen.Left, x);
-                int clampedY = Math.Max(vScreen.Top, y);
-                int clampedRight = Math.Min(vScreen.Right, x + width);
-                int clampedBottom = Math.Min(vScreen.Bottom, y + height);
+                int vLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
+                int vTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
+                int vWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+                int vHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+                int clampedX = Math.Max(vLeft, x);
+                int clampedY = Math.Max(vTop, y);
+                int clampedRight = Math.Min(vLeft + vWidth, x + width);
+                int clampedBottom = Math.Min(vTop + vHeight, y + height);
                 int clampedW = clampedRight - clampedX;
                 int clampedH = clampedBottom - clampedY;
 
